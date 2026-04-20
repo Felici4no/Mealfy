@@ -44,6 +44,7 @@ const Support: React.FC = () => {
               fullWidth 
               size="large"
               icon={<MessageSquare size={20} className="text-success" />}
+              onClick={() => alert('Simulação: Lançando WhatsApp para +55 0800 000 000')}
             >
               Falar com Mealfy no WhatsApp
             </Button>
@@ -52,6 +53,7 @@ const Support: React.FC = () => {
               variant="outline" 
               fullWidth 
               icon={<Mail size={20} />}
+              onClick={() => alert('Simulação: Abrindo cliente de email (contato@mealfy.org)')}
             >
               Enviar um E-mail ao Suporte
             </Button>

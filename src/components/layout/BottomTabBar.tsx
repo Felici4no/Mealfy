@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Heart, Map, User } from 'lucide-react';
+import { Home, Heart, Map, User, MapPin } from 'lucide-react';
 import './BottomTabBar.css';
 
 const BottomTabBar: React.FC = () => {
@@ -19,6 +19,10 @@ const BottomTabBar: React.FC = () => {
       <NavLink to="/explore" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
         <Map size={24} />
         <span>Regiões</span>
+      </NavLink>
+      <NavLink to="/map" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
+        <MapPin size={24} />
+        <span>Mapa</span>
       </NavLink>
       <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
         <User size={24} />

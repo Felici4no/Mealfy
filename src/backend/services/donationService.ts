@@ -46,22 +46,29 @@ export const donationService = {
     amount: number; 
     communityId: string; 
     donorId?: string; // Optional if anonymous
+    familyId?: string; // Explicit target
     message?: string;
   }): Promise<{ donation: Donation, giftCard: GiftCard, familyAssigned: Family }> => {
     await randomDelay(1000, 2000); // Simulate transaction
     donationService.initDB();
 
-    // The user rules:
-    // 1. doação nasce na comunidade, atribui a uma família
-    // prioritize family with needs_help in that community
     const families = await familyService.getFamiliesByCommunity(payload.communityId);
-    let selectedFamily = families.find(f => f.supportStatus === 'needs_help');
+    let selectedFamily: Family | undefined;
+
+    if (payload.familyId) {
+      selectedFamily = families.find(f => f.id === payload.familyId);
+    }
+    
+    // Fallback if not specified or not found
+    if (!selectedFamily) {
+      selectedFamily = families.find(f => f.supportStatus === 'needs_help');
+    }
     
     // Fallback if everyone is supported (edge case)
     if (!selectedFamily && families.length > 0) {
       selectedFamily = families[0];
     } else if (families.length === 0) {
-      throw new Error("No families found in this community");
+      throw new Error("Todas as famílias desta comunidade já foram ajudadas!");
     }
 
     // Generate Gift Card

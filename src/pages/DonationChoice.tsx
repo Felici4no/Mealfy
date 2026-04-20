@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import CommunitySelectorModal from '../components/modals/CommunitySelectorModal';
@@ -10,7 +10,10 @@ import './DonationChoice.css';
 
 const DonationChoice: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { selectedCommunity, user } = useAppContext();
+  
+  const targetFamily = location.state?.targetFamily as any; 
   
   const [selectedAmount, setSelectedAmount] = useState<number | null>(25);
   const [isRecurrent, setIsRecurrent] = useState(false);
@@ -34,6 +37,7 @@ const DonationChoice: React.FC = () => {
         amount: selectedAmount,
         communityId: selectedCommunity.id,
         donorId: user?.id,
+        familyId: targetFamily?.id
       });
 
       // Pass the success data to the next screen via state
@@ -61,15 +65,17 @@ const DonationChoice: React.FC = () => {
             </div>
             <div className="region-info">
               <span className="region-label">Comunidade selecionada</span>
-              <span className="region-value">{selectedCommunity.name}</span>
+              <span className="region-value">{targetFamily ? `${selectedCommunity.name} (Destino Travado)` : selectedCommunity.name}</span>
             </div>
-            <button 
-              className="change-region-btn text-primary"
-              onClick={() => setIsCommunityModalOpen(true)}
-              disabled={isProcessing}
-            >
-              Alterar
-            </button>
+            {!targetFamily && (
+              <button 
+                className="change-region-btn text-primary"
+                onClick={() => setIsCommunityModalOpen(true)}
+                disabled={isProcessing}
+              >
+                Alterar
+              </button>
+            )}
           </div>
         </section>
 

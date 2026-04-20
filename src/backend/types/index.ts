@@ -50,6 +50,8 @@ export interface Family {
   supportStatus: SupportStatus;
   distanceToUser: string;
   priorityLevel: number; // 1 to 5 (highest)
+  latitude: number;
+  longitude: number;
   photoUrl?: string;
 }
 

@@ -18,7 +18,9 @@ export const mockFamilies: Family[] = [
     mainNeed: 'Alimentação básica para crianças',
     supportStatus: 'needs_help',
     distanceToUser: '1.2 km',
-    priorityLevel: 5
+    priorityLevel: 5,
+    latitude: -23.6151,
+    longitude: -46.5912
   },
   {
     id: 'f2',
@@ -38,7 +40,9 @@ export const mockFamilies: Family[] = [
     mainNeed: 'Reforço alimentar nutricional',
     supportStatus: 'needs_help',
     distanceToUser: '1.4 km',
-    priorityLevel: 4
+    priorityLevel: 4,
+    latitude: -23.6180,
+    longitude: -46.5940
   },
   {
     id: 'f3',
@@ -58,7 +62,9 @@ export const mockFamilies: Family[] = [
     mainNeed: 'Alimentação completa',
     supportStatus: 'needs_help',
     distanceToUser: '8.1 km',
-    priorityLevel: 4
+    priorityLevel: 4,
+    latitude: -23.5855,
+    longitude: -46.4011
   },
   {
     id: 'f4',
@@ -76,6 +82,8 @@ export const mockFamilies: Family[] = [
     mainNeed: 'Leite e suplementos',
     supportStatus: 'supported',
     distanceToUser: '3.6 km',
-    priorityLevel: 2
+    priorityLevel: 2,
+    latitude: -23.6145,
+    longitude: -46.7289
   }
 ];

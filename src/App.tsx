@@ -10,6 +10,7 @@ import Success from './pages/Success';
 import Explore from './pages/Explore';
 import Profile from './pages/Profile';
 import CommunityDetails from './pages/CommunityDetails';
+import MapView from './pages/MapView';
 import FamilyDetails from './pages/FamilyDetails';
 import BigDonation from './pages/BigDonation';
 import Support from './pages/Support';
@@ -78,6 +79,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Explore />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/map" 
+              element={
+                <PrivateRoute>
+                  <MapView />
                 </PrivateRoute>
               } 
             />

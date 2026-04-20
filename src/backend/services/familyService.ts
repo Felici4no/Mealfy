@@ -7,7 +7,9 @@ const FAMILIES_KEY = 'families_db';
 
 export const familyService = {
   initDB: () => {
-    if (!storage.get(FAMILIES_KEY, null)) {
+    const existing = storage.get<Family[]>(FAMILIES_KEY, null as any);
+    // If DB is empty OR the first family is missing the latitude property (meaning it's the old schema)
+    if (!existing || (existing.length > 0 && existing[0].latitude === undefined)) {
       storage.set(FAMILIES_KEY, mockFamilies);
     }
   },
