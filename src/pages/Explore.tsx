@@ -2,38 +2,18 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
+import { useAppContext } from '../context/AppContext';
 import { Search, MapPin, Users, AlertCircle } from 'lucide-react';
 import './Explore.css';
 
 const Explore: React.FC = () => {
   const navigate = useNavigate();
+  const { communities, setSelectedCommunity } = useAppContext();
 
-  const communities = [
-    {
-      id: 1,
-      name: 'Jardim das Violetas',
-      distance: '2.5 km',
-      families: 124,
-      priority: 'Alta urgência',
-      urgencyColor: 'error'
-    },
-    {
-      id: 2,
-      name: 'Vila Esperança',
-      distance: '4.1 km',
-      families: 89,
-      priority: 'Atenção',
-      urgencyColor: 'warning'
-    },
-    {
-      id: 3,
-      name: 'Comunidade do Sol',
-      distance: '6.8 km',
-      families: 210,
-      priority: 'Estável',
-      urgencyColor: 'success'
-    }
-  ];
+  const handleHelpRegion = (community: any) => {
+    setSelectedCommunity(community);
+    navigate('/donate');
+  };
 
   return (
     <div className="explore-page">
@@ -79,7 +59,7 @@ const Explore: React.FC = () => {
               <Button 
                 variant="outline" 
                 fullWidth 
-                onClick={() => navigate('/donate')}
+                onClick={() => handleHelpRegion(item)}
                 className="help-btn"
               >
                 Ajudar esta região

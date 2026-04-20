@@ -2,22 +2,36 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
+import CommunitySelectorModal from '../components/modals/CommunitySelectorModal';
+import { useAppContext } from '../context/AppContext';
 import { MapPin, Info } from 'lucide-react';
 import './DonationChoice.css';
 
 const DonationChoice: React.FC = () => {
   const navigate = useNavigate();
+  const { selectedCommunity, isAuthenticated } = useAppContext();
+  
   const [selectedAmount, setSelectedAmount] = useState<number | null>(25);
   const [isRecurrent, setIsRecurrent] = useState(false);
+  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
 
   const amounts = [
     { value: 25, impact: '1 dia de alimentação para uma criança' },
     { value: 40, impact: 'Apoio ampliado para duas crianças' },
   ];
 
+  const handleContinue = () => {
+    // If not authenticated, we could prompt login, OR go straight to success as a guest checkout since they can do anonymous donation
+    navigate('/success');
+  };
+
   return (
     <div className="donation-choice-page">
-      <AppHeader title="Doação" showBack />
+      <AppHeader title="Doação" showBack onBack={() => {
+        // Se visitante, voltar para auth se lá foi de onde veio? 
+        // O router lida bem. Se veio de Auth e clica back, vai pra Auth.
+        navigate(-1);
+      }} />
       
       <main className="content p-4">
         <h1 className="page-title text-primary mb-2">Escolha como deseja ajudar</h1>
@@ -30,9 +44,14 @@ const DonationChoice: React.FC = () => {
             </div>
             <div className="region-info">
               <span className="region-label">Comunidade selecionada</span>
-              <span className="region-value">Jardim das Violetas (Proximidade)</span>
+              <span className="region-value">{selectedCommunity.name} (Próximo)</span>
             </div>
-            <button className="change-region-btn text-primary">Alterar</button>
+            <button 
+              className="change-region-btn text-primary"
+              onClick={() => setIsCommunityModalOpen(true)}
+            >
+              Alterar
+            </button>
           </div>
         </section>
 
@@ -89,12 +108,17 @@ const DonationChoice: React.FC = () => {
         <Button 
           size="large" 
           fullWidth 
-          onClick={() => navigate('/auth')}
+          onClick={handleContinue}
           className="shadow-glow"
         >
           {selectedAmount ? `Continuar com R$ ${selectedAmount}` : 'Continuar'}
         </Button>
       </div>
+
+      <CommunitySelectorModal 
+        isOpen={isCommunityModalOpen} 
+        onClose={() => setIsCommunityModalOpen(false)} 
+      />
     </div>
   );
 };

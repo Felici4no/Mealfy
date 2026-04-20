@@ -1,22 +1,35 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import AppHeader from '../components/layout/AppHeader';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { Smartphone } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
 import './Auth.css';
 
 const Auth: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, isAuthenticated } = useAppContext();
+
+  // If already authenticated, go to Home
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = () => {
-    // Navigate to success after login
-    navigate('/success');
+    login(); // Sets global auth state to true
+    // Route to where they came from or Home
+    const from = location.state?.from?.pathname || '/';
+    navigate(from, { replace: true });
+  };
+
+  const handleAnonymous = () => {
+    navigate('/donate');
   };
 
   return (
     <div className="auth-page">
-      <AppHeader showBack />
-      
       <main className="content p-4 flex-col justify-center auth-content">
         <div className="auth-header text-center mb-8">
           <div className="logo-placeholder mb-2">Mealfy</div>
@@ -65,7 +78,7 @@ const Auth: React.FC = () => {
           </p>
           <button 
             className="skip-auth-btn text-primary"
-            onClick={handleLogin}
+            onClick={handleAnonymous}
           >
             Pular e doar como anônimo
           </button>

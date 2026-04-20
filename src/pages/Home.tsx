@@ -2,10 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
+import { useAppContext } from '../context/AppContext';
 import './Home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { selectedCommunity } = useAppContext();
 
   return (
     <div className="home-page">
@@ -21,7 +23,7 @@ const Home: React.FC = () => {
         <div className="hero-content">
           <h1 className="hero-headline">Doe hoje.<br/>Alimente uma criança.</h1>
           <p className="hero-subtext">
-            Sua doação se transforma rapidamente em refeições quentes para famílias em situação de vulnerabilidade.
+            Sua doação para {selectedCommunity.name} se transforma rapidamente em refeições quentes para famílias em situação de vulnerabilidade.
           </p>
           
           <div className="hero-actions">
@@ -31,15 +33,16 @@ const Home: React.FC = () => {
               onClick={() => navigate('/donate')}
               className="cta-donate shadow-glow"
             >
-              Doar agora
+              Fazer uma doação
             </Button>
             <Button 
               variant="outline" 
               size="large" 
               fullWidth
+              onClick={() => navigate('/explore')}
               className="cta-secondary text-inverted border-inverted"
             >
-              Ver como funciona
+              Explorar ações na região
             </Button>
           </div>
         </div>

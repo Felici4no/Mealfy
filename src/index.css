@@ -83,10 +83,9 @@ ul {
 
 /* Utilities */
 .app-container {
-  max-width: 480px; /* Mobile width constraint for desktop previews */
-  margin: 0 auto;
-  min-height: 100vh;
-  background-color: #ffffff; /* Typically an app surface is white, wait let's use the background */
+  width: 100%;
+  min-height: 100dvh;
+  background-color: var(--color-background);
   position: relative;
   overflow-x: hidden;
   display: flex;

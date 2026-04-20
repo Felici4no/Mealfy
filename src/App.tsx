@@ -1,8 +1,8 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AppProvider, useAppContext } from './context/AppContext';
 import BottomTabBar from './components/layout/BottomTabBar';
 
-// Placeholder Pages (we will create these next)
 import Home from './pages/Home';
 import DonationChoice from './pages/DonationChoice';
 import Auth from './pages/Auth';
@@ -12,26 +12,77 @@ import Profile from './pages/Profile';
 
 import './App.css';
 
+// Component to protect private routes
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAppContext();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Global Layout wrapper
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  // We hide the bottom tab bar on certain screens (Auth, Donation, Success)
+  const hideTabBarRoutes = ['/auth', '/donate', '/success'];
+  const showTabBar = !hideTabBarRoutes.includes(location.pathname);
+
+  return (
+    <div className="app-wrapper">
+      <div className={`page-content ${showTabBar ? 'with-tab-bar' : ''}`}>
+        {children}
+      </div>
+      {showTabBar && <BottomTabBar />}
+    </div>
+  );
+};
+
 function App() {
   return (
-    <BrowserRouter>
-      <div className="app-wrapper">
-        <div className="mobile-mockup">
-          <div className="page-content">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/donate" element={<DonationChoice />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/success" element={<Success />} />
-              <Route path="/explore" element={<Explore />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-          <BottomTabBar />
-        </div>
-      </div>
-    </BrowserRouter>
+    <AppProvider>
+      <BrowserRouter>
+        <Layout>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Donation Flow - Can be accessed by anonymous */}
+            <Route path="/donate" element={<DonationChoice />} />
+            <Route path="/success" element={<Success />} />
+
+            {/* Private Routes */}
+            <Route 
+              path="/" 
+              element={
+                <PrivateRoute>
+                  <Home />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/explore" 
+              element={
+                <PrivateRoute>
+                  <Explore />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
+              } 
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Layout>
+      </BrowserRouter>
+    </AppProvider>
   );
 }
 
