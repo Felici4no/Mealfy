@@ -75,3 +75,17 @@
 .skip-auth-btn:active {
   background-color: rgba(0, 54, 95, 0.05);
 }
+
+.skip-auth-btn:disabled {
+  opacity: 0.6;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+  color: var(--color-outline);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

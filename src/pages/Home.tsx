@@ -1,13 +1,30 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
+import { familyService } from '../backend/services/familyService';
+import { Family } from '../backend/types';
 import './Home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { selectedCommunity } = useAppContext();
+  const [families, setFamilies] = useState<Family[]>([]);
+  const [loadingFamilies, setLoadingFamilies] = useState(true);
+
+  useEffect(() => {
+    if (selectedCommunity) {
+      setLoadingFamilies(true);
+      familyService.getFamiliesByCommunity(selectedCommunity.id).then(res => {
+        setFamilies(res);
+        setLoadingFamilies(false);
+      });
+    }
+  }, [selectedCommunity]);
+
+  const familiesHelped = families.filter(f => f.supportStatus === 'supported').length;
+  const familiesNeedsHelp = families.filter(f => f.supportStatus === 'needs_help').length;
 
   return (
     <div className="home-page">
@@ -23,7 +40,7 @@ const Home: React.FC = () => {
         <div className="hero-content">
           <h1 className="hero-headline">Doe hoje.<br/>Alimente uma criança.</h1>
           <p className="hero-subtext">
-            Sua doação para {selectedCommunity.name} se transforma rapidamente em refeições quentes para famílias em situação de vulnerabilidade.
+            Sua doação para {selectedCommunity?.name} se transforma rapidamente em refeições quentes.
           </p>
           
           <div className="hero-actions">
@@ -49,22 +66,36 @@ const Home: React.FC = () => {
       </div>
 
       <div className="social-proof-section p-4">
-        <h2 className="section-title text-center mb-4 text-primary font-bold">Juntos já conseguimos</h2>
+        <h2 className="section-title text-center mb-4 text-primary font-bold">
+          Impacto em {selectedCommunity?.name}
+        </h2>
         
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-number text-secondary">42k</span>
-            <span className="stat-label">Refeições</span>
+        {loadingFamilies ? (
+          <div className="text-center text-outline my-4">Atualizando dados...</div>
+        ) : (
+          <div className="stats-grid">
+            <div className="stat-card">
+              <span className="stat-number text-secondary">{familiesHelped + familiesNeedsHelp}</span>
+              <span className="stat-label">Cadastradas</span>
+            </div>
+            <div className="stat-card">
+              <span className={`stat-number ${familiesNeedsHelp > 0 ? 'text-error' : 'text-success'}`}>
+                {familiesNeedsHelp} 
+                <span style={{fontSize: '1rem', marginLeft: 4}}>
+                  {familiesNeedsHelp > 0 ? '💔' : '💚'}
+                </span>
+              </span>
+              <span className="stat-label">Precisam Agora</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number text-success">
+                {familiesHelped}
+                <span style={{fontSize: '1rem', marginLeft: 4}}>❤️</span>
+              </span>
+              <span className="stat-label">Apoiadas</span>
+            </div>
           </div>
-          <div className="stat-card">
-            <span className="stat-number text-secondary">1.2k</span>
-            <span className="stat-label">Famílias</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-number text-secondary">18</span>
-            <span className="stat-label">Comunidades</span>
-          </div>
-        </div>
+        )}
       </div>
       
       <div className="bottom-spacing"></div>

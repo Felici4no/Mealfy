@@ -4,34 +4,51 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import CommunitySelectorModal from '../components/modals/CommunitySelectorModal';
 import { useAppContext } from '../context/AppContext';
-import { MapPin, Info } from 'lucide-react';
+import { donationService } from '../backend/services/donationService';
+import { MapPin, Info, Loader2 } from 'lucide-react';
 import './DonationChoice.css';
 
 const DonationChoice: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedCommunity, isAuthenticated } = useAppContext();
+  const { selectedCommunity, user } = useAppContext();
   
   const [selectedAmount, setSelectedAmount] = useState<number | null>(25);
   const [isRecurrent, setIsRecurrent] = useState(false);
   const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // If no community is selected yet (e.g., accessed direct by URL before initialization finishes), fallback safely
+  if (!selectedCommunity) return null;
 
   const amounts = [
     { value: 25, impact: '1 dia de alimentação para uma criança' },
     { value: 40, impact: 'Apoio ampliado para duas crianças' },
   ];
 
-  const handleContinue = () => {
-    // If not authenticated, we could prompt login, OR go straight to success as a guest checkout since they can do anonymous donation
-    navigate('/success');
+  const handleContinue = async () => {
+    if (!selectedAmount) return; // For mock simple custom amount block
+    
+    setIsProcessing(true);
+    try {
+      const result = await donationService.createDonation({
+        amount: selectedAmount,
+        communityId: selectedCommunity.id,
+        donorId: user?.id,
+      });
+
+      // Pass the success data to the next screen via state
+      navigate('/success', { state: { donationResult: result } });
+    } catch (err) {
+      console.error(err);
+      alert('Community sem famílias precisando no momento.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="donation-choice-page">
-      <AppHeader title="Doação" showBack onBack={() => {
-        // Se visitante, voltar para auth se lá foi de onde veio? 
-        // O router lida bem. Se veio de Auth e clica back, vai pra Auth.
-        navigate(-1);
-      }} />
+      <AppHeader title="Doação" showBack onBack={() => navigate(-1)} />
       
       <main className="content p-4">
         <h1 className="page-title text-primary mb-2">Escolha como deseja ajudar</h1>
@@ -44,11 +61,12 @@ const DonationChoice: React.FC = () => {
             </div>
             <div className="region-info">
               <span className="region-label">Comunidade selecionada</span>
-              <span className="region-value">{selectedCommunity.name} (Próximo)</span>
+              <span className="region-value">{selectedCommunity.name}</span>
             </div>
             <button 
               className="change-region-btn text-primary"
               onClick={() => setIsCommunityModalOpen(true)}
+              disabled={isProcessing}
             >
               Alterar
             </button>
@@ -60,8 +78,8 @@ const DonationChoice: React.FC = () => {
             {amounts.map((item) => (
               <div 
                 key={item.value}
-                className={`amount-card ${selectedAmount === item.value ? 'selected' : ''}`}
-                onClick={() => setSelectedAmount(item.value)}
+                className={`amount-card ${selectedAmount === item.value ? 'selected' : ''} ${isProcessing ? 'disabled' : ''}`}
+                onClick={() => { if(!isProcessing) setSelectedAmount(item.value) }}
               >
                 <div className="amount-value">R$ {item.value}</div>
                 <div className="amount-impact">{item.impact}</div>
@@ -69,8 +87,8 @@ const DonationChoice: React.FC = () => {
             ))}
             
             <div 
-              className={`amount-card custom-amount ${selectedAmount === null ? 'selected' : ''}`}
-              onClick={() => setSelectedAmount(null)}
+              className={`amount-card custom-amount ${selectedAmount === null ? 'selected' : ''} ${isProcessing ? 'disabled' : ''}`}
+              onClick={() => { if(!isProcessing) setSelectedAmount(null) }}
             >
               <div className="amount-value">Outro valor</div>
               <div className="amount-impact">Defina como quer ajudar</div>
@@ -83,13 +101,13 @@ const DonationChoice: React.FC = () => {
           <div className="recurrence-toggle">
             <button 
               className={`toggle-btn ${!isRecurrent ? 'active' : ''}`}
-              onClick={() => setIsRecurrent(false)}
+              onClick={() => { if(!isProcessing) setIsRecurrent(false) }}
             >
               Única
             </button>
             <button 
               className={`toggle-btn ${isRecurrent ? 'active' : ''}`}
-              onClick={() => setIsRecurrent(true)}
+              onClick={() => { if(!isProcessing) setIsRecurrent(true) }}
             >
               Mensal
             </button>
@@ -101,7 +119,6 @@ const DonationChoice: React.FC = () => {
             </div>
           )}
         </section>
-
       </main>
 
       <div className="fixed-bottom-action">
@@ -110,8 +127,10 @@ const DonationChoice: React.FC = () => {
           fullWidth 
           onClick={handleContinue}
           className="shadow-glow"
+          disabled={!selectedAmount || isProcessing}
+          icon={isProcessing ? <Loader2 className="animate-spin" size={20} /> : undefined}
         >
-          {selectedAmount ? `Continuar com R$ ${selectedAmount}` : 'Continuar'}
+          {isProcessing ? 'Processando doação...' : (selectedAmount ? `Continuar com R$ ${selectedAmount}` : 'Continuar')}
         </Button>
       </div>
 

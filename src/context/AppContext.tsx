@@ -1,48 +1,84 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-interface Community {
-  id: number;
-  name: string;
-  distance: string;
-  families: number;
-  priority: string;
-  urgencyColor: 'error' | 'warning' | 'success';
-}
-
-const defaultCommunities: Community[] = [
-  { id: 1, name: 'Heliópolis', distance: '1.2 km', families: 340, priority: 'Alta urgência', urgencyColor: 'error' },
-  { id: 2, name: 'Paraisópolis', distance: '3.5 km', families: 210, priority: 'Alta urgência', urgencyColor: 'error' },
-  { id: 3, name: 'Cidade Tiradentes', distance: '8.0 km', families: 156, priority: 'Atenção', urgencyColor: 'warning' },
-  { id: 4, name: 'São Miguel Paulista', distance: '10.5 km', families: 98, priority: 'Estável', urgencyColor: 'success' },
-];
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Community } from '../backend/types';
+import { authService } from '../backend/services/authService';
+import { communityService } from '../backend/services/communityService';
+import SplashScreen from '../components/ui/SplashScreen';
 
 interface AppContextType {
   isAuthenticated: boolean;
-  login: () => void;
-  logout: () => void;
-  selectedCommunity: Community;
-  setSelectedCommunity: (community: Community) => void;
+  user: User | null;
+  login: (method: 'google'|'apple'|'phone', arg?: string) => Promise<void>;
+  logout: () => Promise<void>;
   communities: Community[];
+  selectedCommunity: Community | null;
+  setSelectedCommunity: (community: Community) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [isInitializing, setIsInitializing] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [selectedCommunity, setSelectedCommunity] = useState<Community>(defaultCommunities[0]);
+  const [user, setUser] = useState<User | null>(null);
+  
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
 
-  const login = () => setIsAuthenticated(true);
-  const logout = () => setIsAuthenticated(false);
+  useEffect(() => {
+    const initApp = async () => {
+      try {
+        // Fetch session
+        const sessionUser = await authService.getCurrentSession();
+        if (sessionUser) {
+          setIsAuthenticated(true);
+          setUser(sessionUser);
+        }
+
+        // Fetch initial communities
+        const comms = await communityService.getCommunities();
+        setCommunities(comms);
+        setSelectedCommunity(comms[0] || null);
+
+      } catch (err) {
+        console.error("Erro inicializando app", err);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initApp();
+  }, []);
+
+  const login = async (method: 'google'|'apple'|'phone', arg?: string) => {
+    let loggedUser: User;
+    if (method === 'google') loggedUser = await authService.loginWithGoogle();
+    else if (method === 'apple') loggedUser = await authService.loginWithApple();
+    else loggedUser = await authService.loginWithPhone(arg || '');
+
+    setUser(loggedUser);
+    setIsAuthenticated(true);
+  };
+
+  const logout = async () => {
+    await authService.logout();
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
+  if (isInitializing) {
+    return <SplashScreen />;
+  }
 
   return (
     <AppContext.Provider
       value={{
         isAuthenticated,
+        user,
         login,
         logout,
+        communities,
         selectedCommunity,
         setSelectedCommunity,
-        communities: defaultCommunities,
       }}
     >
       {children}

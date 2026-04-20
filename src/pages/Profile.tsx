@@ -1,30 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import RankingDetailsModal from '../components/modals/RankingDetailsModal';
-import { Settings, CreditCard, HelpCircle, Heart, Trophy, MessageCircle } from 'lucide-react';
+import { Settings, CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import { donationService } from '../backend/services/donationService';
+import { rankingService } from '../backend/services/rankingService';
+import { Donation, GiftCard } from '../backend/types';
 import './Profile.css';
 
 const Profile: React.FC = () => {
+  const { user, logout } = useAppContext();
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
+  const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
+  const [rankingInfo, setRankingInfo] = useState<any>(null);
+  
+  const [loading, setLoading] = useState(true);
 
-  const history = [
-    { id: 1, date: '10 Out 2026', amount: 25, impact: '1 dia de alimentação', status: 'Concluído' },
-    { id: 2, date: '10 Set 2026', amount: 40, impact: 'Apoio ampliado', status: 'Concluído' },
-  ];
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!user) return;
+      try {
+        const [histResponse, rankResponse] = await Promise.all([
+          donationService.getDonationHistoryByUser(user.id),
+          rankingService.getUserRanking(user.id)
+        ]);
+        setHistory(histResponse);
+        setRankingInfo(rankResponse);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfileData();
+  }, [user]);
+
+  if (!user) return null;
 
   return (
     <div className="profile-page">
-      <AppHeader title="Meu Perfil" rightAction={<Button variant="ghost" icon={<Settings size={22} className="text-primary" />} />} />
+      <AppHeader title="Meu Perfil" rightAction={<Button variant="ghost" onClick={logout} icon={<LogOut size={22} className="text-outline" />} />} />
       
       <main className="content">
         <section className="profile-header p-4 pb-6">
           <div className="avatar-container mb-3">
-            <div className="avatar">A</div>
-            <div className="ranking-badge" onClick={() => setIsRankingModalOpen(true)}>Top 5%</div>
+            <div className="avatar">{user.avatar || user.name.charAt(0)}</div>
+            <div className="ranking-badge" onClick={() => setIsRankingModalOpen(true)}>
+              {rankingInfo ? rankingInfo.rankingPercentile : '...'}
+            </div>
           </div>
-          <h2 className="user-name">Alexandre Doador</h2>
-          <p className="user-email text-outline">alexandre@example.com</p>
+          <h2 className="user-name">{user.name}</h2>
+          <p className="user-email text-outline">{user.email || user.phone}</p>
         </section>
 
         <section className="impact-summary-container p-4">
@@ -33,17 +60,23 @@ const Profile: React.FC = () => {
             onClick={() => setIsRankingModalOpen(true)}
           >
             <div className="impact-item">
-              <span className="impact-value">R$ 130</span>
+              <span className="impact-value">
+                {loading ? '...' : `R$ ${rankingInfo?.totalDonated || 0}`}
+              </span>
               <span className="impact-label">Doados</span>
             </div>
             <div className="impact-divider"></div>
             <div className="impact-item">
-              <span className="impact-value">5</span>
-              <span className="impact-label">Refeições</span>
+              <span className="impact-value">
+                {loading ? '...' : history.length}
+              </span>
+              <span className="impact-label">Gift Cards</span>
             </div>
             <div className="impact-divider"></div>
             <div className="impact-item">
-              <span className="impact-value">#142</span>
+              <span className="impact-value">
+                {loading ? '...' : `#${rankingInfo?.rankingPosition || '—'}`}
+              </span>
               <span className="impact-label">Ranking</span>
             </div>
           </div>
@@ -67,22 +100,30 @@ const Profile: React.FC = () => {
             <Button variant="ghost" size="small" className="text-primary">Ver tudo</Button>
           </div>
           
-          <div className="history-list flex-col gap-3">
-            {history.map(item => (
-              <div key={item.id} className="history-card">
-                <div className="history-icon-wrapper">
-                  <Heart size={16} className="text-primary" />
+          {loading ? (
+             <div className="text-center p-4 text-outline text-sm">Carregando histórico...</div>
+          ) : history.length === 0 ? (
+             <div className="text-center p-4 text-outline text-sm">Você ainda não realizou doações.</div>
+          ) : (
+            <div className="history-list flex-col gap-3">
+              {history.slice(0, 3).map((item, i) => (
+                <div key={i} className="history-card">
+                  <div className="history-icon-wrapper">
+                    <Heart size={16} className="text-primary" />
+                  </div>
+                  <div className="history-info">
+                    <span className="history-impact">{item.giftCard.label}</span>
+                    <span className="history-date text-outline">
+                      {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {item.giftCard.status === 'redeemed' ? 'Resgatado' : 'Enviado'}
+                    </span>
+                  </div>
+                  <div className="history-amount">
+                    R$ {item.donation.amount}
+                  </div>
                 </div>
-                <div className="history-info">
-                  <span className="history-impact">{item.impact}</span>
-                  <span className="history-date text-outline">{item.date} • {item.status}</span>
-                </div>
-                <div className="history-amount">
-                  R$ {item.amount}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="action-menu p-4 flex-col gap-2">
@@ -99,10 +140,12 @@ const Profile: React.FC = () => {
         </section>
       </main>
 
-      <RankingDetailsModal 
-        isOpen={isRankingModalOpen} 
-        onClose={() => setIsRankingModalOpen(false)} 
-      />
+      {rankingInfo && (
+        <RankingDetailsModal 
+          isOpen={isRankingModalOpen} 
+          onClose={() => setIsRankingModalOpen(false)} 
+        />
+      )}
     </div>
   );
 };

@@ -1,16 +1,33 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { Check, Share2, History, HeartHandshake } from 'lucide-react';
+import { Donation, GiftCard, Family } from '../backend/types';
 import './Success.css';
 
 const Success: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
+
+  // Read data passed from DonationChoice
+  const donationResult = location.state?.donationResult as {
+    donation: Donation,
+    giftCard: GiftCard,
+    familyAssigned: Family
+  } | undefined;
+
+  // If user accesses /success without donating, send back
+  if (!donationResult) {
+    navigate('/');
+    return null;
+  }
+
+  const { donation, giftCard, familyAssigned } = donationResult;
 
   const messages = [
     "Você não está sozinho.",
-    "Com carinho, esta ajuda foi enviada para você.",
+    "Com carinho, esta ajuda foi enviada para você e os pequenos.",
     "Estou torcendo por você e sua família."
   ];
 
@@ -24,18 +41,23 @@ const Success: React.FC = () => {
         </div>
         <h1 className="success-title text-primary mb-2">Muito obrigado!</h1>
         <p className="success-subtitle text-outline mb-6">
-          Sua doação foi realizada com sucesso. Hoje você ajudou a transformar doação em alimento.
+          Sua doação foi transformada imediatamente no <strong>{giftCard.label}</strong> e designado para a família de <strong>{familyAssigned.representativeName}</strong> ({familyAssigned.childrenCount} filhos).
         </p>
 
         <div className="receipt-card mb-6">
           <div className="receipt-row">
             <span className="receipt-label">Valor doado</span>
-            <span className="receipt-value text-secondary">R$ 25,00</span>
+            <span className="receipt-value text-secondary">R$ {donation.amount},00</span>
           </div>
           <div className="receipt-divider"></div>
           <div className="receipt-row">
             <span className="receipt-label">Destino</span>
-            <span className="receipt-value">Jardim das Violetas</span>
+            <span className="receipt-value">{familyAssigned.neighborhood}</span>
+          </div>
+          <div className="receipt-divider"></div>
+          <div className="receipt-row">
+            <span className="receipt-label">Emissor</span>
+            <span className="receipt-value" style={{ fontSize: '0.85rem' }}>{giftCard.provider}</span>
           </div>
         </div>
       </div>
@@ -64,7 +86,7 @@ const Success: React.FC = () => {
             fullWidth
             onClick={() => navigate('/explore')}
           >
-            Concluir
+            Acompanhar impacto da região
           </Button>
           
           <div className="secondary-actions flex gap-3 mt-2">
@@ -81,7 +103,7 @@ const Success: React.FC = () => {
               icon={<History size={18} />}
               onClick={() => navigate('/profile')}
             >
-              Histórico
+              Meu Perfil
             </Button>
           </div>
         </div>
