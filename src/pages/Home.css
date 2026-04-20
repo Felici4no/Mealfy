@@ -1,0 +1,129 @@
+.home-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.hero-section {
+  position: relative;
+  min-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.hero-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.hero-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 40%, rgba(0, 54, 95, 0.98) 100%);
+  z-index: 2;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 3;
+  padding: 0 var(--spacing-4) var(--spacing-6) var(--spacing-4);
+  color: var(--color-text-inverted);
+}
+
+.hero-headline {
+  font-size: 2.75rem;
+  line-height: 1.05;
+  margin-bottom: var(--spacing-3);
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.hero-subtext {
+  font-size: 1.1rem;
+  line-height: 1.5;
+  margin-bottom: var(--spacing-6);
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.shadow-glow {
+  box-shadow: 0 4px 20px rgba(199, 167, 84, 0.35);
+  background-color: var(--color-secondary);
+  color: var(--color-text-main);
+}
+.shadow-glow:active {
+  background-color: var(--color-secondary-container);
+}
+
+.border-inverted {
+  border-color: rgba(255,255,255,0.4) !important;
+  color: var(--color-text-inverted) !important;
+}
+
+.social-proof-section {
+  background-color: var(--color-background);
+  position: relative;
+  z-index: 3;
+  padding-top: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  margin-top: -20px;
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+}
+
+.section-title {
+  font-size: 1.25rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-3);
+}
+
+.stat-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4) var(--spacing-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-surface-highest);
+}
+
+.stat-number {
+  font-family: var(--font-family-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-outline);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bottom-spacing {
+  height: 20px;
+}

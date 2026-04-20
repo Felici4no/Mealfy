@@ -1,0 +1,26 @@
+/* App specific styles */
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-surface-highest); /* Outer background */
+  align-items: center; /* Center the app container on desktop */
+}
+
+.mobile-mockup {
+  width: 100%;
+  max-width: 480px;
+  background-color: var(--color-background);
+  min-height: 100vh;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 80px; /* Leave space for Bottom Tab Bar */
+}

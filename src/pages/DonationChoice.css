@@ -1,0 +1,160 @@
+.donation-choice-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background);
+  padding-bottom: 100px; /* Space for the fixed bottom action button */
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-outline);
+}
+
+.region-card {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-3);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-surface-highest);
+}
+
+.region-icon {
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-secondary-container);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--spacing-3);
+}
+
+.region-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.region-label {
+  font-size: 0.75rem;
+  color: var(--color-outline);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.region-value {
+  font-weight: 600;
+  color: var(--color-text-main);
+  font-size: 0.9rem;
+}
+
+.change-region-btn {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.amounts-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.amount-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-3);
+}
+
+.amount-card {
+  background-color: #ffffff;
+  border: 2px solid var(--color-surface-highest);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.amount-card:active {
+  transform: scale(0.98);
+}
+
+.amount-card.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(0, 54, 95, 0.03); /* Very light primary */
+}
+
+.amount-value {
+  font-family: var(--font-family-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  margin-bottom: 4px;
+}
+
+.amount-card.selected .amount-value {
+  color: var(--color-primary);
+}
+
+.amount-impact {
+  font-size: 0.85rem;
+  color: var(--color-outline);
+  line-height: 1.4;
+}
+
+.section-subtitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-3);
+}
+
+.recurrence-toggle {
+  display: flex;
+  background-color: var(--color-surface-highest);
+  border-radius: var(--radius-xl);
+  padding: 4px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: var(--radius-xl);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-outline);
+  transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+  background-color: #ffffff;
+  color: var(--color-text-main);
+  box-shadow: var(--shadow-sm);
+}
+
+.fixed-bottom-action {
+  position: fixed;
+  bottom: 80px; /* Above tab bar */
+  left: 0;
+  width: 100%;
+  padding: var(--spacing-4);
+  background: linear-gradient(to top, var(--color-background) 60%, rgba(249,249,249,0));
+  z-index: 40;
+}
+
+/* Make sure it aligns correctly on desktop preview */
+.app-wrapper .fixed-bottom-action {
+  position: absolute;
+  bottom: 80px;
+}
