@@ -1,4 +1,4 @@
-import { Family } from '../types';
+import type { Family } from '../types';
 
 export const mockFamilies: Family[] = [
   {

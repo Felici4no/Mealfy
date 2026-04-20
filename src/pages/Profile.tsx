@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import RankingDetailsModal from '../components/modals/RankingDetailsModal';
-import { Settings, CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut } from 'lucide-react';
+import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { donationService } from '../backend/services/donationService';
 import { rankingService } from '../backend/services/rankingService';
-import { Donation, GiftCard } from '../backend/types';
+import type { Donation, GiftCard } from '../backend/types';
 import './Profile.css';
 
 const Profile: React.FC = () => {

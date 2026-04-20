@@ -4,7 +4,7 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
-import { Family } from '../backend/types';
+import type { Family } from '../backend/types';
 import './Home.css';
 
 const Home: React.FC = () => {

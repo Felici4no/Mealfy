@@ -1,4 +1,4 @@
-import { Donation, GiftCard } from '../types';
+import type { Donation, GiftCard } from '../types';
 
 export const mockDonations: Donation[] = [
   {

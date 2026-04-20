@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Community } from '../backend/types';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { User, Community } from '../backend/types';
 import { authService } from '../backend/services/authService';
 import { communityService } from '../backend/services/communityService';
 import SplashScreen from '../components/ui/SplashScreen';

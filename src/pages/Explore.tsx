@@ -52,7 +52,7 @@ const Explore: React.FC = () => {
                 </div>
                 <div className="detail-item flex items-center gap-2 text-outline">
                   <Users size={16} />
-                  <span className="detail-value">{item.families} famílias assistidas</span>
+                  <span className="detail-value">{item.familiesTotal} famílias assistidas</span>
                 </div>
               </div>
 

@@ -38,9 +38,9 @@ const DonationChoice: React.FC = () => {
 
       // Pass the success data to the next screen via state
       navigate('/success', { state: { donationResult: result } });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Community sem famílias precisando no momento.');
+      alert(err.message || 'Todas as famílias precisando já foram ajudadas nesta comunidade!');
     } finally {
       setIsProcessing(false);
     }

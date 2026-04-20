@@ -1,4 +1,4 @@
-import { Community } from '../types';
+import type { Community } from '../types';
 import { mockCommunities } from '../mockData/communities';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
@@ -13,13 +13,13 @@ export const communityService = {
   },
 
   getCommunities: async (): Promise<Community[]> => {
-    await randomDelay(300, 800);
+    await randomDelay();
     communityService.initDB();
     return storage.get<Community[]>(COMMUNITIES_KEY, mockCommunities);
   },
 
   getCommunityById: async (id: string): Promise<Community | undefined> => {
-    await randomDelay(200, 500);
+    await randomDelay();
     const communities = storage.get<Community[]>(COMMUNITIES_KEY, mockCommunities);
     return communities.find(c => c.id === id);
   }

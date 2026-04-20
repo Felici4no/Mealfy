@@ -1,4 +1,4 @@
-import { User } from '../types';
+import type { User } from '../types';
 import { mockUsers } from '../mockData/users';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
@@ -16,12 +16,12 @@ export const authService = {
   },
 
   getCurrentSession: async (): Promise<User | null> => {
-    await randomDelay(800, 1500); // Simulate network load
+    await randomDelay(200, 500); // Simulate network load briefly
     return storage.get(SESSION_KEY, null);
   },
 
   loginWithGoogle: async (): Promise<User> => {
-    await randomDelay(1000, 2000);
+    await randomDelay(800, 1200);
     authService.initDB();
     const users = storage.get<User[]>(USERS_KEY, mockUsers);
     const user = users[0]; // Just picking the configured mock user
@@ -34,7 +34,7 @@ export const authService = {
   },
 
   loginWithPhone: async (phone: string): Promise<User> => {
-    await randomDelay(1000, 2000);
+    await randomDelay(800, 1500);
     authService.initDB();
     const users = storage.get<User[]>(USERS_KEY, mockUsers);
     const user = users[0]; // Picking the configured mock user

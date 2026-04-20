@@ -1,4 +1,4 @@
-import { User } from '../types';
+import type { User } from '../types';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 

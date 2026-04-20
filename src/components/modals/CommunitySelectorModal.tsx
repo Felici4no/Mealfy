@@ -27,12 +27,12 @@ const CommunitySelectorModal: React.FC<CommunitySelectorModalProps> = ({ isOpen,
         {communities.map((community) => (
           <div 
             key={community.id} 
-            className={`community-option-card ${selectedCommunity.id === community.id ? 'active' : ''}`}
+            className={`community-option-card ${selectedCommunity?.id === community.id ? 'active' : ''}`}
             onClick={() => handleSelect(community)}
           >
             <div className="option-header">
               <h3 className="option-title">{community.name}</h3>
-              {selectedCommunity.id === community.id && (
+              {selectedCommunity?.id === community.id && (
                 <Check size={20} className="text-primary" />
               )}
             </div>
@@ -42,7 +42,7 @@ const CommunitySelectorModal: React.FC<CommunitySelectorModalProps> = ({ isOpen,
                 <MapPin size={14} /> {community.distance}
               </span>
               <span className="flex items-center gap-1 text-sm text-outline">
-                <Users size={14} /> {community.families} fam.
+                <Users size={14} /> {community.familiesTotal} fam.
               </span>
             </div>
             

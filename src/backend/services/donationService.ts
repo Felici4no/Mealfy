@@ -1,4 +1,4 @@
-import { Donation, GiftCard, Family } from '../types';
+import type { Donation, GiftCard, Family } from '../types';
 import { mockDonations, mockGiftCards } from '../mockData/donations';
 import { familyService } from './familyService';
 import { storage } from '../utils/storage';
@@ -18,9 +18,12 @@ export const donationService = {
   },
 
   generateGiftCard: async (payload: { amount: number, familyId: string, donorId: string }): Promise<GiftCard> => {
-    await randomDelay(400, 800);
+    await randomDelay(200, 500);
     donationService.initDB();
     
+    const providers = ['Itaú Alimentação', 'Mercado Parceiro Local', 'Ticket Alimentação Solidário'];
+    const randomProvider = providers[Math.floor(Math.random() * providers.length)];
+
     const newGiftCard: GiftCard = {
       id: `gc-${Date.now()}`,
       familyId: payload.familyId,
@@ -29,7 +32,7 @@ export const donationService = {
       createdAt: new Date().toISOString(),
       status: 'generated',
       label: `Gift Card Apoio Alimentar — R$${payload.amount}`,
-      provider: 'Integração Alimentar Mealfy'
+      provider: randomProvider
     };
 
     const cards = storage.get<GiftCard[]>(GIFTCARDS_KEY, mockGiftCards);
@@ -62,7 +65,7 @@ export const donationService = {
     }
 
     // Generate Gift Card
-    const donorId = payload.donorId || 'anonymous';
+    const donorId = payload.donorId || `anon-${Date.now()}`;
     const giftCard = await donationService.generateGiftCard({
       amount: payload.amount,
       familyId: selectedFamily!.id,
@@ -81,15 +84,16 @@ export const donationService = {
       message: payload.message
     };
 
-    if (donorId !== 'anonymous') {
-      const donations = storage.get<Donation[]>(DONATIONS_KEY, mockDonations);
-      donations.push(newDonation);
-      storage.set(DONATIONS_KEY, donations);
+    // Save donation no matter if anonymous or not
+    const donations = storage.get<Donation[]>(DONATIONS_KEY, mockDonations);
+    donations.push(newDonation);
+    storage.set(DONATIONS_KEY, donations);
 
-      // Update User Total Donated
+    // ONLY Update Session total if the donor is NOT anonymous
+    if (payload.donorId) {
       const USERS_KEY = 'users_db';
       const sessionUser = storage.get<any>('current_user', null);
-      if (sessionUser) {
+      if (sessionUser && sessionUser.id === payload.donorId) {
          sessionUser.totalDonated += payload.amount;
          storage.set('current_user', sessionUser);
          const users = storage.get<any[]>(USERS_KEY, []);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { Check, Share2, History, HeartHandshake } from 'lucide-react';
-import { Donation, GiftCard, Family } from '../backend/types';
+import type { Donation, GiftCard, Family } from '../backend/types';
 import './Success.css';
 
 const Success: React.FC = () => {
