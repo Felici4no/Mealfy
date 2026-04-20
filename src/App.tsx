@@ -9,6 +9,12 @@ import Auth from './pages/Auth';
 import Success from './pages/Success';
 import Explore from './pages/Explore';
 import Profile from './pages/Profile';
+import CommunityDetails from './pages/CommunityDetails';
+import FamilyDetails from './pages/FamilyDetails';
+import BigDonation from './pages/BigDonation';
+import Support from './pages/Support';
+import Help from './pages/Help';
+import Recurrence from './pages/Recurrence';
 
 import './App.css';
 
@@ -51,7 +57,12 @@ function App() {
             
             {/* Donation Flow - Can be accessed by anonymous */}
             <Route path="/donate" element={<DonationChoice />} />
+            <Route path="/big-donation" element={<BigDonation />} />
             <Route path="/success" element={<Success />} />
+            <Route path="/community/:id" element={<CommunityDetails />} />
+            <Route path="/family/:id" element={<FamilyDetails />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/help" element={<Help />} />
 
             {/* Private Routes */}
             <Route 
@@ -75,6 +86,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Profile />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/recurrence" 
+              element={
+                <PrivateRoute>
+                  <Recurrence />
                 </PrivateRoute>
               } 
             />

@@ -12,7 +12,7 @@ const Explore: React.FC = () => {
 
   const handleHelpRegion = (community: any) => {
     setSelectedCommunity(community);
-    navigate('/donate');
+    navigate(`/community/${community.id}`);
   };
 
   return (

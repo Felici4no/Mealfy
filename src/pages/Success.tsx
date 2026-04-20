@@ -10,20 +10,20 @@ const Success: React.FC = () => {
   const location = useLocation();
   const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
 
-  // Read data passed from DonationChoice
+  // Read data passed from DonationChoice or BigDonation
   const donationResult = location.state?.donationResult as {
     donation: Donation,
     giftCard: GiftCard,
     familyAssigned: Family
   } | undefined;
 
+  const bigDonationResult = location.state?.bigDonationResult as any; // BigDonationResult
+
   // If user accesses /success without donating, send back
-  if (!donationResult) {
+  if (!donationResult && !bigDonationResult) {
     navigate('/');
     return null;
   }
-
-  const { donation, giftCard, familyAssigned } = donationResult;
 
   const messages = [
     "Você não está sozinho.",
@@ -40,26 +40,53 @@ const Success: React.FC = () => {
           </div>
         </div>
         <h1 className="success-title text-primary mb-2">Muito obrigado!</h1>
-        <p className="success-subtitle text-outline mb-6">
-          Sua doação foi transformada imediatamente no <strong>{giftCard.label}</strong> e designado para a família de <strong>{familyAssigned.representativeName}</strong> ({familyAssigned.childrenCount} filhos).
-        </p>
+        
+        {bigDonationResult ? (
+          <>
+            <p className="success-subtitle text-outline mb-6">
+              Sua grande doação gerou um <strong>{bigDonationResult.supportTierDesc}</strong> e foi distribuída blindando <strong>{bigDonationResult.impactedFamiliesCount} famílias</strong> na região.
+            </p>
+            <div className="receipt-card mb-6">
+              <div className="receipt-row">
+                <span className="receipt-label">Valor Total</span>
+                <span className="receipt-value text-secondary">R$ {bigDonationResult.totalDistributedAmount},00</span>
+              </div>
+              <div className="receipt-divider"></div>
+              <div className="receipt-row">
+                <span className="receipt-label">Famílias Salvas</span>
+                <span className="receipt-value">{bigDonationResult.impactedFamiliesCount} Famílias</span>
+              </div>
+              <div className="receipt-divider"></div>
+              <div className="receipt-row">
+                <span className="receipt-label">Gift Cards Emitidos</span>
+                <span className="receipt-value">{bigDonationResult.giftCards.length} Vouchers</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="success-subtitle text-outline mb-6">
+              Sua doação foi transformada imediatamente no <strong>{donationResult!.giftCard.label}</strong> e designado para a família de <strong>{donationResult!.familyAssigned.representativeName}</strong> ({donationResult!.familyAssigned.childrenCount} filhos).
+            </p>
 
-        <div className="receipt-card mb-6">
-          <div className="receipt-row">
-            <span className="receipt-label">Valor doado</span>
-            <span className="receipt-value text-secondary">R$ {donation.amount},00</span>
-          </div>
-          <div className="receipt-divider"></div>
-          <div className="receipt-row">
-            <span className="receipt-label">Destino</span>
-            <span className="receipt-value">{familyAssigned.neighborhood}</span>
-          </div>
-          <div className="receipt-divider"></div>
-          <div className="receipt-row">
-            <span className="receipt-label">Emissor</span>
-            <span className="receipt-value" style={{ fontSize: '0.85rem' }}>{giftCard.provider}</span>
-          </div>
-        </div>
+            <div className="receipt-card mb-6">
+              <div className="receipt-row">
+                <span className="receipt-label">Valor doado</span>
+                <span className="receipt-value text-secondary">R$ {donationResult!.donation.amount},00</span>
+              </div>
+              <div className="receipt-divider"></div>
+              <div className="receipt-row">
+                <span className="receipt-label">Destino</span>
+                <span className="receipt-value">{donationResult!.familyAssigned.neighborhood}</span>
+              </div>
+              <div className="receipt-divider"></div>
+              <div className="receipt-row">
+                <span className="receipt-label">Emissor</span>
+                <span className="receipt-value" style={{ fontSize: '0.85rem' }}>{donationResult!.giftCard.provider}</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="message-section p-4">

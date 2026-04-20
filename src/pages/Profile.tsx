@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import RankingDetailsModal from '../components/modals/RankingDetailsModal';
@@ -11,6 +12,7 @@ import './Profile.css';
 
 const Profile: React.FC = () => {
   const { user, logout } = useAppContext();
+  const navigate = useNavigate();
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
   const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
   const [rankingInfo, setRankingInfo] = useState<any>(null);
@@ -82,14 +84,36 @@ const Profile: React.FC = () => {
           </div>
         </section>
 
-        <section className="founder-message p-4 mb-2">
-          <div className="message-box">
-            <div className="message-icon">
-              <MessageCircle size={20} className="text-secondary" />
+        <section className="quote-section p-4 mb-6">
+          <p className="quote-text">
+            “Não se iluda: quando você alimenta uma pessoa de verdade, ou estende a mão para cobrir um prato vago, você descobre que esse vazio nunca esteve neles, estava em você.”
+          </p>
+          <p className="quote-author">— Christiano Montalvão</p>
+        </section>
+
+        <section className="settings-section p-4">
+          <h3 className="section-title mb-4">Ajustes da Conta</h3>
+          
+          <div className="settings-list">
+            <div className="settings-item" onClick={() => navigate('/recurrence')}>
+              <div className="flex items-center gap-3">
+                <div className="settings-icon"><CreditCard size={20} /></div>
+                <span>Gerenciar Recorrência Mensal</span>
+              </div>
             </div>
-            <div className="message-content">
-              <p className="quote">"Sua constância muda a vida de quem não tem o que comer hoje. Obrigado por fazer parte da família Mealfy."</p>
-              <span className="author">— Equipe Mealfy</span>
+            
+            <div className="settings-item" onClick={() => navigate('/help')}>
+              <div className="flex items-center gap-3">
+                <div className="settings-icon"><HelpCircle size={20} /></div>
+                <span>Guia do Aplicativo</span>
+              </div>
+            </div>
+
+            <div className="settings-item" onClick={() => navigate('/support')}>
+              <div className="flex items-center gap-3">
+                <div className="settings-icon"><MessageCircle size={20} /></div>
+                <span>Suporte ao Doador</span>
+              </div>
             </div>
           </div>
         </section>

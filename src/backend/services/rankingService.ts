@@ -32,5 +32,17 @@ export const rankingService = {
       rankingPercentile: '',
       totalDonated: 0
     };
+  },
+
+  getTopDonors: async (): Promise<Pick<User, 'id' | 'name' | 'totalDonated' | 'avatar'>[]> => {
+    await randomDelay(300, 700);
+    // Hardcoded mock top donors array to ensure Home always has social proof
+    return [
+      { id: 'u-1', name: 'Marina R.', totalDonated: 12500, avatar: 'M' },
+      { id: 'u-2', name: 'Carlos S.', totalDonated: 9400, avatar: 'C' },
+      { id: 'u-3', name: 'Empresa Ativa', totalDonated: 8200, avatar: 'E' },
+      { id: 'u-4', name: 'João H.', totalDonated: 5100, avatar: 'J' },
+      { id: 'u-5', name: 'Alessandra M.', totalDonated: 4050, avatar: 'A' },
+    ];
   }
 };

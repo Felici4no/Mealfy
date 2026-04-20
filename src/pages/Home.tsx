@@ -4,16 +4,21 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
+import { rankingService } from '../backend/services/rankingService';
 import type { Family } from '../backend/types';
+import { Trophy } from 'lucide-react';
 import './Home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { selectedCommunity } = useAppContext();
   const [families, setFamilies] = useState<Family[]>([]);
+  const [topDonors, setTopDonors] = useState<any[]>([]);
   const [loadingFamilies, setLoadingFamilies] = useState(true);
 
   useEffect(() => {
+    rankingService.getTopDonors().then(setTopDonors);
+    
     if (selectedCommunity) {
       setLoadingFamilies(true);
       familyService.getFamiliesByCommunity(selectedCommunity.id).then(res => {
@@ -96,6 +101,35 @@ const Home: React.FC = () => {
             </div>
           </div>
         )}
+        <Button 
+          variant="outline" 
+          fullWidth
+          className="mt-4 border-outline text-outline"
+          onClick={() => navigate(`/community/${selectedCommunity?.id}`)}
+        >
+          Visualizar a Fome nesta Região
+        </Button>
+      </div>
+
+      <div className="ranking-preview-section p-4 my-2">
+        <h2 className="section-title mb-4 flex items-center justify-between">
+          <span>Ranking de Destaques</span>
+          <Trophy size={20} className="text-secondary" />
+        </h2>
+        <div className="bg-surface-highest rounded-lg border border-outline/20 p-2">
+          {topDonors.slice(0, 3).map((d, i) => (
+            <div key={d.id} className="flex justify-between items-center py-2 px-2 border-b border-outline/10 last:border-0">
+               <div className="flex items-center gap-3">
+                  <span className="font-bold text-outline w-4">{i + 1}º</span>
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                    {d.avatar}
+                  </div>
+                  <span className="font-semibold text-sm">{d.name}</span>
+               </div>
+               <span className="text-sm font-bold text-secondary">R$ {d.totalDonated}</span>
+            </div>
+          ))}
+        </div>
       </div>
       
       <div className="bottom-spacing"></div>

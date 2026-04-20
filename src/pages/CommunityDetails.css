@@ -1,0 +1,39 @@
+.community-hero {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--color-surface-highest);
+}
+
+.big-donation-card {
+  background-color: rgba(0, 54, 95, 0.03);
+  border: 1px solid rgba(0, 54, 95, 0.1);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  margin-top: var(--spacing-2);
+}
+
+.family-card {
+  border: 1px solid var(--color-surface-highest);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-3);
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.family-card:active {
+  transform: scale(0.98);
+}
+
+.family-avatar {
+  width: 50px;
+  height: 50px;
+  background-color: var(--color-surface-highest);
+  color: var(--color-outline);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family-heading);
+  font-size: 1.5rem;
+  font-weight: bold;
+}

@@ -1,4 +1,4 @@
-import type { Donation, GiftCard, Family } from '../types';
+import type { Donation, GiftCard, Family, BigDonationResult } from '../types';
 import { mockDonations, mockGiftCards } from '../mockData/donations';
 import { familyService } from './familyService';
 import { storage } from '../utils/storage';
@@ -119,10 +119,93 @@ export const donationService = {
     
     return donations.map(don => {
       const gc = giftCards.find(g => g.id === don.giftCardId);
-      return {
-        donation: don,
-        giftCard: gc!
-      }
-    }).reverse(); // Latest first
+    return {
+      donation: don,
+      giftCard: gc!
+    }
+  }).reverse(); // Latest first
+},
+
+createBigDonation: async (payload: {
+  totalAmount: number;
+  communityId: string;
+  donorId: string;
+}): Promise<BigDonationResult> => {
+  await randomDelay(1000, 2000);
+  donationService.initDB();
+
+  // Find eligible families
+  const families = await familyService.getFamiliesByCommunity(payload.communityId);
+  const eligibleFamilies = families.filter(f => f.supportStatus === 'needs_help');
+
+  if (eligibleFamilies.length === 0) {
+    throw new Error('Nenhuma família carente no momento nesta região.');
   }
+
+  // Distribute equally (in reality, it amplifies support if less families)
+  const perFamilyAmount = Math.floor(payload.totalAmount / eligibleFamilies.length);
+  
+  const donations: Donation[] = [];
+  const giftCards: GiftCard[] = [];
+  const familyIds: string[] = [];
+
+  for (const family of eligibleFamilies) {
+    const gc = await donationService.generateGiftCard({
+      amount: perFamilyAmount,
+      familyId: family.id,
+      donorId: payload.donorId
+    });
+
+    const don: Donation = {
+      id: `bigdon-${Date.now()}-${family.id}`,
+      donorId: payload.donorId,
+      familyId: family.id,
+      communityId: payload.communityId,
+      amount: perFamilyAmount,
+      giftCardId: gc.id,
+      createdAt: new Date().toISOString(),
+      message: 'Apoio Regional Ampliado'
+    };
+
+    const dones = storage.get<Donation[]>(DONATIONS_KEY, mockDonations);
+    dones.push(don);
+    storage.set(DONATIONS_KEY, dones);
+
+    donations.push(don);
+    giftCards.push(gc);
+    familyIds.push(family.id);
+
+    // Update Status
+    await familyService.updateFamilyStatus(family.id, 'supported');
+  }
+
+  // Update user global total
+  const USERS_KEY = 'users_db';
+  const sessionUser = storage.get<any>('current_user', null);
+  if (sessionUser && sessionUser.id === payload.donorId) {
+     sessionUser.totalDonated += payload.totalAmount;
+     storage.set('current_user', sessionUser);
+     const users = storage.get<any[]>(USERS_KEY, []);
+     const idx = users.findIndex(u => u.id === sessionUser.id);
+     if (idx !== -1) {
+        users[idx].totalDonated += payload.totalAmount;
+        storage.set(USERS_KEY, users);
+     }
+  }
+
+  let supportTierDesc = 'Apoio Massivo Distribuído';
+  if (eligibleFamilies.length <= 2 && payload.totalAmount > 200) {
+    supportTierDesc = 'Apoio Extraordinário Focado';
+  }
+
+  return {
+    communityId: payload.communityId,
+    totalDistributedAmount: payload.totalAmount,
+    impactedFamiliesCount: eligibleFamilies.length,
+    familyIds,
+    donations,
+    giftCards,
+    supportTierDesc
+  };
+}
 };

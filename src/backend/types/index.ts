@@ -74,3 +74,25 @@ export interface Donation {
   createdAt: string;
   message?: string;
 }
+
+export interface Recurrence {
+  id: string;
+  userId: string;
+  communityId?: string; // Optional if targeting a specific family or region
+  familyId?: string; 
+  amount: number;
+  periodicity: 'daily' | 'weekly' | 'monthly';
+  status: 'active' | 'paused';
+  nextBillingDate: string;
+  totalAccumulated: number;
+}
+
+export interface BigDonationResult {
+  communityId: string;
+  totalDistributedAmount: number;
+  impactedFamiliesCount: number;
+  familyIds: string[];
+  donations: Donation[];
+  giftCards: GiftCard[];
+  supportTierDesc: string;
+}
