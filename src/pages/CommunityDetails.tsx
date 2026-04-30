@@ -4,6 +4,7 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { communityService } from '../backend/services/communityService';
 import { familyService } from '../backend/services/familyService';
+import { isPubliclyVisibleFamily } from '../backend/utils/familyUtils';
 import type { Community, Family } from '../backend/types';
 import { MapPin, Heart, ShieldAlert } from 'lucide-react';
 import './CommunityDetails.css';
@@ -23,8 +24,8 @@ const CommunityDetails: React.FC = () => {
         familyService.getFamiliesByCommunity(id)
       ]).then(([commRes, famRes]) => {
         setCommunity(commRes || null);
-        // Only list families that need help for individual picking
-        setFamilies(famRes.filter(f => f.supportStatus === 'needs_help'));
+        // Only list families that need help for individual picking and are publicly visible
+        setFamilies(famRes.filter(f => isPubliclyVisibleFamily(f) && f.supportStatus === 'needs_help'));
         setLoading(false);
       });
     }

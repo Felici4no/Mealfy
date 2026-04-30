@@ -39,6 +39,7 @@ const RecenterControls = ({ center }: { center: [number, number] }) => {
 };
 
 import { isBeneficiaryEligible } from '../backend/utils/timeUtils';
+import { isPubliclyVisibleFamily } from '../backend/utils/familyUtils';
 
 const MapView: React.FC = () => {
   const navigate = useNavigate();
@@ -55,6 +56,8 @@ const MapView: React.FC = () => {
   }, []);
 
   const displayedFamilies = families.filter(f => {
+    if (!isPubliclyVisibleFamily(f)) return false;
+    
     const eligible = isBeneficiaryEligible(f);
     if (showOnlyNeedsHelp) return eligible;
     return true; // Show all if filter is off

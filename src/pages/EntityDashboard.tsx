@@ -4,6 +4,7 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
+import { normalizeString } from '../backend/utils/normalizeUtils';
 import { Users, PlusCircle, CheckCircle, Clock, AlertCircle, FileText, Check, X } from 'lucide-react';
 import type { Family, DonorIndication, AuthorizingEntity } from '../backend/types';
 import './EntityDashboard.css';
@@ -28,8 +29,16 @@ const EntityDashboard: React.FC = () => {
 
     setFamilies(allFam.filter(f => f.authorizingEntityId === user?.entityId || !f.authorizingEntityId));
     
-    // Filtrar indicações pendentes pela região (simulando filtro ou pegando todas se não tiver região)
-    const pendingInd = allInd.filter(i => i.status === 'pending' && (!currentEntity?.region || i.region.toLowerCase().includes(currentEntity.region.toLowerCase().split('-')[0].trim())));
+    // Filtrar indicações pendentes pela região de forma segura
+    const pendingInd = allInd.filter(i => {
+      if (i.status !== 'pending') return false;
+      if (!currentEntity?.region) return true;
+      
+      const indRegion = normalizeString(i.region);
+      const entityRegion = normalizeString(currentEntity.region.split('-')[0]);
+      
+      return indRegion.includes(entityRegion) || entityRegion.includes(indRegion);
+    });
     setIndications(pendingInd);
     
     setLoading(false);

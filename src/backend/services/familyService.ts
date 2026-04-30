@@ -2,6 +2,7 @@ import type { Family, DonorIndication } from '../types';
 import { mockFamilies } from '../mockData/families';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
+import { normalizeString } from '../utils/normalizeUtils';
 
 const FAMILIES_KEY = 'families_db';
 const INDICATIONS_KEY = 'indications_db';
@@ -93,6 +94,31 @@ export const familyService = {
     
     if (idx === -1) throw new Error('Indicação não encontrada');
     const indication = indications[idx];
+
+    // Proteção 1: Evitar conversão duplicada
+    if (indication.status === 'converted') {
+      throw new Error('Esta indicação já foi convertida em família.');
+    }
+
+    // Proteção 2: Impedir entidade pending de converter
+    if (user?.role === 'entity' && (user?.status === 'pending' || user?.status === 'rejected')) {
+      throw new Error('Entidades em análise ou rejeitadas não podem converter indicações.');
+    }
+
+    // Proteção 3: Validar região (exceto admin)
+    if (user?.role !== 'admin') {
+      // Pega a entidade para validar a região real dela
+      const entities = storage.get<any[]>('entities_db', []);
+      const entityData = entities.find(e => e.id === user?.entityId);
+      
+      const indRegion = normalizeString(indication.region);
+      // Extrai apenas a cidade principal se houver formato "Cidade - UF"
+      const entityRegion = normalizeString(entityData?.region?.split('-')[0]);
+
+      if (!indRegion.includes(entityRegion) && !entityRegion.includes(indRegion)) {
+        throw new Error('Você não pode converter uma indicação fora da sua região de atuação.');
+      }
+    }
 
     // Cria a família a partir da indicação
     const newFamilyData: Omit<Family, 'id'> = {
