@@ -9,17 +9,19 @@ import type { Family } from '../backend/types';
 import { Trophy, Loader2, Heart, UserCircle } from 'lucide-react';
 import StoriesRanking from '../components/ui/StoriesRanking';
 import BottomSheet from '../components/ui/BottomSheet';
+import ImpactRegionSelector from '../components/modals/ImpactRegionSelector';
 import { useToast } from '../context/ToastContext';
 import './Home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedCommunity } = useAppContext();
+  const { selectedRegion } = useAppContext();
   const { showToast } = useToast();
   const [families, setFamilies] = useState<Family[]>([]);
   const [topDonors, setTopDonors] = useState<any[]>([]);
   const [loadingFamilies, setLoadingFamilies] = useState(true);
   
+  const [isRegionSelectorOpen, setIsRegionSelectorOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [supportAmount, setSupportAmount] = useState<number | null>(null);
   const [isSupporting, setIsSupporting] = useState(false);
@@ -27,14 +29,13 @@ const Home: React.FC = () => {
   useEffect(() => {
     rankingService.getTopDonors().then(setTopDonors);
     
-    if (selectedCommunity) {
-      setLoadingFamilies(true);
-      familyService.getFamiliesByCommunity(selectedCommunity.id).then(res => {
-        setFamilies(res);
-        setLoadingFamilies(false);
-      });
-    }
-  }, [selectedCommunity]);
+    setLoadingFamilies(true);
+    const filters = selectedRegion ? { region: selectedRegion } : undefined;
+    familyService.getFamilies(filters).then(res => {
+      setFamilies(res);
+      setLoadingFamilies(false);
+    });
+  }, [selectedRegion]);
 
   const familiesHelped = families.filter(f => f.supportStatus === 'supported').length;
   const familiesNeedsHelp = families.filter(f => f.supportStatus === 'needs_help').length;
@@ -44,7 +45,10 @@ const Home: React.FC = () => {
       <div className="home-top">
         <div className="home-brand-row">
           <div className="home-brand">Mealfy</div>
-          <div className="home-top-action">
+          <div className="home-top-action flex items-center cursor-pointer" onClick={() => setIsRegionSelectorOpen(true)}>
+             <span className="text-xs font-bold mr-2 text-primary">
+               {selectedRegion ? `Em: ${selectedRegion}` : 'Escolha onde ajudar'}
+             </span>
              <Trophy size={20} className="text-secondary" />
           </div>
         </div>
@@ -74,7 +78,7 @@ const Home: React.FC = () => {
         <div className="hero-content">
           <h1 className="hero-headline">Doe hoje.<br/>Alimente uma criança.</h1>
           <p className="hero-subtext">
-            Sua doação para {selectedCommunity?.name} se transforma rapidamente em refeições quentes.
+            Sua doação para {selectedRegion || 'famílias necessitadas'} se transforma rapidamente em refeições quentes.
           </p>
           
           <div className="hero-actions">
@@ -103,7 +107,7 @@ const Home: React.FC = () => {
 
       <div className="social-proof-section p-4">
         <h2 className="section-title text-center mb-4 text-primary font-bold">
-          Impacto em {selectedCommunity?.name}
+          Impacto em {selectedRegion || 'todas as regiões'}
         </h2>
         
         {loadingFamilies ? (
@@ -113,7 +117,7 @@ const Home: React.FC = () => {
           </div>
         ) : families.length === 0 ? (
           <div className="text-center my-8 p-6 bg-surface-highest rounded-2xl border border-outline/10 mx-4">
-             <p className="text-sm text-outline italic">Ainda não há famílias cadastradas em {selectedCommunity?.name}.</p>
+             <p className="text-sm text-outline italic">Ainda não há famílias cadastradas em {selectedRegion || 'nenhuma região'}.</p>
              <Button variant="ghost" size="small" className="mt-2 text-primary" onClick={() => navigate('/register-family')}>Indique uma família</Button>
           </div>
         ) : (
@@ -144,9 +148,9 @@ const Home: React.FC = () => {
           variant="outline" 
           fullWidth
           className="mt-4 border-outline text-outline"
-          onClick={() => navigate(`/community/${selectedCommunity?.id}`)}
+          onClick={() => navigate('/map')}
         >
-          Visualizar a Fome nesta Região
+          Visualizar a Fome no Mapa
         </Button>
       </div>
 
@@ -212,6 +216,11 @@ const Home: React.FC = () => {
           {isSupporting ? 'Processando...' : 'Confirmar Apoio'}
         </Button>
       </BottomSheet>
+
+      <ImpactRegionSelector 
+        isOpen={isRegionSelectorOpen} 
+        onClose={() => setIsRegionSelectorOpen(false)} 
+      />
     </div>
   );
 };

@@ -12,7 +12,7 @@ import './DonationChoice.css'; // Reuse amounts grid
 const BigDonation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAppContext();
+  const { user, selectedRegion } = useAppContext();
   const { showToast } = useToast();
   
   const community = location.state?.community as Community | undefined;
@@ -20,10 +20,12 @@ const BigDonation: React.FC = () => {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(100);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  if (!community) {
+  if (!community && !selectedRegion) {
     navigate('/explore');
     return null;
   }
+
+  const regionName = selectedRegion || community?.name || 'todas as regiões';
 
   const amounts = [
     { value: 100, impact: 'Apoio ampliado regional' },
@@ -38,7 +40,7 @@ const BigDonation: React.FC = () => {
     try {
       const result = await donationService.createBigDonation({
         totalAmount: selectedAmount,
-        communityId: community.id,
+        communityId: community?.id || 'all',
         donorId: user?.id || `anon-${Date.now()}`,
       });
 
@@ -60,7 +62,7 @@ const BigDonation: React.FC = () => {
           <ShieldAlert size={28} className="text-secondary" />
           <h1 className="page-title text-primary m-0">Doação Ampliada</h1>
         </div>
-        <p className="page-subtitle mb-6">Seu apoio será distribuído automaticamente entre as famílias que mais precisam em <strong>{community.name}</strong>.</p>
+        <p className="page-subtitle mb-6">Seu apoio será distribuído automaticamente entre as famílias que mais precisam em <strong>{regionName}</strong>.</p>
         
         <section className="amounts-section mb-6">
           <div className="amount-cards-grid">

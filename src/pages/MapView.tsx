@@ -5,7 +5,9 @@ import L from 'leaflet';
 import { familyService } from '../backend/services/familyService';
 import type { Family } from '../backend/types';
 import Button from '../components/ui/Button';
-import { LocateFixed, Filter } from 'lucide-react';
+import { LocateFixed, Filter, MapPin } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import ImpactRegionSelector from '../components/modals/ImpactRegionSelector';
 import './MapView.css';
 
 // Fix missing leafet icon paths conceptually
@@ -43,17 +45,27 @@ import { isPubliclyVisibleFamily } from '../backend/utils/familyUtils';
 
 const MapView: React.FC = () => {
   const navigate = useNavigate();
+  const { selectedRegion } = useAppContext();
   const [families, setFamilies] = useState<Family[]>([]);
-  const [showOnlyNeedsHelp, setShowOnlyNeedsHelp] = useState(true); // Default to urgencies
+  const [showOnlyNeedsHelp, setShowOnlyNeedsHelp] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5505, -46.6333]); // SP Base
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5505, -46.6333]);
+  const [isRegionSelectorOpen, setIsRegionSelectorOpen] = useState(false);
 
   useEffect(() => {
-    familyService.getFamilies().then(fams => {
-      // Filter for approved and eligible
+    const filters = selectedRegion ? { region: selectedRegion } : undefined;
+    familyService.getFamilies(filters).then(fams => {
       setFamilies(fams);
+      
+      if (fams.length > 0) {
+        // Recenter to first family if region is selected
+        const valid = fams.find(f => f.latitude && f.longitude);
+        if (valid) {
+          setMapCenter([valid.latitude, valid.longitude]);
+        }
+      }
     });
-  }, []);
+  }, [selectedRegion]);
 
   const displayedFamilies = families.filter(f => {
     if (!isPubliclyVisibleFamily(f)) return false;
@@ -175,13 +187,26 @@ const MapView: React.FC = () => {
       </div>
 
       <div className="map-overlays">
-        <div className="map-header">
-           <div className="legend-card">
-              <div className="legend-item"><span style={{fontSize: '1.2rem'}}>💔</span> Aguardando</div>
-              <div className="legend-item"><span style={{fontSize: '1.2rem'}}>❤️</span> Seguro</div>
+        <div className="map-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+           <div className="flex justify-between items-center bg-surface p-2 rounded-xl shadow-sm">
+             <div className="flex items-center gap-2">
+               <MapPin size={16} className="text-primary" />
+               <span className="text-sm font-bold text-outline">
+                 {selectedRegion ? `Região: ${selectedRegion}` : 'Todas as Regiões'}
+               </span>
+             </div>
+             <Button variant="ghost" size="small" onClick={() => setIsRegionSelectorOpen(true)} className="text-primary px-2 py-1 h-auto text-xs">
+               Alterar
+             </Button>
            </div>
            
-           <div className="filter-card">
+           <div className="flex justify-between items-center">
+             <div className="legend-card" style={{ padding: '8px 12px', minWidth: 'auto' }}>
+                <div className="legend-item"><span style={{fontSize: '1rem'}}>💔</span> Aguardando</div>
+                <div className="legend-item"><span style={{fontSize: '1rem'}}>❤️</span> Seguro</div>
+             </div>
+             
+             <div className="filter-card" style={{ padding: '8px 12px', minWidth: 'auto' }}>
               <button 
                 className="flex items-center gap-2 font-semibold text-sm text-primary"
                 onClick={() => setShowOnlyNeedsHelp(!showOnlyNeedsHelp)}
@@ -223,6 +248,11 @@ const MapView: React.FC = () => {
            </button>
         </div>
       </div>
+
+      <ImpactRegionSelector 
+        isOpen={isRegionSelectorOpen} 
+        onClose={() => setIsRegionSelectorOpen(false)} 
+      />
     </div>
   );
 };

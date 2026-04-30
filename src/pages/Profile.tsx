@@ -8,6 +8,7 @@ import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Se
 import { useAppContext } from '../context/AppContext';
 import { donationService } from '../backend/services/donationService';
 import { rankingService } from '../backend/services/rankingService';
+import ImpactRegionSelector from '../components/modals/ImpactRegionSelector';
 import type { Donation, GiftCard } from '../backend/types';
 import './Profile.css';
 
@@ -18,6 +19,7 @@ const Profile: React.FC = () => {
   const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
   const [rankingInfo, setRankingInfo] = useState<any>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRegionSelectorOpen, setIsRegionSelectorOpen] = useState(false);
   
   const [loading, setLoading] = useState(true);
 
@@ -214,8 +216,20 @@ const Profile: React.FC = () => {
       <BottomSheet isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Configurações">
          <div className="flex-col gap-4">
            {user.role === 'donor' && (
-             <div className="bg-surface-highest rounded-xl border border-outline/10 p-4 flex-col gap-4">
+              <div className="bg-surface-highest rounded-xl border border-outline/10 p-4 flex-col gap-4">
                  <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                       <span className="font-semibold text-sm">Preferência de impacto</span>
+                       <span className="text-xs text-outline">
+                         {user.impactPreferences?.preferredRegion ? `Em: ${user.impactPreferences.preferredRegion}` : 'Todas as regiões'}
+                       </span>
+                    </div>
+                    <Button variant="ghost" size="small" onClick={() => { setIsSettingsOpen(false); setIsRegionSelectorOpen(true); }} className="text-primary text-xs">
+                       Alterar
+                    </Button>
+                 </div>
+                 
+                 <div className="flex justify-between items-center border-t border-outline/10 pt-4">
                     <div className="flex flex-col">
                        <span className="font-semibold text-sm">Aparecer no ranking</span>
                        <span className="text-xs text-outline">Seu nome visível para a comunidade</span>
@@ -238,7 +252,7 @@ const Profile: React.FC = () => {
                       onChange={(e) => updateUserPrivacy({ showInstagram: e.target.checked })}
                     />
                  </div>
-             </div>
+              </div>
            )}
 
            <div className="bg-surface-highest rounded-xl border border-outline/10 p-4 flex justify-between items-center">
@@ -256,8 +270,13 @@ const Profile: React.FC = () => {
            <Button variant="outline" className="border-error text-error mt-4" fullWidth icon={<LogOut size={18} />} onClick={logout}>
               Sair da conta
            </Button>
-         </div>
+          </div>
       </BottomSheet>
+
+      <ImpactRegionSelector 
+        isOpen={isRegionSelectorOpen} 
+        onClose={() => setIsRegionSelectorOpen(false)} 
+      />
     </div>
   );
 };
