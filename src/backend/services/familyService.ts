@@ -20,9 +20,9 @@ export const familyService = {
     }
   },
 
-  getFamilies: async (): Promise<Family[]> => {
+  getFamilies: async (filters?: { region?: string; communityId?: string }): Promise<Family[]> => {
     try {
-      const apiFamilies = await familiesApi.getPublicFamilies();
+      const apiFamilies = await familiesApi.getPublicFamilies(filters);
       if (apiFamilies) return apiFamilies;
     } catch (e) {
       handleApiError(e, 'Get Families');
@@ -30,7 +30,21 @@ export const familyService = {
     
     await randomDelay();
     familyService.initDB();
-    return storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+    let families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+    
+    if (filters?.region) {
+      const normalizedQuery = filters.region.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      families = families.filter(f => {
+        const fReg = (f.neighborhood || (f as any).region || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return fReg === normalizedQuery;
+      });
+    }
+    
+    if (filters?.communityId) {
+      families = families.filter(f => f.communityId === filters.communityId);
+    }
+    
+    return families;
   },
 
   getFamiliesByCommunity: async (communityId: string): Promise<Family[]> => {

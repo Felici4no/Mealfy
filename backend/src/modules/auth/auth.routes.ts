@@ -8,5 +8,6 @@ authRoutes.post('/register/donor', AuthController.registerDonor);
 authRoutes.post('/register/entity', AuthController.registerEntity);
 authRoutes.post('/login/mock', AuthController.login);
 authRoutes.get('/me', authMiddleware, AuthController.me);
+authRoutes.patch('/me/preferences', authMiddleware, AuthController.updatePreferences);
 
 export { authRoutes };

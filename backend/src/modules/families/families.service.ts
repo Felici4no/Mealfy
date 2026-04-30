@@ -5,9 +5,23 @@ import { AppError } from '../../shared/errors/AppError';
 import { Family } from '../../shared/types';
 
 export class FamiliesService {
-  static async getPublicFamilies(): Promise<Family[]> {
+  static async getPublicFamilies(query?: { region?: string; communityId?: string }): Promise<Family[]> {
     const families = await MockDatabase.read<Family>('families');
-    return families.filter(isPubliclyVisibleFamily);
+    let visible = families.filter(isPubliclyVisibleFamily);
+    
+    if (query?.region) {
+      const normalizedQuery = query.region.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      visible = visible.filter(f => {
+        const fReg = (f.neighborhood || (f as any).region || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return fReg === normalizedQuery;
+      });
+    }
+
+    if (query?.communityId) {
+      visible = visible.filter(f => f.communityId === query.communityId);
+    }
+
+    return visible;
   }
 
   static async getFamilyById(id: string): Promise<Family> {

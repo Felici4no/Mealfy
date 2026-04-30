@@ -9,6 +9,7 @@ import { indicationsRoutes } from './modules/indications/indications.routes';
 import { donationsRoutes } from './modules/donations/donations.routes';
 import { rankingRoutes } from './modules/ranking/ranking.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
+import { regionsRoutes } from './modules/regions/regions.routes';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/indications', indicationsRoutes);
 app.use('/donations', donationsRoutes);
 app.use('/ranking', rankingRoutes);
 app.use('/admin', adminRoutes);
+app.use('/regions', regionsRoutes);
 
 app.use(errorHandler);
 

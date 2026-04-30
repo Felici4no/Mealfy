@@ -27,6 +27,11 @@ export interface User {
   rankingPercentile: string;
   favoriteCommunityId?: string;
   privacySettings?: PrivacySettings;
+  impactPreferences?: {
+    preferredRegion?: string;
+    preferredCommunityId?: string;
+    preferredRadiusKm?: number;
+  };
   entityId?: string; // If role is entity
   beneficiaryId?: string; // If role is beneficiary
   status?: 'pending' | 'approved' | 'rejected' | 'active' | 'suspended';

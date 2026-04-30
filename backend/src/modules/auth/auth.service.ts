@@ -91,4 +91,25 @@ export class AuthService {
 
     return user;
   }
+
+  static async updatePreferences(userId: string, preferences: any): Promise<User> {
+    const users = await MockDatabase.read<User>('users');
+    const userIndex = users.findIndex(u => u.id === userId);
+    
+    if (userIndex === -1) {
+      throw new AppError('User not found', 404);
+    }
+    
+    if (users[userIndex].role !== 'donor') {
+      throw new AppError('Only donors can have impact preferences', 403);
+    }
+
+    users[userIndex].impactPreferences = {
+      ...users[userIndex].impactPreferences,
+      ...preferences
+    };
+
+    await MockDatabase.write('users', users);
+    return users[userIndex];
+  }
 }

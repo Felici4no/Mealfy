@@ -27,4 +27,10 @@ export class AuthController {
   static async me(req: Request, res: Response) {
     return res.json(req.user);
   }
+
+  static async updatePreferences(req: Request, res: Response) {
+    const preferences = req.body;
+    const user = await AuthService.updatePreferences(req.user.id, preferences);
+    return res.json(user);
+  }
 }

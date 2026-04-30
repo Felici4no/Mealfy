@@ -4,7 +4,10 @@ import { createFamilySchema, updateFamilyStatusSchema } from './families.validat
 
 export class FamiliesController {
   static async getPublic(req: Request, res: Response) {
-    const families = await FamiliesService.getPublicFamilies();
+    const families = await FamiliesService.getPublicFamilies({
+      region: req.query.region as string,
+      communityId: req.query.communityId as string
+    });
     return res.json(families);
   }
 
