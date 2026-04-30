@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { Heart, Building2, UserCircle, ShieldCheck, ArrowRight, Loader2, Smartphone } from 'lucide-react';
+import { Heart, Building2, UserCircle, ShieldCheck, ArrowRight, Loader2, Facebook } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import type { UserRole } from '../backend/types';
 import './Auth.css';
 
@@ -10,6 +11,7 @@ const Auth: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { loginAsRole, isAuthenticated, user } = useAppContext();
+  const { showToast } = useToast();
   
   const [view, setView] = useState<'picker' | 'login'>('picker');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
@@ -22,37 +24,6 @@ const Auth: React.FC = () => {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, user, navigate, location.state]);
-
-  const roles = [
-    { 
-      id: 'donor' as UserRole, 
-      title: 'Sou Doador', 
-      desc: 'Doe em poucos segundos e ajude quem precisa.', 
-      icon: <Heart size={28} />,
-      theme: 'primary'
-    },
-    { 
-      id: 'entity' as UserRole, 
-      title: 'Sou Entidade', 
-      desc: 'ONGs, igrejas e institutos autorizados.', 
-      icon: <Building2 size={28} />,
-      theme: 'secondary'
-    },
-    { 
-      id: 'beneficiary' as UserRole, 
-      title: 'Sou Beneficiário', 
-      desc: 'Acesse seu benefício e gift cards.', 
-      icon: <UserCircle size={28} />,
-      theme: 'success'
-    },
-    { 
-      id: 'admin' as UserRole, 
-      title: 'Admin Mock', 
-      desc: 'Acesso para moderação e testes.', 
-      icon: <ShieldCheck size={28} />,
-      theme: 'outline'
-    }
-  ];
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
@@ -69,8 +40,9 @@ const Auth: React.FC = () => {
     setIsLoading(true);
     try {
       await loginAsRole(selectedRole, identifier);
+      showToast('Login realizado com sucesso', 'success');
     } catch (err) {
-      alert("Erro ao entrar. Tente novamente.");
+      showToast("Erro ao entrar. Verifique seus dados e tente novamente.", 'error');
       setIsLoading(false);
     }
   };
@@ -79,7 +51,7 @@ const Auth: React.FC = () => {
     return (
       <div className="auth-page login-view">
         <main className="content p-6 flex-col justify-center">
-          <button className="back-btn mb-8 text-outline flex items-center gap-2" onClick={() => setView('picker')}>
+          <button className="back-btn mb-8 text-outline flex items-center gap-2 active:scale-95 transition-transform" onClick={() => setView('picker')}>
              <ArrowRight size={20} style={{ transform: 'rotate(180deg)' }} /> Voltar
           </button>
           
@@ -108,7 +80,7 @@ const Auth: React.FC = () => {
               size="large" 
               fullWidth 
               loading={isLoading}
-              className="shadow-glow"
+              className="shadow-glow active:scale-95 transition-transform"
             >
               Entrar Agora
             </Button>
@@ -124,33 +96,69 @@ const Auth: React.FC = () => {
 
   return (
     <div className="auth-page role-picker-view">
-      <main className="content p-6 flex-col justify-center">
-        <div className="auth-header text-center mb-10">
-          <div className="logo-text font-serif text-4xl font-black text-primary italic mb-2">Mealfy</div>
-          <p className="text-outline">Escolha como deseja acessar a plataforma</p>
+      <div className="auth-hero">
+        <div className="auth-hero-overlay"></div>
+        <img 
+          src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+          alt="Criança sorrindo" 
+          className="auth-hero-image"
+        />
+        <div className="auth-hero-content">
+          <div className="logo-text font-serif text-4xl font-black text-white italic mb-2 drop-shadow-md">Mealfy</div>
+          <h1 className="text-2xl font-bold text-white drop-shadow-md">Como você quer entrar?</h1>
+        </div>
+      </div>
+
+      <main className="auth-content p-6 flex-col">
+        <div className="roles-list flex-col gap-3 mb-6">
+          <button 
+            className="role-btn primary shadow-glow-soft active:scale-95 transition-transform"
+            onClick={() => handleRoleSelect('donor')}
+          >
+            Sou Doador
+          </button>
+          
+          <button 
+            className="role-btn secondary active:scale-95 transition-transform"
+            onClick={() => handleRoleSelect('entity')}
+          >
+            Sou Entidade Autorizada
+          </button>
+
+          <button 
+            className="role-btn outline active:scale-95 transition-transform"
+            onClick={() => handleRoleSelect('beneficiary')}
+          >
+            Sou Beneficiário
+          </button>
+          
+          <button 
+            className="role-btn subtle active:scale-95 transition-transform mt-2"
+            onClick={() => handleRoleSelect('admin')}
+          >
+            <ShieldCheck size={16} /> Acesso Admin (Mock)
+          </button>
         </div>
 
-        <div className="roles-grid flex-col gap-4">
-          {roles.map(role => (
-            <button 
-              key={role.id}
-              className={`role-card p-5 rounded-2xl border border-outline/10 bg-surface-highest flex items-center gap-4 transition-all active:scale-95 text-left`}
-              onClick={() => handleRoleSelect(role.id)}
-            >
-              <div className={`role-icon-bg bg-${role.theme}/10 text-${role.theme} p-3 rounded-xl`}>
-                {role.icon}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg">{role.title}</h3>
-                <p className="text-xs text-outline leading-tight">{role.desc}</p>
-              </div>
-              <ArrowRight size={20} className="text-outline/30" />
-            </button>
-          ))}
+        <div className="separator mb-6 flex items-center justify-center gap-3">
+          <div className="h-px bg-outline/20 flex-1"></div>
+          <span className="text-xs font-bold text-outline uppercase">ou</span>
+          <div className="h-px bg-outline/20 flex-1"></div>
         </div>
 
-        <div className="auth-footer mt-12 text-center">
-           <button className="text-primary font-bold flex items-center gap-2 mx-auto" onClick={() => navigate('/donate')}>
+        <button 
+          className="social-btn facebook active:scale-95 transition-transform"
+          onClick={() => showToast('Login com Facebook não configurado no Mock.', 'info')}
+        >
+          <Facebook size={20} fill="currentColor" />
+          Entrar com Facebook
+        </button>
+
+        <div className="auth-footer mt-8 text-center">
+           <button 
+             className="text-primary font-bold flex items-center justify-center gap-2 mx-auto active:scale-95 transition-transform" 
+             onClick={() => navigate('/donate')}
+           >
               Continuar como doador anônimo <ArrowRight size={16} />
            </button>
         </div>

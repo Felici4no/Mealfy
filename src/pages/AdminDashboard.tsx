@@ -2,9 +2,11 @@ import React from 'react';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { ShieldCheck, UserCheck, Building2, FileText, RefreshCw } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 import './AdminDashboard.css';
 
 const AdminDashboard: React.FC = () => {
+  const { showToast } = useToast();
   const [pendingEntitiesCount, setPendingEntitiesCount] = React.useState(0);
   const [pendingFamiliesCount, setPendingFamiliesCount] = React.useState(0);
 
@@ -75,7 +77,7 @@ const AdminDashboard: React.FC = () => {
                fullWidth 
                icon={<RefreshCw size={18} />}
                onClick={() => {
-                 alert("Elegibilidade de todas as famílias resetada para 08:00 AM (Mock)");
+                 showToast("Elegibilidade de todas as famílias resetada para 08:00 AM (Mock)", "success");
                  refreshCounts();
                }}
              >
@@ -93,10 +95,10 @@ const AdminDashboard: React.FC = () => {
                  if (pendingEntity) {
                    pendingEntity.status = 'approved';
                    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-                   alert(`Entidade ${pendingEntity.name} aprovada com sucesso!`);
+                   showToast(`Entidade ${pendingEntity.name} aprovada com sucesso!`, "success");
                    refreshCounts();
                  } else {
-                   alert("Nenhuma entidade pendente encontrada para aprovar.");
+                   showToast("Nenhuma entidade pendente encontrada para aprovar.", "info");
                  }
                }}
              >
@@ -114,10 +116,10 @@ const AdminDashboard: React.FC = () => {
                  if (pendingFamilies.length > 0) {
                    pendingFamilies.forEach((f: any) => { f.status = 'approved'; f.supportStatus = 'needs_help'; });
                    localStorage.setItem(FAMILIES_KEY, JSON.stringify(families));
-                   alert(`${pendingFamilies.length} famílias aprovadas com sucesso!`);
+                   showToast(`${pendingFamilies.length} famílias aprovadas com sucesso!`, "success");
                    refreshCounts();
                  } else {
-                   alert("Nenhuma família pendente encontrada.");
+                   showToast("Nenhuma família pendente encontrada.", "info");
                  }
                }}
              >

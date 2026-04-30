@@ -4,6 +4,7 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import CommunitySelectorModal from '../components/modals/CommunitySelectorModal';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { donationService } from '../backend/services/donationService';
 import { MapPin, Info, Loader2 } from 'lucide-react';
 import './DonationChoice.css';
@@ -12,6 +13,7 @@ const DonationChoice: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { selectedCommunity, user } = useAppContext();
+  const { showToast } = useToast();
   
   const targetFamily = location.state?.targetFamily as any; 
   const selectedFamilyIds = location.state?.selectedFamilyIds as string[] | undefined;
@@ -66,7 +68,7 @@ const DonationChoice: React.FC = () => {
       navigate('/success', { state: { donationResult: result, isBatch, count } });
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Erro ao processar doação.');
+      showToast(err.message || 'Erro ao processar doação.', 'error');
     } finally {
       setIsProcessing(false);
     }

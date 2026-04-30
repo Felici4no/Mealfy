@@ -2,11 +2,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
+import { useToast } from '../context/ToastContext';
 import { MessageSquare, Mail, AlertTriangle, BookOpen } from 'lucide-react';
 import './Support.css';
 
 const Support: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   return (
     <div className="support-page">
@@ -44,7 +46,7 @@ const Support: React.FC = () => {
               fullWidth 
               size="large"
               icon={<MessageSquare size={20} className="text-success" />}
-              onClick={() => alert('Simulação: Lançando WhatsApp para +55 0800 000 000')}
+              onClick={() => showToast('Simulação: Lançando WhatsApp para +55 0800 000 000', 'info')}
             >
               Falar com Mealfy no WhatsApp
             </Button>
@@ -53,7 +55,7 @@ const Support: React.FC = () => {
               variant="outline" 
               fullWidth 
               icon={<Mail size={20} />}
-              onClick={() => alert('Simulação: Abrindo cliente de email (contato@mealfy.org)')}
+              onClick={() => showToast('Simulação: Abrindo cliente de email (contato@mealfy.org)', 'info')}
             >
               Enviar um E-mail ao Suporte
             </Button>

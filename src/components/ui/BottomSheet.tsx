@@ -1,47 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import './BottomSheet.css';
 
 interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   children: React.ReactNode;
 }
 
 const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, children }) => {
-  // Prevent scrolling on body when sheet is open
+  const [render, setRender] = useState(isOpen);
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
+    if (isOpen) setRender(true);
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  const handleAnimationEnd = () => {
+    if (!isOpen) setRender(false);
+  };
+
+  if (!render) return null;
 
   return (
-    <>
-      <div className="bottom-sheet-backdrop" onClick={onClose} />
-      <div className={`bottom-sheet-container ${isOpen ? 'open' : ''}`}>
+    <div className={`bottom-sheet-overlay ${isOpen ? 'open' : 'closed'}`} onClick={onClose} onAnimationEnd={handleAnimationEnd}>
+      <div className={`bottom-sheet-content ${isOpen ? 'open' : 'closed'}`} onClick={e => e.stopPropagation()}>
         <div className="bottom-sheet-drag-handle">
-          <div className="drag-indicator" />
+          <div className="drag-indicator"></div>
         </div>
         <div className="bottom-sheet-header">
-          <h2 className="bottom-sheet-title">{title}</h2>
-          <button className="bottom-sheet-close" onClick={onClose}>
-            <X size={24} />
+          {title && <h3 className="bottom-sheet-title">{title}</h3>}
+          <button className="bottom-sheet-close-btn" onClick={onClose}>
+            <X size={20} />
           </button>
         </div>
-        <div className="bottom-sheet-content">
+        <div className="bottom-sheet-body">
           {children}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

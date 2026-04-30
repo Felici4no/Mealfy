@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import RankingDetailsModal from '../components/modals/RankingDetailsModal';
-import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock } from 'lucide-react';
+import BottomSheet from '../components/ui/BottomSheet';
+import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { donationService } from '../backend/services/donationService';
 import { rankingService } from '../backend/services/rankingService';
@@ -16,6 +17,7 @@ const Profile: React.FC = () => {
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
   const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
   const [rankingInfo, setRankingInfo] = useState<any>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ const Profile: React.FC = () => {
 
   return (
     <div className="profile-page">
-      <AppHeader title="Meu Perfil" rightAction={<Button variant="ghost" onClick={logout} icon={<LogOut size={22} className="text-outline" />} />} />
+      <AppHeader title="Meu Perfil" rightAction={<Button variant="ghost" onClick={() => setIsSettingsOpen(true)} icon={<Settings size={22} className="text-outline" />} />} />
       
       <main className="content">
         <section className="profile-header p-4 pb-6">
@@ -102,51 +104,6 @@ const Profile: React.FC = () => {
             “Não se iluda: quando você alimenta uma pessoa de verdade, ou estende a mão para cobrir um prato vago, você descobre que esse vazio nunca esteve neles, estava em você.”
           </p>
           <p className="quote-author">— Christiano Montalvão</p>
-        </section>
-
-        <section className="settings-section p-4">
-          <h3 className="section-title mb-4">Privacidade</h3>
-          <div className="bg-surface-highest rounded-xl border border-outline/10 p-4">
-             {user.role === 'donor' && (
-               <>
-                 <div className="flex justify-between items-center mb-4">
-                    <div className="flex flex-col">
-                       <span className="font-semibold text-sm">Aparecer no ranking</span>
-                       <span className="text-xs text-outline">Seu nome visível para a comunidade</span>
-                    </div>
-                    <input 
-                      type="checkbox" 
-                      checked={user.privacySettings?.showOnRanking} 
-                      onChange={(e) => updateUserPrivacy({ showOnRanking: e.target.checked })}
-                    />
-                 </div>
-                 
-                 <div className="flex justify-between items-center mb-4">
-                    <div className="flex flex-col">
-                       <span className="font-semibold text-sm">Mostrar Instagram</span>
-                       <span className="text-xs text-outline">Link direto para seu perfil social</span>
-                    </div>
-                    <input 
-                      type="checkbox" 
-                      checked={user.privacySettings?.showInstagram} 
-                      onChange={(e) => updateUserPrivacy({ showInstagram: e.target.checked })}
-                    />
-                 </div>
-               </>
-             )}
-
-             <div className="flex justify-between items-center">
-                <div className="flex flex-col">
-                   <span className="font-semibold text-sm">Modo Anônimo</span>
-                   <span className="text-xs text-outline">Ocultar foto e nome real em tudo</span>
-                </div>
-                <input 
-                  type="checkbox" 
-                  checked={user.privacySettings?.anonymousMode} 
-                  onChange={(e) => updateUserPrivacy({ anonymousMode: e.target.checked })}
-                />
-             </div>
-          </div>
         </section>
 
         {user.role === 'donor' && (
@@ -248,6 +205,54 @@ const Profile: React.FC = () => {
           onClose={() => setIsRankingModalOpen(false)} 
         />
       )}
+
+      <BottomSheet isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Configurações">
+         <div className="flex-col gap-4">
+           {user.role === 'donor' && (
+             <div className="bg-surface-highest rounded-xl border border-outline/10 p-4 flex-col gap-4">
+                 <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                       <span className="font-semibold text-sm">Aparecer no ranking</span>
+                       <span className="text-xs text-outline">Seu nome visível para a comunidade</span>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={user.privacySettings?.showOnRanking} 
+                      onChange={(e) => updateUserPrivacy({ showOnRanking: e.target.checked })}
+                    />
+                 </div>
+                 
+                 <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                       <span className="font-semibold text-sm">Mostrar Instagram</span>
+                       <span className="text-xs text-outline">Link direto para seu perfil social</span>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={user.privacySettings?.showInstagram} 
+                      onChange={(e) => updateUserPrivacy({ showInstagram: e.target.checked })}
+                    />
+                 </div>
+             </div>
+           )}
+
+           <div className="bg-surface-highest rounded-xl border border-outline/10 p-4 flex justify-between items-center">
+              <div className="flex flex-col">
+                 <span className="font-semibold text-sm">Modo Anônimo</span>
+                 <span className="text-xs text-outline">Ocultar foto e nome real em tudo</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={user.privacySettings?.anonymousMode} 
+                onChange={(e) => updateUserPrivacy({ anonymousMode: e.target.checked })}
+              />
+           </div>
+
+           <Button variant="outline" className="border-error text-error mt-4" fullWidth icon={<LogOut size={18} />} onClick={logout}>
+              Sair da conta
+           </Button>
+         </div>
+      </BottomSheet>
     </div>
   );
 };

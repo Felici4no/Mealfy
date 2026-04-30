@@ -6,16 +6,23 @@ import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { rankingService } from '../backend/services/rankingService';
 import type { Family } from '../backend/types';
-import { Trophy, Loader2 } from 'lucide-react';
+import { Trophy, Loader2, Heart } from 'lucide-react';
 import StoriesRanking from '../components/ui/StoriesRanking';
+import BottomSheet from '../components/ui/BottomSheet';
+import { useToast } from '../context/ToastContext';
 import './Home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { selectedCommunity } = useAppContext();
+  const { showToast } = useToast();
   const [families, setFamilies] = useState<Family[]>([]);
   const [topDonors, setTopDonors] = useState<any[]>([]);
   const [loadingFamilies, setLoadingFamilies] = useState(true);
+  
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [supportAmount, setSupportAmount] = useState<number | null>(null);
+  const [isSupporting, setIsSupporting] = useState(false);
 
   useEffect(() => {
     rankingService.getTopDonors().then(setTopDonors);
@@ -138,8 +145,8 @@ const Home: React.FC = () => {
           donors={topDonors} 
           onSelectDonor={(d) => {
             const isAnon = d.isAnonymous || d.privacySettings?.anonymousMode;
-            const msg = `Doador: ${isAnon ? 'Anônimo' : d.name}\nTotal Doado: R$ ${d.totalDonated}${(!isAnon && d.instagram && d.privacySettings?.showInstagram !== false) ? `\nInstagram: ${d.instagram}` : ''}`;
-            alert(msg);
+            const msg = `Doador: ${isAnon ? 'Anônimo' : d.name} • Total: R$ ${d.totalDonated}${(!isAnon && d.instagram && d.privacySettings?.showInstagram !== false) ? ` • IG: ${d.instagram}` : ''}`;
+            showToast(msg, 'info');
           }} 
         />
       </div>
@@ -151,13 +158,52 @@ const Home: React.FC = () => {
         <div className="dev-support-card">
            <h4 className="font-bold text-primary mb-1">Ajude o desenvolvimento</h4>
            <p className="text-xs text-outline mb-3">Apoie o desenvolvimento da plataforma e o marketing para levar alimento a mais famílias.</p>
-           <Button variant="outline" size="small" fullWidth onClick={() => alert("Obrigado pelo interesse em apoiar o desenvolvimento!")}>
+           <Button variant="outline" size="small" fullWidth onClick={() => setIsSupportOpen(true)}>
              Apoiar Plataforma
            </Button>
         </div>
       </div>
       
       <div className="bottom-spacing"></div>
+
+      <BottomSheet isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} title="Apoiar Plataforma">
+        <p className="text-sm text-outline mb-4">Seu apoio ajuda a manter o servidor online e a levar a plataforma para mais comunidades pelo Brasil.</p>
+        <div className="flex gap-3 mb-6">
+           <Button 
+             variant={supportAmount === 10 ? 'primary' : 'outline'} 
+             fullWidth 
+             onClick={() => setSupportAmount(10)}
+           >
+             R$ 10
+           </Button>
+           <Button 
+             variant={supportAmount === 20 ? 'primary' : 'outline'} 
+             fullWidth 
+             onClick={() => setSupportAmount(20)}
+           >
+             R$ 20
+           </Button>
+        </div>
+        <Button 
+          variant="primary" 
+          fullWidth 
+          size="large"
+          disabled={!supportAmount || isSupporting}
+          loading={isSupporting}
+          icon={!isSupporting ? <Heart size={18} /> : undefined}
+          onClick={() => {
+             setIsSupporting(true);
+             setTimeout(() => {
+                setIsSupporting(false);
+                setIsSupportOpen(false);
+                showToast(`Obrigado pelo apoio de R$ ${supportAmount}!`, 'success');
+                setSupportAmount(null);
+             }, 1500);
+          }}
+        >
+          {isSupporting ? 'Processando...' : 'Confirmar Apoio'}
+        </Button>
+      </BottomSheet>
     </div>
   );
 };

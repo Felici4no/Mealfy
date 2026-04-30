@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
 import type { Family } from '../backend/types';
 import './RegisterFamily.css';
@@ -10,6 +11,7 @@ import './RegisterFamily.css';
 const RegisterFamily: React.FC = () => {
   const navigate = useNavigate();
   const { communities, user } = useAppContext();
+  const { showToast } = useToast();
 
   const [isEntityMode, setIsEntityMode] = useState(user?.role === 'entity');
   const [formData, setFormData] = useState({
@@ -69,7 +71,7 @@ const RegisterFamily: React.FC = () => {
       };
 
       await familyService.addFamily(newFamilyData);
-      alert("Cadastro enviado para análise. Obrigado por ajudar!");
+      showToast("Cadastro enviado para análise. Obrigado por ajudar!", "success");
       
       if (user?.role === 'entity') {
         navigate('/entity/dashboard', { replace: true });

@@ -94,7 +94,10 @@ ul {
 
 .main-content {
   flex: 1;
-  padding-bottom: 80px; /* Space for bottom tab bar */
+}
+
+.with-tab-bar {
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Text Utilities */

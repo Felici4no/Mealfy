@@ -1,91 +1,108 @@
-.bottom-sheet-backdrop {
+.bottom-sheet-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100vh;
-  height: 100dvh;
+  right: 0;
+  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  animation: fadeIn 0.3s ease;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
-.bottom-sheet-container {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  max-height: 90vh;
-  min-height: 40vh;
+.bottom-sheet-overlay.open {
+  animation: fadeInOverlay 0.3s ease-out forwards;
+}
+
+.bottom-sheet-overlay.closed {
+  animation: fadeOutOverlay 0.3s ease-in forwards;
+}
+
+.bottom-sheet-content {
   background-color: var(--color-background);
   border-top-left-radius: var(--radius-xl);
   border-top-right-radius: var(--radius-xl);
-  z-index: 1001;
+  width: 100%;
+  max-height: 90vh;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1);
   padding-bottom: env(safe-area-inset-bottom, 20px);
 }
 
-.bottom-sheet-container.open {
-  transform: translateY(0);
+.bottom-sheet-content.open {
+  animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.bottom-sheet-content.closed {
+  animation: slideDownSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .bottom-sheet-drag-handle {
   width: 100%;
+  padding: 12px 0 4px;
   display: flex;
   justify-content: center;
-  padding: var(--spacing-3) 0;
 }
 
 .drag-indicator {
   width: 40px;
   height: 4px;
-  background-color: var(--color-outline-variant);
-  border-radius: var(--radius-full);
+  border-radius: 2px;
+  background-color: var(--color-surface-highest);
 }
 
 .bottom-sheet-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 var(--spacing-4) var(--spacing-3);
-  border-bottom: 1px solid var(--color-surface-highest);
+  justify-content: space-between;
+  padding: 8px 20px 16px;
 }
 
 .bottom-sheet-title {
-  font-family: var(--font-family-heading);
   font-size: 1.25rem;
   font-weight: 800;
   color: var(--color-text-main);
   margin: 0;
 }
 
-.bottom-sheet-close {
+.bottom-sheet-close-btn {
   color: var(--color-outline);
+  padding: 6px;
+  border-radius: 50%;
+  background-color: var(--color-surface-highest);
+  transition: opacity 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: var(--color-surface-highest);
-  transition: background-color 0.2s ease;
 }
 
-.bottom-sheet-close:active {
-  background-color: var(--color-outline-variant);
-  transform: scale(0.95);
+.bottom-sheet-close-btn:active {
+  opacity: 0.7;
 }
 
-.bottom-sheet-content {
-  flex: 1;
+.bottom-sheet-body {
+  padding: 0 20px 20px;
   overflow-y: auto;
-  padding: var(--spacing-4);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes fadeInOverlay {
+  from { background-color: rgba(0, 0, 0, 0); }
+  to { background-color: rgba(0, 0, 0, 0.5); }
+}
+
+@keyframes fadeOutOverlay {
+  from { background-color: rgba(0, 0, 0, 0.5); }
+  to { background-color: rgba(0, 0, 0, 0); }
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideDownSheet {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
 }

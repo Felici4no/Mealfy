@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { donationService } from '../backend/services/donationService';
 import type { Community } from '../backend/types';
 import { ShieldAlert, Loader2, Info } from 'lucide-react';
@@ -12,6 +13,7 @@ const BigDonation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAppContext();
+  const { showToast } = useToast();
   
   const community = location.state?.community as Community | undefined;
   
@@ -43,7 +45,7 @@ const BigDonation: React.FC = () => {
       navigate('/success', { state: { bigDonationResult: result } });
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Erro ao processar doação coletiva.');
+      showToast(err.message || 'Erro ao processar doação coletiva.', 'error');
     } finally {
       setIsProcessing(false);
     }

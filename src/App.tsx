@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
 import BottomTabBar from './components/layout/BottomTabBar';
+import { ToastProvider } from './context/ToastContext';
 import type { UserRole } from './backend/types';
 
 import Home from './pages/Home';
@@ -66,12 +67,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <AppProvider>
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
+      <AppProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Layout>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Common Public/Semi-Public Routes (Restricted for Beneficiaries) */}
             <Route path="/community/:id" element={<PrivateRoute allowedRoles={['donor', 'entity']}><CommunityDetails /></PrivateRoute>} />
@@ -106,6 +108,7 @@ function App() {
           </Routes>
         </Layout>
       </BrowserRouter>
+        </ToastProvider>
     </AppProvider>
   );
 }
