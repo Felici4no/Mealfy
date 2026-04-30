@@ -8,11 +8,12 @@ import SplashScreen from '../components/ui/SplashScreen';
 interface AppContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (method: 'google'|'apple'|'phone', arg?: string) => Promise<void>;
+  login: (method: 'google'|'apple'|'phone'|'facebook', arg?: string) => Promise<void>;
   logout: () => Promise<void>;
   communities: Community[];
   selectedCommunity: Community | null;
   setSelectedCommunity: (community: Community) => void;
+  updateUserPrivacy: (settings: Partial<PrivacySettings>) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -50,14 +51,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     initApp();
   }, []);
 
-  const login = async (method: 'google'|'apple'|'phone', arg?: string) => {
+  const login = async (method: 'google'|'apple'|'phone'|'facebook', arg?: string) => {
     let loggedUser: User;
     if (method === 'google') loggedUser = await authService.loginWithGoogle();
     else if (method === 'apple') loggedUser = await authService.loginWithApple();
+    else if (method === 'facebook') loggedUser = await authService.loginWithFacebook();
     else loggedUser = await authService.loginWithPhone(arg || '');
+
+    // Set default privacy if not exists
+    if (!loggedUser.privacySettings) {
+      loggedUser.privacySettings = {
+        showOnRanking: true,
+        showInstagram: true,
+        anonymousMode: false
+      };
+    }
 
     setUser(loggedUser);
     setIsAuthenticated(true);
+  };
+
+  const updateUserPrivacy = async (settings: Partial<PrivacySettings>) => {
+    if (!user) return;
+    const newUser = {
+      ...user,
+      privacySettings: {
+        ...user.privacySettings!,
+        ...settings
+      }
+    };
+    setUser(newUser);
+    // Persist to storage
+    const USERS_KEY = 'users_db';
+    const users = storage.get<User[]>(USERS_KEY, []);
+    const idx = users.findIndex(u => u.id === user.id);
+    if (idx !== -1) {
+      users[idx] = newUser;
+      storage.set(USERS_KEY, users);
+    }
+    storage.set('current_user', newUser);
   };
 
   const logout = async () => {
@@ -80,6 +112,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         communities,
         selectedCommunity,
         setSelectedCommunity,
+        updateUserPrivacy,
       }}
     >
       {children}

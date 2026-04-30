@@ -81,8 +81,13 @@ const Success: React.FC = () => {
               </div>
               <div className="receipt-divider"></div>
               <div className="receipt-row">
-                <span className="receipt-label">Emissor</span>
-                <span className="receipt-value" style={{ fontSize: '0.85rem' }}>{donationResult!.giftCard.provider}</span>
+                <span className="receipt-label">Código Gift Card</span>
+                <span className="receipt-value font-mono font-bold text-primary">{donationResult!.giftCard.code}</span>
+              </div>
+              <div className="receipt-divider"></div>
+              <div className="receipt-row">
+                <span className="receipt-label">Status</span>
+                <span className="receipt-value text-success font-bold">Gerado & Disponível</span>
               </div>
             </div>
           </>

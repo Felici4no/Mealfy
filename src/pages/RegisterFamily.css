@@ -1,0 +1,59 @@
+.register-family-page {
+  min-height: 100vh;
+  background-color: var(--color-surface);
+  padding-bottom: 80px;
+}
+
+.register-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: var(--color-surface-high);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(var(--color-outline-rgb), 0.1);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background-color: var(--color-surface-highest);
+  border: 1px solid rgba(var(--color-outline-rgb), 0.2);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: var(--color-outline);
+}
+
+.submit-container {
+  margin-top: 12px;
+}

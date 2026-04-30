@@ -38,21 +38,27 @@ const RecenterControls = ({ center }: { center: [number, number] }) => {
   return null;
 };
 
+import { isBeneficiaryEligible } from '../backend/utils/timeUtils';
+
 const MapView: React.FC = () => {
   const navigate = useNavigate();
   const [families, setFamilies] = useState<Family[]>([]);
-  const [showOnlyNeedsHelp, setShowOnlyNeedsHelp] = useState(false);
+  const [showOnlyNeedsHelp, setShowOnlyNeedsHelp] = useState(true); // Default to urgencies
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5505, -46.6333]); // SP Base
 
   useEffect(() => {
     familyService.getFamilies().then(fams => {
+      // Filter for approved and eligible
       setFamilies(fams);
     });
   }, []);
 
-  const displayedFamilies = showOnlyNeedsHelp 
-    ? families.filter(f => f.supportStatus === 'needs_help')
-    : families;
+  const displayedFamilies = families.filter(f => {
+    const eligible = isBeneficiaryEligible(f);
+    if (showOnlyNeedsHelp) return eligible;
+    return true; // Show all if filter is off
+  });
 
   const validFamilies = displayedFamilies.filter(f => {
     const isValid = f.latitude !== undefined && f.latitude !== null && !isNaN(f.latitude) &&
@@ -62,6 +68,12 @@ const MapView: React.FC = () => {
     }
     return isValid;
   });
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
 
   const handleRecenter = () => {
     // In a real app we'd get device coordinates. Here we recenter to SP Base.
@@ -90,71 +102,77 @@ const MapView: React.FC = () => {
              </div>
           )}
 
-          {validFamilies.map((fam) => (
-            <Marker 
-              key={fam.id} 
-              position={[fam.latitude, fam.longitude]}
-              icon={fam.supportStatus === 'needs_help' ? brokenHeartIcon : fullHeartIcon}
-            >
-              <Popup>
-                <div className="popup-header">
-                  <h4 style={{ margin: 0, fontSize: '1rem' }}>{fam.representativeName}</h4>
-                  <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>{fam.childrenCount} filhos</span>
-                </div>
-                <div className="popup-body">
-                  <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#666' }}>
-                    <strong>{fam.neighborhood}</strong><br/>
-                    {fam.description}
-                  </p>
-                  {fam.supportStatus === 'needs_help' ? (
-                    <div style={{ color: 'var(--color-error)', fontWeight: 600, fontSize: '0.8rem', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      💔 Precisa de apoio Nível {fam.priorityLevel}
-                    </div>
-                  ) : (
-                    <div style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '0.8rem', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      ❤️ Família Apoiada
-                    </div>
-                  )}
-                </div>
-                
-                <div className="popup-actions">
-                  <Button 
-                    variant="outline" 
-                    size="small" 
-                    fullWidth 
-                    onClick={(e) => {
-                       e.stopPropagation();
-                       navigate(`/family/${fam.id}`);
-                    }}
-                  >
-                    Ver
-                  </Button>
+          {validFamilies.map((fam) => {
+            const isSelected = selectedIds.includes(fam.id);
+            const isEligible = isBeneficiaryEligible(fam);
+            
+            return (
+              <Marker 
+                key={fam.id} 
+                position={[fam.latitude, fam.longitude]}
+                icon={isSelected ? fullHeartIcon : (isEligible ? brokenHeartIcon : fullHeartIcon)}
+              >
+                <Popup>
+                  <div className="popup-header">
+                    <h4 style={{ margin: 0, fontSize: '1rem' }}>{fam.representativeName}</h4>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>{fam.childrenCount} filhos</span>
+                  </div>
+                  <div className="popup-body">
+                    <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#666' }}>
+                      <strong>{fam.neighborhood}</strong><br/>
+                      {fam.description}
+                    </p>
+                    {isEligible ? (
+                      <div style={{ color: 'var(--color-error)', fontWeight: 600, fontSize: '0.8rem', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        💔 Precisa de apoio Nível {fam.priorityLevel}
+                      </div>
+                    ) : (
+                      <div style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '0.8rem', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        ❤️ Família Alimentada
+                      </div>
+                    )}
+                  </div>
                   
-                  {fam.supportStatus === 'needs_help' && (
+                  <div className="popup-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <Button 
+                      variant="outline" 
                       size="small" 
                       fullWidth 
-                      className="bg-error border-error text-inverted"
                       onClick={(e) => {
                          e.stopPropagation();
-                         navigate('/donate', { state: { targetFamily: fam } });
+                         navigate(`/family/${fam.id}`);
                       }}
                     >
-                      Ajudar
+                      Detalhes
                     </Button>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                    
+                    {isEligible && (
+                      <Button 
+                        size="small" 
+                        fullWidth 
+                        variant={isSelected ? 'outline' : 'primary'}
+                        className={isSelected ? 'border-primary text-primary' : 'bg-error border-error text-inverted'}
+                        onClick={(e) => {
+                           e.stopPropagation();
+                           toggleSelection(fam.id);
+                        }}
+                      >
+                        {isSelected ? 'Remover' : 'Selecionar'}
+                      </Button>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
       </div>
 
       <div className="map-overlays">
         <div className="map-header">
            <div className="legend-card">
-              <div className="legend-item"><span style={{fontSize: '1.2rem'}}>💔</span> Aguardando apoio</div>
-              <div className="legend-item"><span style={{fontSize: '1.2rem'}}>❤️</span> Família segura</div>
+              <div className="legend-item"><span style={{fontSize: '1.2rem'}}>💔</span> Aguardando</div>
+              <div className="legend-item"><span style={{fontSize: '1.2rem'}}>❤️</span> Seguro</div>
            </div>
            
            <div className="filter-card">
@@ -163,10 +181,31 @@ const MapView: React.FC = () => {
                 onClick={() => setShowOnlyNeedsHelp(!showOnlyNeedsHelp)}
               >
                 <Filter size={16} />
-                {showOnlyNeedsHelp ? 'Mostrando: Urgências' : 'Mostrando: Todas'}
+                {showOnlyNeedsHelp ? 'Urgências' : 'Todas'}
               </button>
            </div>
         </div>
+
+        {selectedIds.length > 0 && (
+          <div className="batch-donation-overlay" style={{
+            position: 'absolute',
+            bottom: '100px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            width: '90%',
+            maxWidth: '400px'
+          }}>
+            <Button 
+              size="large" 
+              fullWidth 
+              className="shadow-glow bg-secondary border-secondary text-inverted"
+              onClick={() => navigate('/donate', { state: { selectedFamilyIds: selectedIds } })}
+            >
+              Ajudar {selectedIds.length} {selectedIds.length === 1 ? 'família' : 'famílias'}
+            </Button>
+          </div>
+        )}
 
         <div className="map-controls">
            <button 

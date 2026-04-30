@@ -11,7 +11,7 @@ import type { Donation, GiftCard } from '../backend/types';
 import './Profile.css';
 
 const Profile: React.FC = () => {
-  const { user, logout } = useAppContext();
+  const { user, logout, updateUserPrivacy } = useAppContext();
   const navigate = useNavigate();
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
   const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
@@ -92,29 +92,43 @@ const Profile: React.FC = () => {
         </section>
 
         <section className="settings-section p-4">
-          <h3 className="section-title mb-4">Ajustes da Conta</h3>
-          
-          <div className="settings-list">
-            <div className="settings-item" onClick={() => navigate('/recurrence')}>
-              <div className="flex items-center gap-3">
-                <div className="settings-icon"><CreditCard size={20} /></div>
-                <span>Gerenciar Recorrência Mensal</span>
-              </div>
-            </div>
-            
-            <div className="settings-item" onClick={() => navigate('/help')}>
-              <div className="flex items-center gap-3">
-                <div className="settings-icon"><HelpCircle size={20} /></div>
-                <span>Guia do Aplicativo</span>
-              </div>
-            </div>
+          <h3 className="section-title mb-4">Privacidade</h3>
+          <div className="bg-surface-highest rounded-xl border border-outline/10 p-4">
+             <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col">
+                   <span className="font-semibold text-sm">Aparecer no ranking</span>
+                   <span className="text-xs text-outline">Seu nome visível para a comunidade</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={user.privacySettings?.showOnRanking} 
+                  onChange={(e) => updateUserPrivacy({ showOnRanking: e.target.checked })}
+                />
+             </div>
+             
+             <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col">
+                   <span className="font-semibold text-sm">Mostrar Instagram</span>
+                   <span className="text-xs text-outline">Link direto para seu perfil social</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={user.privacySettings?.showInstagram} 
+                  onChange={(e) => updateUserPrivacy({ showInstagram: e.target.checked })}
+                />
+             </div>
 
-            <div className="settings-item" onClick={() => navigate('/support')}>
-              <div className="flex items-center gap-3">
-                <div className="settings-icon"><MessageCircle size={20} /></div>
-                <span>Suporte ao Doador</span>
-              </div>
-            </div>
+             <div className="flex justify-between items-center">
+                <div className="flex flex-col">
+                   <span className="font-semibold text-sm">Modo Anônimo</span>
+                   <span className="text-xs text-outline">Ocultar foto e nome real em tudo</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={user.privacySettings?.anonymousMode} 
+                  onChange={(e) => updateUserPrivacy({ anonymousMode: e.target.checked })}
+                />
+             </div>
           </div>
         </section>
 
@@ -152,6 +166,14 @@ const Profile: React.FC = () => {
 
         <section className="action-menu p-4 flex-col gap-2">
           <Button variant="ghost" className="menu-btn" icon={<CreditCard size={20} />}>Gerenciar Recorrência</Button>
+          <Button 
+            variant="ghost" 
+            className="menu-btn" 
+            icon={<Heart size={20} />} 
+            onClick={() => navigate('/register-family')}
+          >
+            Indicar Família
+          </Button>
           <Button 
             variant="ghost" 
             className="menu-btn" 

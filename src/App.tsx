@@ -16,6 +16,7 @@ import BigDonation from './pages/BigDonation';
 import Support from './pages/Support';
 import Help from './pages/Help';
 import Recurrence from './pages/Recurrence';
+import RegisterFamily from './pages/RegisterFamily';
 
 import './App.css';
 
@@ -103,6 +104,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Recurrence />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/register-family" 
+              element={
+                <PrivateRoute>
+                  <RegisterFamily />
                 </PrivateRoute>
               } 
             />

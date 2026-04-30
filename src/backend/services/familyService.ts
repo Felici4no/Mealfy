@@ -36,5 +36,19 @@ export const familyService = {
       return families[idx];
     }
     throw new Error('Family not found');
+  },
+
+  addFamily: async (familyData: Omit<Family, 'id'>): Promise<Family> => {
+    await randomDelay(300, 600);
+    const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+    
+    const newFamily: Family = {
+      ...familyData,
+      id: `f-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+    };
+    
+    families.unshift(newFamily); // Add to the beginning
+    storage.set(FAMILIES_KEY, families);
+    return newFamily;
   }
 };

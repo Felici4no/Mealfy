@@ -7,6 +7,7 @@ import { familyService } from '../backend/services/familyService';
 import { rankingService } from '../backend/services/rankingService';
 import type { Family } from '../backend/types';
 import { Trophy } from 'lucide-react';
+import StoriesRanking from '../components/ui/StoriesRanking';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -111,24 +112,40 @@ const Home: React.FC = () => {
         </Button>
       </div>
 
-      <div className="ranking-preview-section p-4 my-2">
-        <h2 className="section-title mb-4 flex items-center justify-between">
-          <span>Ranking de Destaques</span>
-          <Trophy size={20} className="text-secondary" />
-        </h2>
-        <div className="bg-surface-highest rounded-lg border border-outline/20 p-2">
-          {topDonors.slice(0, 3).map((d, i) => (
-            <div key={d.id} className="flex justify-between items-center py-2 px-2 border-b border-outline/10 last:border-0">
-               <div className="flex items-center gap-3">
-                  <span className="font-bold text-outline w-4">{i + 1}º</span>
-                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                    {d.avatar}
-                  </div>
-                  <span className="font-semibold text-sm">{d.name}</span>
-               </div>
-               <span className="text-sm font-bold text-secondary">R$ {d.totalDonated}</span>
-            </div>
-          ))}
+      <div className="home-institutional p-4 text-center">
+        <h3 className="text-xs font-bold text-outline/40 uppercase tracking-widest mb-1">Impacted by</h3>
+        <div className="flex items-center justify-center gap-2">
+          <span className="font-serif text-xl font-black text-primary italic">AWL for Tech</span>
+        </div>
+      </div>
+
+      <div className="ranking-preview-section my-2">
+        <div className="px-4 flex items-center justify-between mb-2">
+          <h2 className="section-title flex items-center gap-2">
+            <span>Destaques de Impacto</span>
+            <Trophy size={18} className="text-secondary" />
+          </h2>
+        </div>
+        <StoriesRanking 
+          donors={topDonors} 
+          onSelectDonor={(d) => {
+            const isAnon = d.isAnonymous || d.privacySettings?.anonymousMode;
+            const msg = `Doador: ${isAnon ? 'Anônimo' : d.name}\nTotal Doado: R$ ${d.totalDonated}${(!isAnon && d.instagram && d.privacySettings?.showInstagram !== false) ? `\nInstagram: ${d.instagram}` : ''}`;
+            alert(msg);
+          }} 
+        />
+      </div>
+
+      <div className="support-development-section p-4 my-4 bg-primary/5 rounded-xl mx-4 border border-primary/10">
+        <p className="text-sm italic text-outline mb-3">
+          "Cada prato que chega à mesa de uma criança é uma vitória contra a invisibilidade da fome." — Chris
+        </p>
+        <div className="dev-support-card">
+           <h4 className="font-bold text-primary mb-1">Ajude o desenvolvimento</h4>
+           <p className="text-xs text-outline mb-3">Apoie o desenvolvimento da plataforma e o marketing para levar alimento a mais famílias.</p>
+           <Button variant="outline" size="small" fullWidth onClick={() => alert("Obrigado pelo interesse em apoiar o desenvolvimento!")}>
+             Apoiar Plataforma
+           </Button>
         </div>
       </div>
       

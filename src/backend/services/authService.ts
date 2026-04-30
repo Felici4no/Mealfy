@@ -33,6 +33,10 @@ export const authService = {
     return authService.loginWithGoogle();
   },
 
+  loginWithFacebook: async (): Promise<User> => {
+    return authService.loginWithGoogle();
+  },
+
   loginWithPhone: async (phone: string): Promise<User> => {
     await randomDelay(800, 1500);
     authService.initDB();

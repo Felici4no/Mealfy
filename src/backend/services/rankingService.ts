@@ -34,15 +34,49 @@ export const rankingService = {
     };
   },
 
-  getTopDonors: async (): Promise<Pick<User, 'id' | 'name' | 'totalDonated' | 'avatar'>[]> => {
+  getTopDonors: async (): Promise<Pick<User, 'id' | 'name' | 'totalDonated' | 'avatar' | 'instagram' | 'privacySettings'>[]> => {
     await randomDelay(300, 700);
-    // Hardcoded mock top donors array to ensure Home always has social proof
+    // In a real app, this would filter by privacySettings.showOnRanking
     return [
-      { id: 'u-1', name: 'Marina R.', totalDonated: 12500, avatar: 'M' },
-      { id: 'u-2', name: 'Carlos S.', totalDonated: 9400, avatar: 'C' },
-      { id: 'u-3', name: 'Empresa Ativa', totalDonated: 8200, avatar: 'E' },
-      { id: 'u-4', name: 'João H.', totalDonated: 5100, avatar: 'J' },
-      { id: 'u-5', name: 'Alessandra M.', totalDonated: 4050, avatar: 'A' },
+      { 
+        id: 'u-1', 
+        name: 'Marina R.', 
+        totalDonated: 12500, 
+        avatar: 'M', 
+        instagram: '@marina.rm',
+        privacySettings: { showOnRanking: true, showInstagram: true, anonymousMode: false }
+      },
+      { 
+        id: 'u-2', 
+        name: 'Carlos S.', 
+        totalDonated: 9400, 
+        avatar: 'C', 
+        instagram: '@csilva',
+        privacySettings: { showOnRanking: true, showInstagram: false, anonymousMode: false }
+      },
+      { 
+        id: 'u-3', 
+        name: 'Doador Solidário', 
+        totalDonated: 8200, 
+        avatar: 'D', 
+        privacySettings: { showOnRanking: true, showInstagram: false, anonymousMode: true }
+      },
+      { 
+        id: 'u-4', 
+        name: 'João H.', 
+        totalDonated: 5100, 
+        avatar: 'J', 
+        instagram: '@joao_he',
+        privacySettings: { showOnRanking: true, showInstagram: true, anonymousMode: false }
+      },
+      { 
+        id: 'u-5', 
+        name: 'Alessandra M.', 
+        totalDonated: 4050, 
+        avatar: 'A', 
+        instagram: '@ale_mm',
+        privacySettings: { showOnRanking: true, showInstagram: true, anonymousMode: false }
+      },
     ];
   }
 };

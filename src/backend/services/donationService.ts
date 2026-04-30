@@ -17,22 +17,25 @@ export const donationService = {
     }
   },
 
-  generateGiftCard: async (payload: { amount: number, familyId: string, donorId: string }): Promise<GiftCard> => {
+  generateGiftCard: async (payload: { amount: number, familyId: string, donorId: string, donationId: string }): Promise<GiftCard> => {
     await randomDelay(200, 500);
     donationService.initDB();
     
-    const providers = ['Itaú Alimentação', 'Mercado Parceiro Local', 'Ticket Alimentação Solidário'];
+    const providers = ['ifood', 'other'];
     const randomProvider = providers[Math.floor(Math.random() * providers.length)];
+    const randomCode = Math.random().toString(36).substring(2, 10).toUpperCase();
 
     const newGiftCard: GiftCard = {
-      id: `gc-${Date.now()}`,
+      id: `gc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       familyId: payload.familyId,
       donorId: payload.donorId,
+      donationId: payload.donationId,
       amount: payload.amount,
       createdAt: new Date().toISOString(),
       status: 'generated',
-      label: `Gift Card Apoio Alimentar — R$${payload.amount}`,
-      provider: randomProvider
+      label: `Gift Card Mealfy — R$${payload.amount}`,
+      provider: randomProvider,
+      code: randomCode
     };
 
     const cards = storage.get<GiftCard[]>(GIFTCARDS_KEY, mockGiftCards);
@@ -73,15 +76,18 @@ export const donationService = {
 
     // Generate Gift Card
     const donorId = payload.donorId || `anon-${Date.now()}`;
+    const donationId = `don-${Date.now()}`;
+    
     const giftCard = await donationService.generateGiftCard({
       amount: payload.amount,
       familyId: selectedFamily!.id,
-      donorId
+      donorId,
+      donationId
     });
 
     // Create Donation Record
     const newDonation: Donation = {
-      id: `don-${Date.now()}`,
+      id: donationId,
       donorId,
       familyId: selectedFamily!.id,
       communityId: payload.communityId,
@@ -97,7 +103,7 @@ export const donationService = {
     storage.set(DONATIONS_KEY, donations);
 
     // ONLY Update Session total if the donor is NOT anonymous
-    if (payload.donorId) {
+    if (payload.donorId && !payload.donorId.startsWith('anon-')) {
       const USERS_KEY = 'users_db';
       const sessionUser = storage.get<any>('current_user', null);
       if (sessionUser && sessionUser.id === payload.donorId) {
@@ -113,9 +119,91 @@ export const donationService = {
     }
 
     // Update Family Status
+    const FAMILIES_KEY = 'families_db';
     const familyAssigned = await familyService.updateFamilyStatus(selectedFamily!.id, 'supported');
+    familyAssigned.lastFedAt = new Date().toISOString();
+    familyAssigned.supportStatus = 'fed';
+    
+    const allFamilies = storage.get<Family[]>(FAMILIES_KEY, []);
+    const fIdx = allFamilies.findIndex(f => f.id === familyAssigned.id);
+    if (fIdx !== -1) {
+      allFamilies[fIdx] = familyAssigned;
+      storage.set(FAMILIES_KEY, allFamilies);
+    }
 
     return { donation: newDonation, giftCard, familyAssigned };
+  },
+
+  createBatchDonation: async (payload: {
+    familyIds: string[];
+    amountPerFamily: number;
+    donorId: string;
+    communityId: string;
+  }): Promise<{ donations: Donation[], giftCards: GiftCard[] }> => {
+    await randomDelay(1500, 2500);
+    donationService.initDB();
+
+    const donations: Donation[] = [];
+    const giftCards: GiftCard[] = [];
+
+    for (const familyId of payload.familyIds) {
+      const donationId = `don-batch-${Date.now()}-${familyId}`;
+      const gc = await donationService.generateGiftCard({
+        amount: payload.amountPerFamily,
+        familyId,
+        donorId: payload.donorId,
+        donationId
+      });
+
+      const don: Donation = {
+        id: donationId,
+        donorId: payload.donorId,
+        familyId,
+        communityId: payload.communityId,
+        amount: payload.amountPerFamily,
+        giftCardId: gc.id,
+        createdAt: new Date().toISOString(),
+        isBatch: true
+      };
+
+      const dones = storage.get<Donation[]>(DONATIONS_KEY, mockDonations);
+      dones.push(don);
+      storage.set(DONATIONS_KEY, dones);
+
+      donations.push(don);
+      giftCards.push(gc);
+
+      // Update Family Status
+      await familyService.updateFamilyStatus(familyId, 'supported');
+      
+      const FAMILIES_KEY = 'families_db';
+      const allFamilies = storage.get<Family[]>(FAMILIES_KEY, []);
+      const fIdx = allFamilies.findIndex(f => f.id === familyId);
+      if (fIdx !== -1) {
+        allFamilies[fIdx].lastFedAt = new Date().toISOString();
+        allFamilies[fIdx].supportStatus = 'fed';
+        storage.set(FAMILIES_KEY, allFamilies);
+      }
+    }
+
+    // Update user global total
+    const totalBatchAmount = payload.amountPerFamily * payload.familyIds.length;
+    if (payload.donorId && !payload.donorId.startsWith('anon-')) {
+      const USERS_KEY = 'users_db';
+      const sessionUser = storage.get<any>('current_user', null);
+      if (sessionUser && sessionUser.id === payload.donorId) {
+         sessionUser.totalDonated += totalBatchAmount;
+         storage.set('current_user', sessionUser);
+         const users = storage.get<any[]>(USERS_KEY, []);
+         const idx = users.findIndex(u => u.id === sessionUser.id);
+         if (idx !== -1) {
+            users[idx].totalDonated += totalBatchAmount;
+            storage.set(USERS_KEY, users);
+         }
+      }
+    }
+
+    return { donations, giftCards };
   },
 
   getDonationHistoryByUser: async (userId: string): Promise<{donation: Donation, giftCard: GiftCard}[]> => {

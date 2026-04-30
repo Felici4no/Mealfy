@@ -14,8 +14,14 @@ const DonationChoice: React.FC = () => {
   const { selectedCommunity, user } = useAppContext();
   
   const targetFamily = location.state?.targetFamily as any; 
+  const selectedFamilyIds = location.state?.selectedFamilyIds as string[] | undefined;
   
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(25);
+  const isBatch = !!selectedFamilyIds && selectedFamilyIds.length > 0;
+  const count = isBatch ? selectedFamilyIds!.length : 1;
+
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(
+    count === 1 ? 30 : (count === 2 ? 40 : 50)
+  );
   const [isRecurrent, setIsRecurrent] = useState(false);
   const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -24,27 +30,43 @@ const DonationChoice: React.FC = () => {
   if (!selectedCommunity) return null;
 
   const amounts = [
-    { value: 25, impact: '1 dia de alimentação para uma criança' },
-    { value: 40, impact: 'Apoio ampliado para duas crianças' },
+    { value: 30, impact: 'Garante alimento para 1 criança por 24h', min: 1 },
+    { value: 40, impact: 'Garante alimento para 2 crianças por 24h', min: 2 },
+    { value: 50, impact: 'Garante alimento para 3 ou mais crianças por 24h', min: 3 },
   ];
 
   const handleContinue = async () => {
-    if (!selectedAmount) return; // For mock simple custom amount block
+    if (!selectedAmount) return; 
     
     setIsProcessing(true);
     try {
-      const result = await donationService.createDonation({
-        amount: selectedAmount,
-        communityId: selectedCommunity.id,
-        donorId: user?.id,
-        familyId: targetFamily?.id
-      });
+      let result;
+      if (isBatch) {
+        const batchResult = await donationService.createBatchDonation({
+          familyIds: selectedFamilyIds!,
+          amountPerFamily: Math.floor(selectedAmount / count),
+          donorId: user?.id || `anon-${Date.now()}`,
+          communityId: selectedCommunity.id
+        });
+        // For success screen, we adapt the result format
+        result = { 
+          donation: batchResult.donations[0], 
+          giftCard: batchResult.giftCards[0], 
+          familyAssigned: { representativeName: `${count} Famílias` } 
+        };
+      } else {
+        result = await donationService.createDonation({
+          amount: selectedAmount,
+          communityId: selectedCommunity.id,
+          donorId: user?.id,
+          familyId: targetFamily?.id
+        });
+      }
 
-      // Pass the success data to the next screen via state
-      navigate('/success', { state: { donationResult: result } });
+      navigate('/success', { state: { donationResult: result, isBatch, count } });
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Todas as famílias precisando já foram ajudadas nesta comunidade!');
+      alert(err.message || 'Erro ao processar doação.');
     } finally {
       setIsProcessing(false);
     }
@@ -92,13 +114,6 @@ const DonationChoice: React.FC = () => {
               </div>
             ))}
             
-            <div 
-              className={`amount-card custom-amount ${selectedAmount === null ? 'selected' : ''} ${isProcessing ? 'disabled' : ''}`}
-              onClick={() => { if(!isProcessing) setSelectedAmount(null) }}
-            >
-              <div className="amount-value">Outro valor</div>
-              <div className="amount-impact">Defina como quer ajudar</div>
-            </div>
           </div>
         </section>
 

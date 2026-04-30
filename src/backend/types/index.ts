@@ -1,6 +1,14 @@
 export type UrgencyColor = 'error' | 'warning' | 'success';
-export type SupportStatus = 'needs_help' | 'supported';
-export type GiftCardStatus = 'generated' | 'sent' | 'redeemed';
+export type SupportStatus = 'needs_help' | 'supported' | 'fed' | 'pending' | 'rejected' | 'suspended';
+export type GiftCardStatus = 'generated' | 'delivered' | 'used';
+export type EntityType = 'ONG' | 'igreja' | 'escola' | 'instituto';
+export type EntityStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PrivacySettings {
+  showOnRanking: boolean;
+  showInstagram: boolean;
+  anonymousMode: boolean;
+}
 
 export interface User {
   id: string;
@@ -8,10 +16,21 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
+  instagram?: string;
   totalDonated: number;
   rankingPosition: number;
   rankingPercentile: string;
   favoriteCommunityId?: string;
+  privacySettings?: PrivacySettings;
+}
+
+export interface AuthorizingEntity {
+  id: string;
+  name: string;
+  cnpj: string;
+  type: EntityType;
+  status: EntityStatus;
+  createdAt: string;
 }
 
 export interface Community {
@@ -33,6 +52,7 @@ export interface Child {
   age: number;
   school: string;
   grade?: string;
+  isPWD?: boolean; // Person with Disability
 }
 
 export interface Family {
@@ -53,17 +73,34 @@ export interface Family {
   latitude: number;
   longitude: number;
   photoUrl?: string;
+  authorizingEntityId?: string; // If registered by an entity
+  lastFedAt?: string; // Timestamp of last donation
+  status?: SupportStatus; // Added for compatibility
+}
+
+export interface DonorIndication {
+  id: string;
+  representativeName: string;
+  region: string;
+  childrenCount: number;
+  observation: string;
+  contact?: string;
+  indicatedByUserId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
 }
 
 export interface GiftCard {
   id: string;
   familyId: string;
   donorId: string;
+  donationId: string;
   amount: number;
   createdAt: string;
   status: GiftCardStatus;
   label: string;
-  provider: string; // e.g. "Mercado Parceiro Local"
+  provider: 'ifood' | 'other' | string;
+  code: string;
 }
 
 export interface Donation {
@@ -75,12 +112,13 @@ export interface Donation {
   giftCardId: string;
   createdAt: string;
   message?: string;
+  isBatch?: boolean;
 }
 
 export interface Recurrence {
   id: string;
   userId: string;
-  communityId?: string; // Optional if targeting a specific family or region
+  communityId?: string; 
   familyId?: string; 
   amount: number;
   periodicity: 'daily' | 'weekly' | 'monthly';
