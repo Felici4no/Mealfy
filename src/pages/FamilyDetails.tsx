@@ -49,6 +49,15 @@ const FamilyDetails: React.FC = () => {
 
         <div className="bg-surface-highest p-4 rounded-xl border border-outline/10 mb-6 flex-col gap-2">
            <h3 className="text-xs font-bold text-outline uppercase tracking-wide">Fonte das informações</h3>
+           
+           {family.originalIndicationId && (
+             <div className="mb-2 pb-2 border-b border-outline/10">
+               <p className="text-xs text-secondary font-bold flex items-center gap-1">
+                 <Heart size={14} /> Origem inicial: indicação de doador
+               </p>
+             </div>
+           )}
+
            <p className="text-sm font-semibold text-text-main flex items-center gap-2">
              <Building2 size={16} className="text-secondary" />
              {family.sourceLabel || (family.sourceType === 'entity' ? `Cadastrado por ${family.sourceEntityName || 'Entidade Parceira'}` : 'Cadastrado por Parceiro Oficial')}

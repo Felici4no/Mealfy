@@ -4,25 +4,59 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
-import { Users, PlusCircle, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import type { Family } from '../backend/types';
+import { Users, PlusCircle, CheckCircle, Clock, AlertCircle, FileText, Check, X } from 'lucide-react';
+import type { Family, DonorIndication, AuthorizingEntity } from '../backend/types';
 import './EntityDashboard.css';
 
 const EntityDashboard: React.FC = () => {
   const { user } = useAppContext();
   const navigate = useNavigate();
   const [families, setFamilies] = useState<Family[]>([]);
+  const [indications, setIndications] = useState<DonorIndication[]>([]);
+  const [entityData, setEntityData] = useState<AuthorizingEntity | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchData = async () => {
+    setLoading(true);
+    const allFam = await familyService.getFamilies();
+    const allInd = await familyService.getIndications();
+    
+    // Pegar dados reais da Entidade
+    const entities = JSON.parse(localStorage.getItem('entities_db') || '[]');
+    const currentEntity = entities.find((e: any) => e.id === user?.entityId);
+    setEntityData(currentEntity || null);
+
+    setFamilies(allFam.filter(f => f.authorizingEntityId === user?.entityId || !f.authorizingEntityId));
+    
+    // Filtrar indicações pendentes pela região (simulando filtro ou pegando todas se não tiver região)
+    const pendingInd = allInd.filter(i => i.status === 'pending' && (!currentEntity?.region || i.region.toLowerCase().includes(currentEntity.region.toLowerCase().split('-')[0].trim())));
+    setIndications(pendingInd);
+    
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchFamilies = async () => {
-      const all = await familyService.getFamilies();
-      // Filter families by entityId (mocking entity relationship)
-      setFamilies(all.filter(f => f.authorizingEntityId === user?.entityId || !f.authorizingEntityId));
-      setLoading(false);
-    };
-    fetchFamilies();
+    fetchData();
   }, [user]);
+
+  const handleValidateIndication = async (indId: string) => {
+    try {
+      const label = `Validado por ${entityData?.name || user?.name}`;
+      await familyService.convertIndicationToFamily(indId, user, label, user?.entityId);
+      fetchData(); // Recarrega listas
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRejectIndication = async (indId: string) => {
+    try {
+      await familyService.updateIndicationStatus(indId, 'rejected');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (user?.status === 'pending') {
     return (
@@ -69,6 +103,53 @@ const EntityDashboard: React.FC = () => {
            >
              Cadastrar Nova Família
            </Button>
+        </section>
+
+        <section className="indications-section mb-8">
+           <h3 className="section-title mb-4 flex items-center gap-2">
+             <FileText size={18} className="text-secondary" />
+             Indicações na sua região
+           </h3>
+           
+           {indications.length === 0 ? (
+             <div className="bg-surface-highest p-4 rounded-xl border border-outline/10 text-center">
+               <p className="text-sm text-outline">Nenhuma indicação pendente na sua região.</p>
+             </div>
+           ) : (
+             <div className="flex-col gap-3">
+               {indications.map(ind => (
+                 <div key={ind.id} className="bg-surface p-4 rounded-xl border border-outline/10 shadow-sm">
+                   <div className="flex justify-between items-start mb-2">
+                     <h4 className="font-bold text-primary">{ind.representativeName}</h4>
+                     <span className="text-[10px] font-bold px-2 py-1 bg-warning/20 text-warning uppercase rounded-full">Análise Necessária</span>
+                   </div>
+                   <p className="text-xs text-outline mb-1"><strong>Região:</strong> {ind.region}</p>
+                   <p className="text-xs text-outline mb-1"><strong>Crianças:</strong> {ind.childrenCount}</p>
+                   {ind.contact && <p className="text-xs text-outline mb-1"><strong>Contato:</strong> {ind.contact}</p>}
+                   <p className="text-xs mt-2 italic text-text-main border-l-2 border-outline/20 pl-2">"{ind.observation}"</p>
+                   
+                   <div className="flex gap-2 mt-4 pt-3 border-t border-outline/10">
+                     <Button 
+                       size="small" 
+                       className="flex-1 text-xs" 
+                       variant="outline"
+                       onClick={() => handleRejectIndication(ind.id)}
+                     >
+                       <X size={14} className="mr-1" /> Recusar
+                     </Button>
+                     <Button 
+                       size="small" 
+                       className="flex-1 text-xs" 
+                       variant="primary"
+                       onClick={() => handleValidateIndication(ind.id)}
+                     >
+                       <Check size={14} className="mr-1" /> Validar e cadastrar
+                     </Button>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           )}
         </section>
 
         <section className="families-list-section">

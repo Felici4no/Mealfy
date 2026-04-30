@@ -94,6 +94,7 @@ export interface Family {
   sourceType?: 'entity' | 'donor_indication';
   sourceEntityName?: string;
   sourceLabel?: string;
+  originalIndicationId?: string;
   lastFedAt?: string; // Timestamp of last donation
   status?: SupportStatus; // Added for compatibility
 }
@@ -106,7 +107,7 @@ export interface DonorIndication {
   observation: string;
   contact?: string;
   indicatedByUserId: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'converted';
   createdAt: string;
 }
 
