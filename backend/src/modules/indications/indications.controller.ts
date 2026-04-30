@@ -15,13 +15,13 @@ export class IndicationsController {
   }
 
   static async convert(req: Request, res: Response) {
-    const family = await IndicationsService.convertToFamily(req.params.id, req.user);
+    const family = await IndicationsService.convertToFamily(req.params.id as string, req.user);
     return res.status(201).json(family);
   }
 
   static async updateStatus(req: Request, res: Response) {
     const { status } = updateIndicationStatusSchema.parse(req.body);
-    const indication = await IndicationsService.updateStatus(req.params.id, status);
+    const indication = await IndicationsService.updateStatus(req.params.id as string, status);
     return res.json(indication);
   }
 }

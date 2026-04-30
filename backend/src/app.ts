@@ -5,6 +5,10 @@ import { errorHandler } from './shared/middlewares/errorHandler';
 
 import { authRoutes } from './modules/auth/auth.routes';
 import { familiesRoutes } from './modules/families/families.routes';
+import { indicationsRoutes } from './modules/indications/indications.routes';
+import { donationsRoutes } from './modules/donations/donations.routes';
+import { rankingRoutes } from './modules/ranking/ranking.routes';
+import { adminRoutes } from './modules/admin/admin.routes';
 
 const app = express();
 
@@ -22,6 +26,10 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/auth', authRoutes);
 app.use('/families', familiesRoutes);
+app.use('/indications', indicationsRoutes);
+app.use('/donations', donationsRoutes);
+app.use('/ranking', rankingRoutes);
+app.use('/admin', adminRoutes);
 
 app.use(errorHandler);
 

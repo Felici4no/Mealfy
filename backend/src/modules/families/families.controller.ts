@@ -9,7 +9,7 @@ export class FamiliesController {
   }
 
   static async getById(req: Request, res: Response) {
-    const family = await FamiliesService.getFamilyById(req.params.id);
+    const family = await FamiliesService.getFamilyById(req.params.id as string);
     return res.json(family);
   }
 
@@ -21,7 +21,7 @@ export class FamiliesController {
 
   static async updateStatus(req: Request, res: Response) {
     const data = updateFamilyStatusSchema.parse(req.body);
-    const family = await FamiliesService.updateStatus(req.params.id, data);
+    const family = await FamiliesService.updateStatus(req.params.id as string, data);
     return res.json(family);
   }
 }

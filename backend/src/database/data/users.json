@@ -1,0 +1,23 @@
+[
+  {
+    "id": "admin-1",
+    "name": "Admin Mealfy",
+    "email": "admin@mealfy.org",
+    "role": "admin",
+    "status": "active",
+    "totalDonated": 0
+  },
+  {
+    "id": "donor-1",
+    "name": "João Doador",
+    "email": "joao@email.com",
+    "role": "donor",
+    "status": "active",
+    "totalDonated": 150,
+    "privacySettings": {
+      "showOnRanking": true,
+      "showInstagram": true,
+      "anonymousMode": false
+    }
+  }
+]
