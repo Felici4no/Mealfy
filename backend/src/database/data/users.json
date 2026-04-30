@@ -2,15 +2,15 @@
   {
     "id": "admin-1",
     "name": "Admin Mealfy",
-    "email": "admin@mealfy.org",
+    "email": "admin@mealfy.com",
     "role": "admin",
     "status": "active",
     "totalDonated": 0
   },
   {
     "id": "donor-1",
-    "name": "João Doador",
-    "email": "joao@email.com",
+    "name": "Doador Demo",
+    "email": "doador@mealfy.com",
     "role": "donor",
     "status": "active",
     "totalDonated": 150,
@@ -21,18 +21,27 @@
     }
   },
   {
-    "id": "u-d8740b0c-0557-4930-914c-5f8980c3345f",
-    "name": "Test Donor",
-    "email": "test_donor@audit.com",
-    "role": "donor",
-    "documentType": "cpf",
-    "documentNumber": "12345678901",
-    "totalDonated": 40,
+    "id": "entity-user-1",
+    "name": "Entidade Aprovada",
+    "email": "entidade@mealfy.com",
+    "role": "entity",
+    "status": "approved",
+    "entityId": "entity-1"
+  },
+  {
+    "id": "entity-user-pending",
+    "name": "Entidade Pendente",
+    "email": "entidadependente@mealfy.com",
+    "role": "entity",
+    "status": "pending",
+    "entityId": "entity-pending-1"
+  },
+  {
+    "id": "beneficiary-1",
+    "name": "Beneficiário Teste",
+    "email": "beneficiario@mealfy.com",
+    "role": "beneficiary",
     "status": "active",
-    "privacySettings": {
-      "showOnRanking": true,
-      "showInstagram": false,
-      "anonymousMode": false
-    }
+    "beneficiaryId": "family-1"
   }
 ]

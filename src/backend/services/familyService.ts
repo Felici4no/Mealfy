@@ -112,6 +112,13 @@ export const familyService = {
   },
 
   updateIndicationStatus: async (id: string, status: 'pending' | 'approved' | 'rejected' | 'converted'): Promise<DonorIndication> => {
+    try {
+      const updated = await indicationsApi.updateIndicationStatus(id, status);
+      if (updated) return updated;
+    } catch (e) {
+      handleApiError(e, 'Update Indication Status');
+    }
+
     await randomDelay(300, 500);
     const indications = storage.get<DonorIndication[]>(INDICATIONS_KEY, []);
     const idx = indications.findIndex(i => i.id === id);

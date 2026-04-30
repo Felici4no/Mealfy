@@ -65,7 +65,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="admin-dashboard-page">
-      <AppHeader title="Painel Admin (Mock)" />
+      <AppHeader title="Painel Administrativo" />
       
       <main className="content p-4">
         <section className="admin-header mb-6 flex items-center gap-3">
@@ -143,18 +143,18 @@ const AdminDashboard: React.FC = () => {
         </section>
 
         <section className="system-tools">
-           <h3 className="section-title mb-4">Ferramentas de Teste (Mock)</h3>
+           <h3 className="section-title mb-4">Ferramentas do Sistema</h3>
            <div className="flex-col gap-3">
              <Button 
                variant="outline" 
                fullWidth 
                icon={<RefreshCw size={18} />}
                onClick={() => {
-                 showToast("Elegibilidade de todas as famílias resetada para 08:00 AM (Mock)", "success");
+                 showToast("Ciclo diário atualizado", "success");
                  refreshCounts();
                }}
              >
-               Simular Reset Diário (08:00 AM)
+               Atualizar ciclo diário
              </Button>
              
              <Button 

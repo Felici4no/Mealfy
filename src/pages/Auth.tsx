@@ -29,8 +29,9 @@ const Auth: React.FC = () => {
     setSelectedRole(role);
     setView('login');
     // Pre-fill for easier testing
-    if (role === 'admin') setIdentifier('admin@mealfy.org');
-    if (role === 'entity') setIdentifier('ong.esperanca@ong.org');
+    if (role === 'donor') setIdentifier('doador@mealfy.com');
+    if (role === 'admin') setIdentifier('admin@mealfy.com');
+    if (role === 'entity') setIdentifier('entidade@mealfy.com');
     if (role === 'beneficiary') setIdentifier('123.456.789-00');
   };
 
@@ -64,7 +65,7 @@ const Auth: React.FC = () => {
             {selectedRole === 'donor' && 'Acompanhe seu impacto e doe rapidamente.'}
             {selectedRole === 'entity' && 'Gerencie famílias e doações da sua comunidade.'}
             {selectedRole === 'beneficiary' && 'Consulte seus gift cards e status.'}
-            {selectedRole === 'admin' && 'Modere e controle a plataforma (Mock).'}
+            {selectedRole === 'admin' && 'Área de gestão da plataforma.'}
           </p>
         </div>
 
@@ -96,7 +97,7 @@ const Auth: React.FC = () => {
           </form>
 
           <div className="text-center mt-auto pb-4 pt-10">
-            <p className="text-xs text-outline opacity-60">Acesso simulado para fins de demonstração técnica.</p>
+            <p className="text-xs text-outline opacity-60">Acesso restrito.</p>
           </div>
         </main>
       </div>
@@ -172,7 +173,7 @@ const Auth: React.FC = () => {
 
         <button
           className="social-btn facebook active:scale-95 transition-transform"
-          onClick={() => showToast('Login com Facebook não configurado no Mock.', 'info')}
+          onClick={() => showToast('Essa opção estará disponível em breve.', 'info')}
         >
           <span className="facebook-icon">f</span>
           Entrar com Facebook

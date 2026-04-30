@@ -23,7 +23,7 @@ const Support: React.FC = () => {
           
           <div className="faq-item">
             <h4 className="faq-question">Como funciona a doação via Gift Card?</h4>
-            <p className="faq-answer">Seu valor é imediatamente cunhado em um Voucher exclusivo (ex: Itaú Alimentar). Nossa base mockada procura automaticamente uma família necessitada (Coração Partido 💔) em sua região e transfere o ticket fechado, protegendo o destinatário.</p>
+            <p className="faq-answer">Seu valor é imediatamente cunhado em um Voucher exclusivo (ex: Itaú Alimentar). Nossa plataforma procura automaticamente uma família necessitada (Coração Partido 💔) em sua região e transfere o ticket fechado, protegendo o destinatário.</p>
           </div>
           
           <div className="faq-item">
@@ -46,7 +46,7 @@ const Support: React.FC = () => {
               fullWidth 
               size="large"
               icon={<MessageSquare size={20} className="text-success" />}
-              onClick={() => showToast('Simulação: Lançando WhatsApp para +55 0800 000 000', 'info')}
+              onClick={() => showToast('Iniciando atendimento via WhatsApp...', 'info')}
             >
               Falar com Mealfy no WhatsApp
             </Button>
@@ -55,7 +55,7 @@ const Support: React.FC = () => {
               variant="outline" 
               fullWidth 
               icon={<Mail size={20} />}
-              onClick={() => showToast('Simulação: Abrindo cliente de email (contato@mealfy.org)', 'info')}
+              onClick={() => showToast('Abrindo cliente de e-mail...', 'info')}
             >
               Enviar um E-mail ao Suporte
             </Button>

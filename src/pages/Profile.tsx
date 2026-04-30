@@ -25,12 +25,17 @@ const Profile: React.FC = () => {
     const fetchProfileData = async () => {
       if (!user) return;
       try {
-        const [histResponse, rankResponse] = await Promise.all([
-          donationService.getDonationHistoryByUser(user.id),
-          rankingService.getUserRanking(user.id)
-        ]);
-        setHistory(histResponse);
-        setRankingInfo(rankResponse);
+        if (user.role === 'donor') {
+          const [histResponse, rankResponse] = await Promise.all([
+            donationService.getDonationHistoryByUser(user.id),
+            rankingService.getUserRanking(user.id)
+          ]);
+          setHistory(histResponse);
+          setRankingInfo(rankResponse);
+        } else {
+          setHistory([]);
+          setRankingInfo(null);
+        }
       } catch (e) {
         console.error(e);
       } finally {

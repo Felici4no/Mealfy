@@ -212,7 +212,7 @@ const Register: React.FC = () => {
             </div>
 
             <Button type="submit" size="large" fullWidth loading={isLoading} className="mt-4">Cadastrar Organização</Button>
-            <p className="text-xs text-center text-outline mt-2">Sua solicitação entrará em análise por nossa equipe (Mock).</p>
+            <p className="text-xs text-center text-outline mt-2">Sua solicitação entrará em análise pela nossa equipe.</p>
           </form>
         </main>
       </div>

@@ -43,8 +43,16 @@ export const authService = {
   },
 
   loginAsRole: async (role: UserRole, identifier: string): Promise<User> => {
+    const demoEmailByRole: Record<string, string> = {
+      donor: 'doador@mealfy.com',
+      entity: 'entidade@mealfy.com',
+      beneficiary: 'beneficiario@mealfy.com',
+      admin: 'admin@mealfy.com'
+    };
+    const targetEmail = identifier.includes('@') ? identifier : demoEmailByRole[role];
+
     try {
-      const response = await authApi.loginMock(identifier);
+      const response = await authApi.loginMock(targetEmail);
       if (response && response.user) {
         storage.set(SESSION_KEY, response.user);
         return response.user;

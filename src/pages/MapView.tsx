@@ -101,7 +101,7 @@ const MapView: React.FC = () => {
           {validFamilies.length === 0 && !showOnlyNeedsHelp && families.length > 0 && (
              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000, background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'center' }}>
                 <h3 className="text-secondary font-bold mb-2">Nenhuma família plotada</h3>
-                <p className="text-sm text-outline">As famílias não possuem coordenadas válidas simuladas.</p>
+                <p className="text-sm text-outline">As famílias desta região não possuem coordenadas disponíveis no momento.</p>
              </div>
           )}
 

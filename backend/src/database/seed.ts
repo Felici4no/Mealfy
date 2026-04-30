@@ -7,15 +7,15 @@ const seed = async () => {
     {
       id: 'admin-1',
       name: 'Admin Mealfy',
-      email: 'admin@mealfy.org',
+      email: 'admin@mealfy.com',
       role: 'admin',
       status: 'active',
       totalDonated: 0
     },
     {
       id: 'donor-1',
-      name: 'João Doador',
-      email: 'joao@email.com',
+      name: 'Doador Demo',
+      email: 'doador@mealfy.com',
       role: 'donor',
       status: 'active',
       totalDonated: 150,
@@ -24,6 +24,30 @@ const seed = async () => {
         showInstagram: true,
         anonymousMode: false
       }
+    },
+    {
+      id: 'entity-user-1',
+      name: 'Entidade Aprovada',
+      email: 'entidade@mealfy.com',
+      role: 'entity',
+      status: 'approved',
+      entityId: 'entity-1'
+    },
+    {
+      id: 'entity-user-pending',
+      name: 'Entidade Pendente',
+      email: 'entidadependente@mealfy.com',
+      role: 'entity',
+      status: 'pending',
+      entityId: 'entity-pending-1'
+    },
+    {
+      id: 'beneficiary-1',
+      name: 'Beneficiário Teste',
+      email: 'beneficiario@mealfy.com',
+      role: 'beneficiary',
+      status: 'active',
+      beneficiaryId: 'family-1'
     }
   ];
 
