@@ -18,7 +18,7 @@ const Auth: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      const from = location.state?.from?.pathname || '/';
+      const from = location.state?.from?.pathname || '/dashboard-redirect';
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, user, navigate, location.state]);

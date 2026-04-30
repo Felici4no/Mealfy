@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import RankingDetailsModal from '../components/modals/RankingDetailsModal';
-import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut } from 'lucide-react';
+import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { donationService } from '../backend/services/donationService';
 import { rankingService } from '../backend/services/rankingService';
@@ -61,7 +61,7 @@ const Profile: React.FC = () => {
               user.role === 'entity' ? 'bg-secondary/20 text-secondary' : 
               user.role === 'beneficiary' ? 'bg-success/20 text-success' : 'bg-outline/20 text-outline'
             }`}>
-              {user.role === 'donor' ? 'Doador' : user.role === 'entity' ? `Entidade (${user.status})` : user.role === 'beneficiary' ? 'Beneficiário' : 'Admin'}
+              {user.role === 'donor' ? 'Doador' : user.role === 'entity' ? `Entidade (${user.status || 'pending'})` : user.role === 'beneficiary' ? 'Beneficiário' : 'Admin'}
             </div>
             <p className="user-email text-outline">{user.email || user.phone}</p>
           </div>
@@ -149,31 +149,44 @@ const Profile: React.FC = () => {
           </div>
         </section>
 
-        {user.role === 'donor' && history.length > 0 && (
+        {user.role === 'donor' && (
           <section className="history-section p-4">
             <div className="section-header flex justify-between items-center mb-4">
               <h3 className="section-title">Minhas doações</h3>
-              <Button variant="ghost" size="small" className="text-primary">Ver tudo</Button>
+              {history.length > 0 && <Button variant="ghost" size="small" className="text-primary">Ver tudo</Button>}
             </div>
             
-            <div className="history-list flex-col gap-3">
-              {history.slice(0, 3).map((item, i) => (
-                <div key={i} className="history-card">
-                  <div className="history-icon-wrapper">
-                    <Heart size={16} className="text-primary" />
+            {loading ? (
+               <div className="text-center p-8 text-outline text-sm">
+                  <Clock className="animate-spin mx-auto mb-2" size={20} />
+                  Carregando histórico...
+               </div>
+            ) : history.length === 0 ? (
+               <div className="text-center p-10 bg-surface-highest rounded-2xl border border-outline/5">
+                  <Heart size={32} className="text-outline/20 mx-auto mb-3" />
+                  <p className="text-sm text-outline mb-4">Você ainda não realizou doações.</p>
+                  <Button variant="outline" size="small" onClick={() => navigate('/donate')}>Fazer minha primeira doação</Button>
+               </div>
+            ) : (
+              <div className="history-list flex-col gap-3">
+                {history.slice(0, 3).map((item, i) => (
+                  <div key={i} className="history-card">
+                    <div className="history-icon-wrapper">
+                      <Heart size={16} className="text-primary" />
+                    </div>
+                    <div className="history-info">
+                      <span className="history-impact">{item.giftCard.label}</span>
+                      <span className="history-date text-outline">
+                        {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {item.giftCard.status === 'redeemed' ? 'Resgatado' : 'Enviado'}
+                      </span>
+                    </div>
+                    <div className="history-amount">
+                      R$ {item.donation.amount}
+                    </div>
                   </div>
-                  <div className="history-info">
-                    <span className="history-impact">{item.giftCard.label}</span>
-                    <span className="history-date text-outline">
-                      {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {item.giftCard.status === 'redeemed' ? 'Resgatado' : 'Enviado'}
-                    </span>
-                  </div>
-                  <div className="history-amount">
-                    R$ {item.donation.amount}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 

@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { rankingService } from '../backend/services/rankingService';
 import type { Family } from '../backend/types';
-import { Trophy } from 'lucide-react';
+import { Trophy, Loader2 } from 'lucide-react';
 import StoriesRanking from '../components/ui/StoriesRanking';
 import './Home.css';
 
@@ -77,7 +77,15 @@ const Home: React.FC = () => {
         </h2>
         
         {loadingFamilies ? (
-          <div className="text-center text-outline my-4">Atualizando dados...</div>
+          <div className="text-center text-outline my-8 flex-col items-center gap-2">
+             <Loader2 className="animate-spin mx-auto text-primary" size={24} />
+             <span className="text-xs">Atualizando dados...</span>
+          </div>
+        ) : families.length === 0 ? (
+          <div className="text-center my-8 p-6 bg-surface-highest rounded-2xl border border-outline/10 mx-4">
+             <p className="text-sm text-outline italic">Ainda não há famílias cadastradas em {selectedCommunity?.name}.</p>
+             <Button variant="ghost" size="small" className="mt-2 text-primary" onClick={() => navigate('/register-family')}>Indique uma família</Button>
+          </div>
         ) : (
           <div className="stats-grid">
             <div className="stat-card">

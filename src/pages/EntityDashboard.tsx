@@ -74,9 +74,19 @@ const EntityDashboard: React.FC = () => {
         <section className="families-list-section">
            <h3 className="section-title mb-4">Minhas Famílias</h3>
            {loading ? (
-             <p>Carregando...</p>
+             <div className="text-center py-10">
+                <Clock className="animate-spin text-outline mx-auto mb-2" size={24} />
+                <p className="text-xs text-outline">Carregando dados...</p>
+             </div>
            ) : families.length === 0 ? (
-             <p className="text-outline text-center py-8">Nenhuma família cadastrada.</p>
+             <div className="empty-state p-10 text-center bg-surface-highest rounded-2xl border-2 border-dashed border-outline/10">
+                <Users size={40} className="text-outline/20 mx-auto mb-4" />
+                <p className="text-sm font-bold text-outline mb-1">Nenhuma família cadastrada</p>
+                <p className="text-xs text-outline mb-6">Comece indicando as famílias da sua comunidade que precisam de apoio.</p>
+                <Button variant="outline" size="small" onClick={() => navigate('/register-family')}>
+                   Fazer primeiro cadastro
+                </Button>
+             </div>
            ) : (
              <div className="flex-col gap-3">
                 {families.map(fam => (

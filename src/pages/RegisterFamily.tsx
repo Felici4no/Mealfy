@@ -107,11 +107,11 @@ const RegisterFamily: React.FC = () => {
           )}
 
           <h2 className="text-2xl font-bold text-primary mb-2">
-            {isEntityMode ? 'Seja uma entidade autorizada no combate à fome infantil.' : 'Conhece alguém precisando de ajuda?'}
+            {isEntityMode ? 'Torne sua instituição um braço do combate à fome.' : 'Conhece alguém precisando de ajuda?'}
           </h2>
           <p className="text-outline text-sm leading-relaxed">
             {isEntityMode 
-              ? 'Cadastre famílias da sua comunidade e ajude a transformar doações em alimento.' 
+              ? 'Ao se tornar uma entidade autorizada, você valida famílias reais e garante que a ajuda chegue a quem mais precisa com segurança e transparência.' 
               : 'Cadastre uma família na plataforma e nossa equipe validará o pedido para disponibilizar para doação.'}
           </p>
         </div>

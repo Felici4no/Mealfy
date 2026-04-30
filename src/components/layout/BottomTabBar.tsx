@@ -59,11 +59,43 @@ const BottomTabBar: React.FC = () => {
     );
   }
 
-  // Beneficiary & Admin Navigation (Simplified)
+  // Beneficiary Navigation
+  if (user.role === 'beneficiary') {
+    return (
+      <nav className="bottom-tab-bar">
+        <NavLink to="/beneficiary/dashboard" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
+          <Home size={24} />
+          <span>Início</span>
+        </NavLink>
+        <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
+          <User size={24} />
+          <span>Perfil</span>
+        </NavLink>
+      </nav>
+    );
+  }
+
+  // Admin Navigation
+  if (user.role === 'admin') {
+    return (
+      <nav className="bottom-tab-bar">
+        <NavLink to="/admin/dashboard" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
+          <ShieldCheck size={24} />
+          <span>Admin</span>
+        </NavLink>
+        <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
+          <User size={24} />
+          <span>Perfil</span>
+        </NavLink>
+      </nav>
+    );
+  }
+
+  // Default Fallback
   return (
     <nav className="bottom-tab-bar">
       <NavLink to="/dashboard-redirect" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-        {user.role === 'admin' ? <ShieldCheck size={24} /> : <Home size={24} />}
+        <Home size={24} />
         <span>Início</span>
       </NavLink>
       <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>

@@ -5,6 +5,20 @@ import { ShieldCheck, UserCheck, Building2, FileText, RefreshCw } from 'lucide-r
 import './AdminDashboard.css';
 
 const AdminDashboard: React.FC = () => {
+  const [pendingEntitiesCount, setPendingEntitiesCount] = React.useState(0);
+  const [pendingFamiliesCount, setPendingFamiliesCount] = React.useState(0);
+
+  const refreshCounts = () => {
+    const users = JSON.parse(localStorage.getItem('users_db') || '[]');
+    const families = JSON.parse(localStorage.getItem('families_db') || '[]');
+    setPendingEntitiesCount(users.filter((u: any) => u.role === 'entity' && u.status === 'pending').length);
+    setPendingFamiliesCount(families.filter((f: any) => f.status === 'pending').length);
+  };
+
+  React.useEffect(() => {
+    refreshCounts();
+  }, []);
+
   return (
     <div className="admin-dashboard-page">
       <AppHeader title="Painel Admin (Mock)" />
@@ -26,7 +40,11 @@ const AdminDashboard: React.FC = () => {
                  <Building2 size={20} className="text-secondary" />
                  <span className="font-bold text-sm">Entidades Pendentes</span>
               </div>
-              <span className="bg-error text-inverted text-[10px] px-2 py-0.5 rounded-full">3</span>
+              {pendingEntitiesCount > 0 ? (
+                <span className="bg-error text-inverted text-[10px] px-2 py-0.5 rounded-full">{pendingEntitiesCount}</span>
+              ) : (
+                <span className="text-[10px] text-outline">Nenhuma</span>
+              )}
            </div>
            
            <div className="admin-menu-item p-4 bg-surface-highest rounded-xl border border-outline/10 flex items-center justify-between cursor-pointer">
@@ -34,13 +52,17 @@ const AdminDashboard: React.FC = () => {
                  <FileText size={20} className="text-primary" />
                  <span className="font-bold text-sm">Indicações de Famílias</span>
               </div>
-              <span className="bg-error text-inverted text-[10px] px-2 py-0.5 rounded-full">12</span>
+              {pendingFamiliesCount > 0 ? (
+                <span className="bg-error text-inverted text-[10px] px-2 py-0.5 rounded-full">{pendingFamiliesCount}</span>
+              ) : (
+                <span className="text-[10px] text-outline">Nenhuma</span>
+              )}
            </div>
 
-           <div className="admin-menu-item p-4 bg-surface-highest rounded-xl border border-outline/10 flex items-center justify-between cursor-pointer">
+           <div className="admin-menu-item p-4 bg-surface-highest rounded-xl border border-outline/10 flex items-center justify-between cursor-pointer opacity-50">
               <div className="flex items-center gap-3">
                  <UserCheck size={20} className="text-success" />
-                 <span className="font-bold text-sm">Validar Beneficiários</span>
+                 <span className="font-bold text-sm">Validar Beneficiários (Em breve)</span>
               </div>
            </div>
         </section>
@@ -52,7 +74,10 @@ const AdminDashboard: React.FC = () => {
                variant="outline" 
                fullWidth 
                icon={<RefreshCw size={18} />}
-               onClick={() => alert("Elegibilidade de todas as famílias resetada para 08:00 AM (Mock)")}
+               onClick={() => {
+                 alert("Elegibilidade de todas as famílias resetada para 08:00 AM (Mock)");
+                 refreshCounts();
+               }}
              >
                Simular Reset Diário (08:00 AM)
              </Button>
@@ -69,6 +94,7 @@ const AdminDashboard: React.FC = () => {
                    pendingEntity.status = 'approved';
                    localStorage.setItem(USERS_KEY, JSON.stringify(users));
                    alert(`Entidade ${pendingEntity.name} aprovada com sucesso!`);
+                   refreshCounts();
                  } else {
                    alert("Nenhuma entidade pendente encontrada para aprovar.");
                  }
@@ -89,6 +115,7 @@ const AdminDashboard: React.FC = () => {
                    pendingFamilies.forEach((f: any) => { f.status = 'approved'; f.supportStatus = 'needs_help'; });
                    localStorage.setItem(FAMILIES_KEY, JSON.stringify(families));
                    alert(`${pendingFamilies.length} famílias aprovadas com sucesso!`);
+                   refreshCounts();
                  } else {
                    alert("Nenhuma família pendente encontrada.");
                  }

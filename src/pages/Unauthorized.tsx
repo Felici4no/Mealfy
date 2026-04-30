@@ -17,8 +17,8 @@ const Unauthorized: React.FC = () => {
       <p className="text-outline mb-8">
         Você não tem permissão para acessar esta área com seu perfil atual.
       </p>
-      <Button variant="primary" fullWidth onClick={() => navigate('/')}>
-        Voltar para o Início
+      <Button variant="primary" fullWidth onClick={() => navigate('/dashboard-redirect')}>
+        Ir para Meu Painel
       </Button>
     </div>
   );

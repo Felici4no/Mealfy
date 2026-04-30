@@ -4,29 +4,42 @@ import AppHeader from '../components/layout/AppHeader';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { donationService } from '../backend/services/donationService';
-import { Gift, Calendar, MessageSquare, Heart } from 'lucide-react';
-import type { Family, GiftCard } from '../backend/types';
+import { Gift, Calendar, MessageSquare, Heart, Clock } from 'lucide-react';
+import type { Family, GiftCard, Donation } from '../backend/types';
 import './BeneficiaryDashboard.css';
 
 const BeneficiaryDashboard: React.FC = () => {
   const { user } = useAppContext();
   const [family, setFamily] = useState<Family | null>(null);
-  const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
+  const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?.beneficiaryId) return;
-      const fam = await familyService.getFamilyById(user.beneficiaryId);
-      setFamily(fam || null);
+      if (!user?.beneficiaryId) {
+         setLoading(false);
+         return;
+      }
       
-      // Mock fetching gift cards for this family
-      const allHistory = await donationService.getDonationHistoryByUser('any'); // Not ideal service method, but for mock:
-      setGiftCards([]); // Empty for now or mock data
+      const [fam, hist] = await Promise.all([
+         familyService.getFamilyById(user.beneficiaryId),
+         donationService.getDonationHistoryByUser(user.id)
+      ]);
+
+      setFamily(fam || null);
+      setHistory(hist || []);
       setLoading(false);
     };
     fetchData();
   }, [user]);
+
+  if (loading) {
+    return (
+      <div className="beneficiary-dashboard-page p-6 flex items-center justify-center" style={{ height: '80vh' }}>
+         <Clock className="animate-spin text-primary" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="beneficiary-dashboard-page">
@@ -70,23 +83,30 @@ const BeneficiaryDashboard: React.FC = () => {
                 <p className="text-[10px] text-outline mt-2">Válido em qualquer mercado parceiro ou iFood.</p>
              </div>
            ) : (
-             <div className="empty-state p-8 text-center bg-surface-highest rounded-xl">
+             <div className="empty-state p-8 text-center bg-surface-highest rounded-xl border border-outline/5">
                 <p className="text-sm text-outline italic">Nenhum gift card ativo no momento.</p>
+                <p className="text-[10px] text-outline mt-1">Volte amanhã após as 08:00 AM para conferir novamente.</p>
              </div>
            )}
         </section>
 
         <section className="history-preview">
            <h3 className="section-title mb-4">Últimos Recebimentos</h3>
-           <div className="flex-col gap-3">
-              <div className="history-item p-3 bg-surface rounded-lg border border-outline/5 flex justify-between items-center">
-                 <div className="flex items-center gap-3">
-                    <Calendar size={16} className="text-outline" />
-                    <span className="text-sm">28/04/2026</span>
-                 </div>
-                 <span className="text-sm font-bold text-success">R$ 30,00</span>
-              </div>
-           </div>
+           {history.length === 0 ? (
+             <p className="text-xs text-outline text-center py-4 bg-surface rounded-xl italic">Ainda não há registros de recebimento.</p>
+           ) : (
+             <div className="flex-col gap-3">
+                {history.map((item, i) => (
+                  <div key={i} className="history-item p-3 bg-surface rounded-lg border border-outline/5 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <Calendar size={16} className="text-outline" />
+                        <span className="text-sm">{new Date(item.donation.createdAt).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <span className="text-sm font-bold text-success">R$ {item.donation.amount}</span>
+                  </div>
+                ))}
+             </div>
+           )}
         </section>
       </main>
     </div>
