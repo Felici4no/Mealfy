@@ -31,17 +31,18 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%);
+  background: linear-gradient(to bottom, rgba(0, 54, 95, 0.2) 0%, rgba(0, 54, 95, 0.95) 100%);
   z-index: 1;
 }
 
 .auth-hero-content {
   position: relative;
   z-index: 2;
+  padding-bottom: 20px;
 }
 
 .drop-shadow-md {
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .auth-content {
@@ -54,39 +55,44 @@
   z-index: 3;
 }
 
-.role-btn {
+.role-card-btn {
   width: 100%;
   padding: 16px;
+  border-radius: var(--radius-xl);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+}
+
+.role-icon-wrapper {
+  width: 48px;
+  height: 48px;
   border-radius: var(--radius-lg);
-  font-weight: 700;
-  font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  flex-shrink: 0;
 }
 
-.role-btn.primary {
-  background-color: var(--color-primary);
-  color: var(--color-text-inverted);
+.role-card-text {
+  flex: 1;
 }
 
-.role-btn.secondary {
-  background-color: var(--color-surface-highest);
+.role-card-text h3 {
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--color-text-main);
-  border: 1px solid var(--color-outline-variant);
+  margin-bottom: 2px;
 }
 
-.role-btn.outline {
-  background-color: transparent;
-  color: var(--color-text-main);
-  border: 1px solid var(--color-outline);
-}
-
-.role-btn.subtle {
-  background-color: transparent;
+.role-card-text p {
+  font-size: 0.75rem;
   color: var(--color-outline);
-  font-size: 0.9rem;
+  line-height: 1.2;
 }
 
 .social-btn {
@@ -106,7 +112,47 @@
   color: white;
 }
 
-.login-view .content {
-  height: 100vh;
-  display: flex;
+.login-view .login-hero {
+  background-color: var(--color-background);
+  padding: 24px;
+  padding-top: env(safe-area-inset-top, 40px);
+  padding-bottom: 40px;
+}
+
+.login-hero-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1.2;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+.login-hero-subtitle {
+  font-size: 1rem;
+  color: var(--color-outline);
+  line-height: 1.4;
+}
+
+.login-content {
+  background-color: #fff;
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  margin-top: -24px;
+  min-height: calc(100vh - 200px);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+}
+
+.facebook-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  background: #1877f2;
+  color: white;
+  font-family: Arial, sans-serif;
 }

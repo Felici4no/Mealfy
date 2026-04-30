@@ -43,6 +43,23 @@ const Home: React.FC = () => {
     <div className="home-page">
       <AppHeader transparent />
       
+      <div className="ranking-preview-section pt-20">
+        <div className="px-4 flex items-center justify-between mb-3">
+          <h2 className="section-title flex items-center gap-2">
+            <span className="font-bold text-lg text-primary">Comunidade Ativa</span>
+            <Trophy size={18} className="text-secondary" />
+          </h2>
+        </div>
+        <StoriesRanking 
+          donors={topDonors} 
+          onSelectDonor={(d) => {
+            const isAnon = d.isAnonymous || d.privacySettings?.anonymousMode;
+            const msg = `Doador: ${isAnon ? 'Anônimo' : d.name} • Total: R$ ${d.totalDonated}${(!isAnon && d.instagram && d.privacySettings?.showInstagram !== false) ? ` • IG: ${d.instagram}` : ''}`;
+            showToast(msg, 'info');
+          }} 
+        />
+      </div>
+
       <div className="hero-section">
         <div className="hero-image-overlay"></div>
         <img 
@@ -77,6 +94,8 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
+
+
 
       <div className="social-proof-section p-4">
         <h2 className="section-title text-center mb-4 text-primary font-bold">
@@ -134,22 +153,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      <div className="ranking-preview-section my-2">
-        <div className="px-4 flex items-center justify-between mb-2">
-          <h2 className="section-title flex items-center gap-2">
-            <span>Destaques de Impacto</span>
-            <Trophy size={18} className="text-secondary" />
-          </h2>
-        </div>
-        <StoriesRanking 
-          donors={topDonors} 
-          onSelectDonor={(d) => {
-            const isAnon = d.isAnonymous || d.privacySettings?.anonymousMode;
-            const msg = `Doador: ${isAnon ? 'Anônimo' : d.name} • Total: R$ ${d.totalDonated}${(!isAnon && d.instagram && d.privacySettings?.showInstagram !== false) ? ` • IG: ${d.instagram}` : ''}`;
-            showToast(msg, 'info');
-          }} 
-        />
-      </div>
+
 
       <div className="support-development-section p-4 my-4 bg-primary/5 rounded-xl mx-4 border border-primary/10">
         <p className="text-sm italic text-outline mb-3">

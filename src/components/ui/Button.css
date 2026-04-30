@@ -4,9 +4,9 @@
   justify-content: center;
   gap: 8px;
   font-family: var(--font-family-body);
-  font-weight: 600;
+  font-weight: 700;
   border-radius: var(--radius-xl);
-  transition: all 0.2s ease;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s, box-shadow 0.2s;
   user-select: none;
 }
 
@@ -43,12 +43,15 @@
 /* Variants */
 .btn-primary {
   background-color: var(--color-primary);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
   color: var(--color-text-inverted);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 54, 95, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.btn-primary:active {
+.btn-primary:active:not(:disabled) {
   background-color: var(--color-primary-container);
+  box-shadow: 0 2px 4px rgba(0, 54, 95, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
@@ -62,12 +65,13 @@
 }
 
 .btn-outline {
-  background-color: transparent;
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-outline);
+  background-color: var(--color-background);
+  color: var(--color-text-main);
+  border: 1.5px solid var(--color-outline-variant);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.btn-outline:active {
+.btn-outline:active:not(:disabled) {
   background-color: var(--color-surface-highest);
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { Heart, Building2, UserCircle, ShieldCheck, ArrowRight, Loader2, Facebook } from 'lucide-react';
+import { Heart, Building2, UserCircle, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import type { UserRole } from '../backend/types';
@@ -50,24 +50,33 @@ const Auth: React.FC = () => {
   if (view === 'login') {
     return (
       <div className="auth-page login-view">
-        <main className="content p-6 flex-col justify-center">
-          <button className="back-btn mb-8 text-outline flex items-center gap-2 active:scale-95 transition-transform" onClick={() => setView('picker')}>
-             <ArrowRight size={20} style={{ transform: 'rotate(180deg)' }} /> Voltar
-          </button>
-          
-          <div className="login-header mb-8">
-            <h1 className="text-3xl font-bold text-primary mb-2">Entrar como {selectedRole}</h1>
-            <p className="text-outline">Insira seu identificador para acessar o painel exclusivo.</p>
-          </div>
+        <div className="login-hero">
+           <button className="back-btn active:scale-95 transition-transform" onClick={() => setView('picker')}>
+             <ArrowRight size={24} style={{ transform: 'rotate(180deg)' }} />
+           </button>
+           <h1 className="login-hero-title">
+             {selectedRole === 'donor' && 'Entrar como Doador'}
+             {selectedRole === 'entity' && 'Acesso Entidade'}
+             {selectedRole === 'beneficiary' && 'Acessar Benefício'}
+             {selectedRole === 'admin' && 'Acesso Administrativo'}
+           </h1>
+           <p className="login-hero-subtitle">
+             {selectedRole === 'donor' && 'Acompanhe seu impacto e doe rapidamente.'}
+             {selectedRole === 'entity' && 'Gerencie famílias e doações da sua comunidade.'}
+             {selectedRole === 'beneficiary' && 'Consulte seus gift cards e status.'}
+             {selectedRole === 'admin' && 'Modere e controle a plataforma (Mock).'}
+           </p>
+        </div>
 
-          <form onSubmit={handleLogin} className="flex-col gap-4">
+        <main className="login-content p-6 flex-col">
+          <form onSubmit={handleLogin} className="flex-col gap-5 mt-4">
             <div className="form-group">
-              <label className="text-xs font-bold uppercase tracking-wider text-outline mb-2 block">
+              <label className="form-label">
                 {selectedRole === 'beneficiary' ? 'CPF ou Telefone' : 'E-mail ou CNPJ'}
               </label>
               <input 
                 type="text" 
-                className="w-full p-4 rounded-xl border border-outline/20 bg-surface-highest focus:border-primary outline-none transition-all"
+                className="form-input"
                 placeholder={selectedRole === 'beneficiary' ? '000.000.000-00' : 'nome@exemplo.com'}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -80,13 +89,13 @@ const Auth: React.FC = () => {
               size="large" 
               fullWidth 
               loading={isLoading}
-              className="shadow-glow active:scale-95 transition-transform"
+              className="mt-2"
             >
-              Entrar Agora
+              Continuar
             </Button>
           </form>
           
-          <div className="text-center mt-8">
+          <div className="text-center mt-auto pb-4 pt-10">
             <p className="text-xs text-outline opacity-60">Acesso simulado para fins de demonstração técnica.</p>
           </div>
         </main>
@@ -104,45 +113,60 @@ const Auth: React.FC = () => {
           className="auth-hero-image"
         />
         <div className="auth-hero-content">
-          <div className="logo-text font-serif text-4xl font-black text-white italic mb-2 drop-shadow-md">Mealfy</div>
-          <h1 className="text-2xl font-bold text-white drop-shadow-md">Como você quer entrar?</h1>
+          <div className="logo-text font-serif text-3xl font-black text-white/90 italic mb-1 drop-shadow-md tracking-wider">Mealfy</div>
+          <h1 className="text-3xl font-bold text-white drop-shadow-md leading-tight mb-2">Como você quer entrar?</h1>
+          <p className="text-white/80 text-sm font-medium">Faça parte da nossa rede solidária.</p>
         </div>
       </div>
 
       <main className="auth-content p-6 flex-col">
-        <div className="roles-list flex-col gap-3 mb-6">
+        <div className="roles-list flex-col gap-4 mb-6">
           <button 
-            className="role-btn primary shadow-glow-soft active:scale-95 transition-transform"
+            className="role-card-btn active:scale-95 transition-transform"
             onClick={() => handleRoleSelect('donor')}
           >
-            Sou Doador
+            <div className="role-icon-wrapper bg-primary/10 text-primary">
+              <Heart size={24} />
+            </div>
+            <div className="role-card-text">
+               <h3>Sou Doador</h3>
+               <p>Acompanhe e doe para quem precisa</p>
+            </div>
+            <ArrowRight size={20} className="text-outline/40" />
           </button>
           
           <button 
-            className="role-btn secondary active:scale-95 transition-transform"
+            className="role-card-btn active:scale-95 transition-transform"
             onClick={() => handleRoleSelect('entity')}
           >
-            Sou Entidade Autorizada
+            <div className="role-icon-wrapper bg-secondary/10 text-secondary">
+              <Building2 size={24} />
+            </div>
+            <div className="role-card-text">
+               <h3>Sou Entidade Autorizada</h3>
+               <p>Faça a gestão de famílias cadastradas</p>
+            </div>
+            <ArrowRight size={20} className="text-outline/40" />
           </button>
 
           <button 
-            className="role-btn outline active:scale-95 transition-transform"
+            className="role-card-btn active:scale-95 transition-transform"
             onClick={() => handleRoleSelect('beneficiary')}
           >
-            Sou Beneficiário
-          </button>
-          
-          <button 
-            className="role-btn subtle active:scale-95 transition-transform mt-2"
-            onClick={() => handleRoleSelect('admin')}
-          >
-            <ShieldCheck size={16} /> Acesso Admin (Mock)
+            <div className="role-icon-wrapper bg-success/10 text-success">
+              <UserCircle size={24} />
+            </div>
+            <div className="role-card-text">
+               <h3>Sou Beneficiário</h3>
+               <p>Acesse seu painel de recebimentos</p>
+            </div>
+            <ArrowRight size={20} className="text-outline/40" />
           </button>
         </div>
 
         <div className="separator mb-6 flex items-center justify-center gap-3">
           <div className="h-px bg-outline/20 flex-1"></div>
-          <span className="text-xs font-bold text-outline uppercase">ou</span>
+          <span className="text-xs font-bold text-outline uppercase tracking-widest">ou</span>
           <div className="h-px bg-outline/20 flex-1"></div>
         </div>
 
@@ -150,16 +174,23 @@ const Auth: React.FC = () => {
           className="social-btn facebook active:scale-95 transition-transform"
           onClick={() => showToast('Login com Facebook não configurado no Mock.', 'info')}
         >
-          <Facebook size={20} fill="currentColor" />
+          <span className="facebook-icon">f</span>
           Entrar com Facebook
         </button>
 
-        <div className="auth-footer mt-8 text-center">
+        <div className="auth-footer mt-8 mb-4 text-center flex-col gap-6">
            <button 
-             className="text-primary font-bold flex items-center justify-center gap-2 mx-auto active:scale-95 transition-transform" 
+             className="text-primary font-bold flex items-center justify-center gap-2 mx-auto active:scale-95 transition-transform text-sm" 
              onClick={() => navigate('/donate')}
            >
-              Continuar como doador anônimo <ArrowRight size={16} />
+              Continuar como anônimo <ArrowRight size={16} />
+           </button>
+
+           <button 
+            className="text-xs text-outline/60 underline underline-offset-2 hover:text-outline active:scale-95 transition-all mx-auto"
+            onClick={() => handleRoleSelect('admin')}
+           >
+            Acesso administrativo restrito
            </button>
         </div>
       </main>
