@@ -44,12 +44,13 @@ const Home: React.FC = () => {
       <AppHeader transparent />
       
       <div className="ranking-preview-section pt-20">
-        <div className="px-4 flex items-center justify-between mb-3">
-          <h2 className="section-title flex items-center gap-2">
-            <span className="font-bold text-lg text-primary">Comunidade Ativa</span>
-            <Trophy size={18} className="text-secondary" />
-          </h2>
-        </div>
+        <header className="home-social-header px-4 mb-3">
+          <div>
+            <span className="eyebrow">Comunidade ativa</span>
+            <h2>Pessoas movendo impacto hoje</h2>
+          </div>
+          <span className="impact-badge">🏆</span>
+        </header>
         <StoriesRanking 
           donors={topDonors} 
           onSelectDonor={(d) => {

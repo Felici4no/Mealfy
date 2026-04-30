@@ -4,6 +4,43 @@
   min-height: 100vh;
 }
 
+.home-social-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-social-header .eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-outline);
+  margin-bottom: 2px;
+}
+
+.home-social-header h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.2;
+}
+
+.impact-badge {
+  font-size: 1.5rem;
+  background: var(--color-surface-highest);
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ranking-preview-section {
+  padding-bottom: 24px;
+}
+
 .hero-section {
   position: relative;
   min-height: 75vh;

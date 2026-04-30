@@ -16,20 +16,20 @@
 }
 
 .story-item {
+  min-width: 68px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-width: 70px;
   cursor: pointer;
 }
 
 .story-avatar-ring {
-  width: 66px;
-  height: 66px;
-  border-radius: 50%;
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
   padding: 3px;
-  background: linear-gradient(45deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  background: linear-gradient(135deg, #d8b84f, #f3d77a, #0b4b78);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -56,11 +56,12 @@
 }
 
 .story-name {
-  font-size: 0.75rem;
-  color: var(--color-text-main);
-  max-width: 70px;
+  max-width: 64px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #15384f;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 600;
+  text-align: center;
 }

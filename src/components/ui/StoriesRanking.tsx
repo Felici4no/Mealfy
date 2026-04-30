@@ -1,4 +1,5 @@
 import React from 'react';
+import { User } from 'lucide-react';
 import './StoriesRanking.css';
 
 interface Donor {
@@ -37,7 +38,7 @@ const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor }
             >
               <div className={`story-avatar-ring ${donor.totalDonated > 5000 ? 'top-tier' : ''}`}>
                 <div className="story-avatar">
-                  {isAnon ? '👤' : (donor.avatar || donor.name[0])}
+                  {isAnon ? <User size={28} className="text-outline/40" /> : (donor.avatar || donor.name[0])}
                 </div>
               </div>
               <span className="story-name">{displayName}</span>
