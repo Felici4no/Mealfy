@@ -99,6 +99,9 @@ const CommunityDetails: React.FC = () => {
                          </span>
                          <Heart size={18} className="text-error" />
                       </div>
+                      <div className="mt-2 pt-2 border-t border-outline/10 text-[10px] text-outline/80 flex items-center gap-1">
+                        Fonte: {fam.sourceEntityName || 'Parceiro Oficial'}
+                      </div>
                     </div>
                   </div>
                 </div>

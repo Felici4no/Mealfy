@@ -90,12 +90,24 @@ const AdminDashboard: React.FC = () => {
                className="mt-3 border-secondary text-secondary"
                onClick={() => {
                  const USERS_KEY = 'users_db';
+                 const ENTITIES_KEY = 'entities_db';
                  const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-                 const pendingEntity = users.find((u: any) => u.role === 'entity' && u.status === 'pending');
-                 if (pendingEntity) {
-                   pendingEntity.status = 'approved';
+                 const entities = JSON.parse(localStorage.getItem(ENTITIES_KEY) || '[]');
+                 
+                 const pendingUser = users.find((u: any) => u.role === 'entity' && u.status === 'pending');
+                 if (pendingUser) {
+                   pendingUser.status = 'approved';
                    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-                   showToast(`Entidade ${pendingEntity.name} aprovada com sucesso!`, "success");
+                   
+                   if (pendingUser.entityId) {
+                     const entityToApprove = entities.find((e: any) => e.id === pendingUser.entityId);
+                     if (entityToApprove) {
+                       entityToApprove.status = 'approved';
+                       localStorage.setItem(ENTITIES_KEY, JSON.stringify(entities));
+                     }
+                   }
+
+                   showToast(`Entidade ${pendingUser.name} aprovada com sucesso!`, "success");
                    refreshCounts();
                  } else {
                    showToast("Nenhuma entidade pendente encontrada para aprovar.", "info");

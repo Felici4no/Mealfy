@@ -181,6 +181,13 @@ const Auth: React.FC = () => {
         <div className="auth-footer mt-8 mb-4 text-center flex-col gap-6">
           <button
             className="text-primary font-bold flex items-center justify-center gap-2 mx-auto active:scale-95 transition-transform text-sm"
+            onClick={() => navigate('/register')}
+          >
+            Criar conta
+          </button>
+          
+          <button
+            className="text-primary flex items-center justify-center gap-2 mx-auto active:scale-95 transition-transform text-sm"
             onClick={() => navigate('/donate')}
           >
             Continuar como anônimo <ArrowRight size={16} />

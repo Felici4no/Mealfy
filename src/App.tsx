@@ -23,6 +23,8 @@ import EntityDashboard from './pages/EntityDashboard';
 import BeneficiaryDashboard from './pages/BeneficiaryDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Unauthorized from './pages/Unauthorized';
+import Register from './pages/Register';
+import IndicateFamily from './pages/IndicateFamily';
 
 import './App.css';
 
@@ -48,7 +50,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAppContext();
   
   // We hide the bottom tab bar on certain screens
-  const hideTabBarRoutes = ['/auth', '/donate', '/success', '/unauthorized'];
+  const hideTabBarRoutes = ['/auth', '/register', '/donate', '/success', '/unauthorized'];
   const isHiddenRoute = hideTabBarRoutes.some(route => location.pathname.startsWith(route));
   
   // Hide if beneficiary or admin (they have their own navigation or are simple)
@@ -73,6 +75,7 @@ function App() {
             <Layout>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Common Public/Semi-Public Routes (Restricted for Beneficiaries) */}
@@ -90,9 +93,10 @@ function App() {
             <Route path="/success" element={<PrivateRoute allowedRoles={['donor']}><Success /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/recurrence" element={<PrivateRoute allowedRoles={['donor']}><Recurrence /></PrivateRoute>} />
-            <Route path="/register-family" element={<PrivateRoute allowedRoles={['donor', 'entity']}><RegisterFamily /></PrivateRoute>} />
+            <Route path="/indicate-family" element={<PrivateRoute allowedRoles={['donor']}><IndicateFamily /></PrivateRoute>} />
 
             {/* Entity Routes */}
+            <Route path="/register-family" element={<PrivateRoute allowedRoles={['entity', 'donor']}><RegisterFamily /></PrivateRoute>} />
             <Route path="/entity/dashboard" element={<PrivateRoute allowedRoles={['entity']}><EntityDashboard /></PrivateRoute>} />
             
             {/* Beneficiary Routes */}

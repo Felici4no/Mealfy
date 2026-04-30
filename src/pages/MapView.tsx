@@ -131,6 +131,9 @@ const MapView: React.FC = () => {
                         ❤️ Família Alimentada
                       </div>
                     )}
+                    <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee', fontSize: '0.75rem', color: '#888' }}>
+                      Fonte: {fam.sourceEntityName || 'Parceiro Oficial'}
+                    </div>
                   </div>
                   
                   <div className="popup-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>

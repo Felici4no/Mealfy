@@ -4,7 +4,7 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { familyService } from '../backend/services/familyService';
 import type { Family } from '../backend/types';
-import { Heart, MapPin, AlertCircle } from 'lucide-react';
+import { Heart, MapPin, AlertCircle, Building2 } from 'lucide-react';
 import './FamilyDetails.css';
 
 const FamilyDetails: React.FC = () => {
@@ -39,12 +39,26 @@ const FamilyDetails: React.FC = () => {
       <AppHeader title="Ficha de Apoio" showBack onBack={() => navigate(-1)} />
       
       <main className="content p-4">
-        <div className="family-header-card mb-6">
+        <div className="family-header-card mb-4">
           <div className="fh-avatar">{family.representativeName.charAt(0)}</div>
           <h2 className="fh-title text-primary">{family.representativeName}</h2>
           <div className="fh-location flex items-center justify-center gap-1 text-sm text-outline mt-1">
             <MapPin size={14} /> {family.shortAddress}, {family.city}
           </div>
+        </div>
+
+        <div className="bg-surface-highest p-4 rounded-xl border border-outline/10 mb-6 flex-col gap-2">
+           <h3 className="text-xs font-bold text-outline uppercase tracking-wide">Fonte das informações</h3>
+           <p className="text-sm font-semibold text-text-main flex items-center gap-2">
+             <Building2 size={16} className="text-secondary" />
+             {family.sourceLabel || (family.sourceType === 'entity' ? `Cadastrado por ${family.sourceEntityName || 'Entidade Parceira'}` : 'Cadastrado por Parceiro Oficial')}
+           </p>
+           {family.sourceType === 'entity' && (
+             <div className="text-xs text-outline flex-col gap-1 mt-1">
+               <p>Tipo: Entidade Autorizada</p>
+               <p>Status da entidade: Aprovada e Auditada</p>
+             </div>
+           )}
         </div>
 
         <section className="family-description mb-6">

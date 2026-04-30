@@ -18,6 +18,8 @@ export interface User {
   email: string;
   role: UserRole;
   phone?: string;
+  documentType?: 'cpf' | 'cnpj';
+  documentNumber?: string;
   avatar?: string;
   instagram?: string;
   totalDonated: number;
@@ -35,6 +37,14 @@ export interface AuthorizingEntity {
   name: string;
   cnpj: string;
   type: EntityType;
+  responsibleName: string;
+  responsibleRole?: string;
+  email: string;
+  phone: string;
+  region: string;
+  addressOrDistrict?: string;
+  websiteOrInstagram?: string;
+  shortDescription?: string;
   status: EntityStatus;
   createdAt: string;
 }
@@ -80,6 +90,10 @@ export interface Family {
   longitude: number;
   photoUrl?: string;
   authorizingEntityId?: string; // If registered by an entity
+  createdByEntityId?: string;
+  sourceType?: 'entity' | 'donor_indication';
+  sourceEntityName?: string;
+  sourceLabel?: string;
   lastFedAt?: string; // Timestamp of last donation
   status?: SupportStatus; // Added for compatibility
 }

@@ -13,7 +13,7 @@ const RegisterFamily: React.FC = () => {
   const { communities, user } = useAppContext();
   const { showToast } = useToast();
 
-  const [isEntityMode, setIsEntityMode] = useState(user?.role === 'entity');
+  const [isEntityMode, setIsEntityMode] = useState(true);
   const [formData, setFormData] = useState({
     representativeName: '',
     communityId: communities.length > 0 ? communities[0].id : '',
@@ -24,8 +24,6 @@ const RegisterFamily: React.FC = () => {
     description: '',
     childrenCount: 0,
     mainNeed: 'Alimentação Básica',
-    cnpj: '',
-    entityType: 'ONG' as any,
   });
 
   const [loading, setLoading] = useState(false);
@@ -38,6 +36,13 @@ const RegisterFamily: React.FC = () => {
       [name]: name === 'childrenCount' ? parseInt(value) || 0 : value
     }));
   };
+
+  // Redirect donor gracefully
+  React.useEffect(() => {
+    if (user?.role === 'donor') {
+       navigate('/indicate-family', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,9 +66,13 @@ const RegisterFamily: React.FC = () => {
           age: 5,
           school: 'Escola Local'
         })),
-        authorizingEntityId: user?.role === 'entity' ? user.entityId || 'mock-entity-id' : undefined,
-        supportStatus: (user?.role === 'entity' && user.status === 'approved') ? 'needs_help' : 'pending',
-        status: (user?.role === 'entity' && user.status === 'approved') ? 'approved' : 'pending',
+        authorizingEntityId: user?.entityId,
+        createdByEntityId: user?.entityId,
+        sourceType: 'entity',
+        sourceLabel: `Cadastrado por ${user?.name || 'Entidade Parceira'}`,
+        sourceEntityName: user?.name,
+        supportStatus: (user?.status === 'approved') ? 'needs_help' : 'pending',
+        status: (user?.status === 'approved') ? 'approved' : 'pending',
         distanceToUser: '2.5 km',
         priorityLevel: 3,
         latitude: -23.612 + (Math.random() * 0.05),
@@ -91,30 +100,12 @@ const RegisterFamily: React.FC = () => {
 
       <main className="content p-4">
         <div className="mb-6">
-          {user?.role !== 'entity' && (
-            <div className="flex gap-2 mb-4">
-               <button 
-                 className={`px-4 py-2 rounded-full text-xs font-bold ${!isEntityMode ? 'bg-primary text-inverted' : 'bg-outline/10 text-outline'}`}
-                 onClick={() => setIsEntityMode(false)}
-               >
-                 Sou Doador
-               </button>
-               <button 
-                 className={`px-4 py-2 rounded-full text-xs font-bold ${isEntityMode ? 'bg-secondary text-inverted' : 'bg-outline/10 text-outline'}`}
-                 onClick={() => setIsEntityMode(true)}
-               >
-                 Sou Entidade
-               </button>
-            </div>
-          )}
-
           <h2 className="text-2xl font-bold text-primary mb-2">
-            {isEntityMode ? 'Torne sua instituição um braço do combate à fome.' : 'Conhece alguém precisando de ajuda?'}
+            Cadastro de Família Assistida
           </h2>
           <p className="text-outline text-sm leading-relaxed">
-            {isEntityMode 
-              ? 'Ao se tornar uma entidade autorizada, você valida famílias reais e garante que a ajuda chegue a quem mais precisa com segurança e transparência.' 
-              : 'Cadastre uma família na plataforma e nossa equipe validará o pedido para disponibilizar para doação.'}
+            Ao cadastrar esta família, sua entidade ("{user?.name}") passa a ser a fonte confiável e responsável pelas informações. 
+            {user?.status === 'pending' && <span className="text-warning block mt-2 font-bold">Sua entidade está em análise. O cadastro da família também ficará pendente.</span>}
           </p>
         </div>
 
@@ -125,37 +116,6 @@ const RegisterFamily: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="register-form-container">
-          {isEntityMode && (
-            <>
-              <div className="form-group">
-                <label className="form-label">CNPJ da Entidade *</label>
-                <input
-                  type="text"
-                  name="cnpj"
-                  value={formData.cnpj}
-                  onChange={handleChange}
-                  className="form-input"
-                  placeholder="00.000.000/0000-00"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Tipo de Entidade *</label>
-                <select
-                  name="entityType"
-                  value={formData.entityType}
-                  onChange={handleChange}
-                  className="form-select"
-                  required
-                >
-                  <option value="ONG">ONG</option>
-                  <option value="igreja">Igreja</option>
-                  <option value="escola">Escola</option>
-                  <option value="instituto">Instituto</option>
-                </select>
-              </div>
-            </>
-          )}
 
           <div className="form-group">
             <label className="form-label">Nome do Representante *</label>
