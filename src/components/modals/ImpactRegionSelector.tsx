@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import BottomSheet from '../ui/BottomSheet';
 import { useAppContext } from '../../context/AppContext';
-import { regionsApi, Region } from '../../api/regionsApi';
+import { regionsApi } from '../../api/regionsApi';
+import type { Region } from '../../api/regionsApi';
 import { MapPin, Users, AlertCircle, Check, Loader2, Globe } from 'lucide-react';
 import './CommunitySelectorModal.css';
 
