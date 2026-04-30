@@ -20,12 +20,30 @@ export const familyService = {
   },
 
   getFamilies: async (): Promise<Family[]> => {
+    try {
+      const apiFamilies = await familiesApi.getPublicFamilies();
+      if (apiFamilies) return apiFamilies;
+    } catch (e) {
+      console.warn('Backend Families failed, falling back to local mock.', e);
+    }
+    
     await randomDelay();
     familyService.initDB();
     return storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
   },
 
   getFamiliesByCommunity: async (communityId: string): Promise<Family[]> => {
+    try {
+      // O backend /families/public já retorna famílias. 
+      // Em uma API real teríamos /families/public?communityId=...
+      const apiFamilies = await familiesApi.getPublicFamilies();
+      if (apiFamilies) {
+        return apiFamilies.filter(f => f.communityId === communityId);
+      }
+    } catch (e) {
+      console.warn('Backend Community Families failed, falling back to local mock.', e);
+    }
+
     await randomDelay();
     const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
     return families.filter(f => f.communityId === communityId);
@@ -81,6 +99,13 @@ export const familyService = {
   },
 
   getIndications: async (): Promise<DonorIndication[]> => {
+    try {
+      const apiIndications = await indicationsApi.getIndications();
+      if (apiIndications) return apiIndications;
+    } catch (e) {
+      console.warn('Backend Indications failed, falling back to local mock.', e);
+    }
+
     await randomDelay(200, 400);
     return storage.get<DonorIndication[]>(INDICATIONS_KEY, []);
   },
@@ -137,15 +162,15 @@ export const familyService = {
       }
     }
 
-    // 4. Criar a Família
+    // 4. Criar a Família Localmente (Fallback)
     const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
     const newFamily: Family = {
       id: `f-conv-${Date.now()}`,
+      communityId: 'c1',
       representativeName: indications[indicationIdx].representativeName,
       neighborhood: indications[indicationIdx].region,
       city: 'São Paulo',
       state: 'SP',
-      communityId: 'c1',
       shortAddress: indications[indicationIdx].region,
       description: indications[indicationIdx].observation,
       childrenCount: indications[indicationIdx].childrenCount,
@@ -153,25 +178,22 @@ export const familyService = {
       mainNeed: 'Alimentação Básica',
       status: 'approved',
       supportStatus: 'needs_help',
-      createdByEntityId: entityId,
-      sourceType: 'entity',
+      distanceToUser: '2.5 km',
+      priorityLevel: 3,
+      latitude: -23.612 + (Math.random() * 0.05),
+      longitude: -46.593 + (Math.random() * 0.05),
+      createdByEntityId: user.entityId,
+      sourceType: 'donor_indication',
       sourceLabel: sourceLabel,
       sourceEntityName: user?.name,
-      originalIndicationId: indication.id,
-      status: 'approved'
+      originalIndicationId: indicationId
     };
 
-    const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
-    const newFamily: Family = {
-      ...newFamilyData,
-      id: `f-conv-${Date.now()}`
-    };
-    
     families.unshift(newFamily);
     storage.set(FAMILIES_KEY, families);
 
-    // Marca a indicação como convertida
-    indications[idx].status = 'converted';
+    // Marca a indicação como convertida no localStorage
+    indications[indicationIdx].status = 'converted';
     storage.set(INDICATIONS_KEY, indications);
 
     return newFamily;

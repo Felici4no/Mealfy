@@ -8,3 +8,8 @@ export const createDonationSchema = z.object({
 export const batchDonationSchema = z.object({
   familyIds: z.array(z.string()),
 });
+
+export const regionalDonationSchema = z.object({
+  communityId: z.string(),
+  totalAmount: z.number().positive(),
+});

@@ -34,9 +34,14 @@ export async function apiRequest<T = any>(
       throw new Error(errorData.message || `API Error: ${response.status}`);
     }
 
-    return await response.json();
+    // Handle 204 No Content or empty bodies
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+    
+    console.debug(`[API] SUCCESS: ${method} ${endpoint}`, { dataSource: 'api' });
+    return data;
   } catch (error) {
-    console.error(`API Request Failure: [${method}] ${endpoint}`, error);
+    console.warn(`[API] FAIL: ${method} ${endpoint}. Fallback may trigger.`, error);
     throw error;
   }
 }

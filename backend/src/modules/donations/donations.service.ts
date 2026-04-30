@@ -90,4 +90,29 @@ export class DonationsService {
         family: families.find(f => f.id === d.familyId)
       }));
   }
+
+  static async createRegional(communityId: string, totalAmount: number, donor: User): Promise<any> {
+    const families = await MockDatabase.read<Family>('families');
+    const eligibleFamilies = families.filter(f => f.communityId === communityId && f.supportStatus === 'needs_help');
+
+    if (eligibleFamilies.length === 0) {
+      throw new AppError('No families in need found in this community', 400);
+    }
+
+    const amountPerFamily = Math.floor(totalAmount / eligibleFamilies.length);
+    const results = [];
+
+    for (const family of eligibleFamilies) {
+      const res = await this.create(family.id, donor); // Reuse existing create logic (which handles balance, status, etc.)
+      results.push(res);
+    }
+
+    return {
+      communityId,
+      totalDistributedAmount: totalAmount,
+      impactedFamiliesCount: eligibleFamilies.length,
+      donations: results.map(r => r.donation),
+      giftCards: results.map(r => r.giftCard)
+    };
+  }
 }

@@ -51,6 +51,12 @@ export class AuthService {
       cnpj: data.cnpj,
       region: data.region,
       type: data.type,
+      responsibleName: data.responsibleName,
+      email: data.email,
+      phone: data.phone,
+      addressOrDistrict: data.addressOrDistrict,
+      websiteOrInstagram: data.websiteOrInstagram,
+      shortDescription: data.shortDescription,
       status: 'pending',
       createdAt: new Date().toISOString()
     };
