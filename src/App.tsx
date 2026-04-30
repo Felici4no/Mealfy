@@ -73,19 +73,19 @@ function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             
-            {/* Common Public/Semi-Public Routes */}
-            <Route path="/community/:id" element={<CommunityDetails />} />
+            {/* Common Public/Semi-Public Routes (Restricted for Beneficiaries) */}
+            <Route path="/community/:id" element={<PrivateRoute allowedRoles={['donor', 'entity']}><CommunityDetails /></PrivateRoute>} />
             <Route path="/family/:id" element={<FamilyDetails />} />
             <Route path="/support" element={<Support />} />
             <Route path="/help" element={<Help />} />
-            <Route path="/success" element={<Success />} />
 
             {/* Donor Routes */}
             <Route path="/" element={<PrivateRoute allowedRoles={['donor']}><Home /></PrivateRoute>} />
             <Route path="/explore" element={<PrivateRoute allowedRoles={['donor']}><Explore /></PrivateRoute>} />
             <Route path="/map" element={<PrivateRoute allowedRoles={['donor']}><MapView /></PrivateRoute>} />
-            <Route path="/donate" element={<DonationChoice />} />
-            <Route path="/big-donation" element={<BigDonation />} />
+            <Route path="/donate" element={<PrivateRoute allowedRoles={['donor']}><DonationChoice /></PrivateRoute>} />
+            <Route path="/big-donation" element={<PrivateRoute allowedRoles={['donor']}><BigDonation /></PrivateRoute>} />
+            <Route path="/success" element={<PrivateRoute allowedRoles={['donor']}><Success /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/recurrence" element={<PrivateRoute allowedRoles={['donor']}><Recurrence /></PrivateRoute>} />
             <Route path="/register-family" element={<PrivateRoute allowedRoles={['donor', 'entity']}><RegisterFamily /></PrivateRoute>} />

@@ -60,8 +60,8 @@ const RegisterFamily: React.FC = () => {
           school: 'Escola Local'
         })),
         authorizingEntityId: user?.role === 'entity' ? user.entityId || 'mock-entity-id' : undefined,
-        supportStatus: 'pending',
-        status: 'pending',
+        supportStatus: (user?.role === 'entity' && user.status === 'approved') ? 'needs_help' : 'pending',
+        status: (user?.role === 'entity' && user.status === 'approved') ? 'approved' : 'pending',
         distanceToUser: '2.5 km',
         priorityLevel: 3,
         latitude: -23.612 + (Math.random() * 0.05),

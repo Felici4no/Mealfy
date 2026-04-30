@@ -46,15 +46,57 @@ const AdminDashboard: React.FC = () => {
         </section>
 
         <section className="system-tools">
-           <h3 className="section-title mb-4">Ferramentas de Teste</h3>
-           <Button 
-             variant="outline" 
-             fullWidth 
-             icon={<RefreshCw size={18} />}
-             onClick={() => alert("Elegibilidade de todas as famílias resetada para 08:00 AM (Mock)")}
-           >
-             Simular Reset Diário (08:00 AM)
-           </Button>
+           <h3 className="section-title mb-4">Ferramentas de Teste (Mock)</h3>
+           <div className="flex-col gap-3">
+             <Button 
+               variant="outline" 
+               fullWidth 
+               icon={<RefreshCw size={18} />}
+               onClick={() => alert("Elegibilidade de todas as famílias resetada para 08:00 AM (Mock)")}
+             >
+               Simular Reset Diário (08:00 AM)
+             </Button>
+             
+             <Button 
+               variant="outline" 
+               fullWidth 
+               className="mt-3 border-secondary text-secondary"
+               onClick={() => {
+                 const USERS_KEY = 'users_db';
+                 const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+                 const pendingEntity = users.find((u: any) => u.role === 'entity' && u.status === 'pending');
+                 if (pendingEntity) {
+                   pendingEntity.status = 'approved';
+                   localStorage.setItem(USERS_KEY, JSON.stringify(users));
+                   alert(`Entidade ${pendingEntity.name} aprovada com sucesso!`);
+                 } else {
+                   alert("Nenhuma entidade pendente encontrada para aprovar.");
+                 }
+               }}
+             >
+               Aprovar Próxima Entidade
+             </Button>
+
+             <Button 
+               variant="outline" 
+               fullWidth 
+               className="mt-3 border-success text-success"
+               onClick={() => {
+                 const FAMILIES_KEY = 'families_db';
+                 const families = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '[]');
+                 const pendingFamilies = families.filter((f: any) => f.status === 'pending');
+                 if (pendingFamilies.length > 0) {
+                   pendingFamilies.forEach((f: any) => { f.status = 'approved'; f.supportStatus = 'needs_help'; });
+                   localStorage.setItem(FAMILIES_KEY, JSON.stringify(families));
+                   alert(`${pendingFamilies.length} famílias aprovadas com sucesso!`);
+                 } else {
+                   alert("Nenhuma família pendente encontrada.");
+                 }
+               }}
+             >
+               Aprovar Todas as Famílias Pendentes
+             </Button>
+           </div>
         </section>
       </main>
     </div>
