@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { rankingService } from '../backend/services/rankingService';
 import type { Family } from '../backend/types';
-import { Trophy, Loader2, Heart } from 'lucide-react';
+import { Trophy, Loader2, Heart, UserCircle } from 'lucide-react';
 import StoriesRanking from '../components/ui/StoriesRanking';
 import BottomSheet from '../components/ui/BottomSheet';
 import { useToast } from '../context/ToastContext';
@@ -41,16 +41,19 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-page">
-      <AppHeader transparent />
-      
-      <div className="ranking-preview-section pt-20">
-        <header className="home-social-header px-4 mb-3">
-          <div>
-            <span className="eyebrow">Comunidade ativa</span>
-            <h2>Pessoas movendo impacto hoje</h2>
+      <div className="home-top">
+        <div className="home-brand-row">
+          <div className="home-brand">Mealfy</div>
+          <div className="home-top-action">
+             <Trophy size={20} className="text-secondary" />
           </div>
-          <span className="impact-badge">🏆</span>
-        </header>
+        </div>
+
+        <div className="home-social-copy">
+          <span className="home-eyebrow">Comunidade ativa</span>
+          <h2 className="home-social-title">Pessoas movendo impacto hoje</h2>
+        </div>
+
         <StoriesRanking 
           donors={topDonors} 
           onSelectDonor={(d) => {
