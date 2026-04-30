@@ -235,7 +235,9 @@ export const donationService = {
       donation: don,
       giftCard: gc!
     }
-  }).reverse(); // Latest first
+    }).reverse(); // Latest first
+  },
+
   createBigDonation: async (payload: {
     totalAmount: number;
     communityId: string;
