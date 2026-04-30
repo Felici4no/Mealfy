@@ -80,7 +80,7 @@ function App() {
             
             {/* Common Public/Semi-Public Routes (Restricted for Beneficiaries) */}
             <Route path="/community/:id" element={<PrivateRoute allowedRoles={['donor', 'entity']}><CommunityDetails /></PrivateRoute>} />
-            <Route path="/family/:id" element={<FamilyDetails />} />
+            <Route path="/family/:id" element={<PrivateRoute allowedRoles={['donor', 'entity', 'admin']}><FamilyDetails /></PrivateRoute>} />
             <Route path="/support" element={<Support />} />
             <Route path="/help" element={<Help />} />
 

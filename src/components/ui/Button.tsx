@@ -7,6 +7,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'small' | 'medium' | 'large';
   fullWidth?: boolean;
   icon?: React.ReactNode;
+  loading?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({ 
@@ -15,6 +16,7 @@ const Button: React.FC<ButtonProps> = ({
   size = 'medium', 
   fullWidth = false, 
   icon,
+  loading = false,
   className = '',
   ...props 
 }) => {
@@ -25,10 +27,11 @@ const Button: React.FC<ButtonProps> = ({
 
   return (
     <button 
-      className={`${baseClass} ${variantClass} ${sizeClass} ${widthClass} ${className}`.trim()} 
+      className={`${baseClass} ${variantClass} ${sizeClass} ${widthClass} ${className} ${loading ? 'loading' : ''}`.trim()} 
+      disabled={loading || props.disabled}
       {...props}
     >
-      {icon && <span className="btn-icon">{icon}</span>}
+      {loading ? <span className="btn-icon animate-spin">⏳</span> : (icon && <span className="btn-icon">{icon}</span>)}
       {children}
     </button>
   );

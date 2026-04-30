@@ -167,9 +167,9 @@ const Profile: React.FC = () => {
               variant="ghost" 
               className="menu-btn" 
               icon={<Heart size={20} />} 
-              onClick={() => navigate('/register-family')}
+              onClick={() => navigate(user.role === 'donor' ? '/indicate-family' : '/register-family')}
             >
-              Indicar Família
+              {user.role === 'donor' ? 'Indicar Família' : 'Cadastrar Família'}
             </Button>
           )}
 
