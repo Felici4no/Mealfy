@@ -10,10 +10,13 @@ export interface PrivacySettings {
   anonymousMode: boolean;
 }
 
+export type UserRole = 'donor' | 'entity' | 'beneficiary' | 'admin';
+
 export interface User {
   id: string;
   name: string;
   email: string;
+  role: UserRole;
   phone?: string;
   avatar?: string;
   instagram?: string;
@@ -22,6 +25,9 @@ export interface User {
   rankingPercentile: string;
   favoriteCommunityId?: string;
   privacySettings?: PrivacySettings;
+  entityId?: string; // If role is entity
+  beneficiaryId?: string; // If role is beneficiary
+  status?: 'pending' | 'approved' | 'rejected' | 'active' | 'suspended';
 }
 
 export interface AuthorizingEntity {

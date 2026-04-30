@@ -9,9 +9,9 @@ import './RegisterFamily.css';
 
 const RegisterFamily: React.FC = () => {
   const navigate = useNavigate();
-  const { communities } = useAppContext();
+  const { communities, user } = useAppContext();
 
-  const [isEntity, setIsEntity] = useState(false);
+  const [isEntityMode, setIsEntityMode] = useState(user?.role === 'entity');
   const [formData, setFormData] = useState({
     representativeName: '',
     communityId: communities.length > 0 ? communities[0].id : '',
@@ -56,10 +56,11 @@ const RegisterFamily: React.FC = () => {
         children: Array.from({ length: formData.childrenCount }).map((_, i) => ({
           id: `c-${i}`,
           name: `Criança ${i+1}`,
-          age: 5, // Mock age
+          age: 5,
           school: 'Escola Local'
         })),
-        supportStatus: isEntity ? 'pending' : 'pending', // All indications start as pending per rules
+        authorizingEntityId: user?.role === 'entity' ? user.entityId || 'mock-entity-id' : undefined,
+        supportStatus: 'pending',
         status: 'pending',
         distanceToUser: '2.5 km',
         priorityLevel: 3,
@@ -69,7 +70,12 @@ const RegisterFamily: React.FC = () => {
 
       await familyService.addFamily(newFamilyData);
       alert("Cadastro enviado para análise. Obrigado por ajudar!");
-      navigate(`/`, { replace: true });
+      
+      if (user?.role === 'entity') {
+        navigate('/entity/dashboard', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao cadastrar família.');
     } finally {
@@ -83,26 +89,28 @@ const RegisterFamily: React.FC = () => {
 
       <main className="content p-4">
         <div className="mb-6">
-          <div className="flex gap-2 mb-4">
-             <button 
-               className={`px-4 py-2 rounded-full text-xs font-bold ${!isEntity ? 'bg-primary text-inverted' : 'bg-outline/10 text-outline'}`}
-               onClick={() => setIsEntity(false)}
-             >
-               Sou Doador
-             </button>
-             <button 
-               className={`px-4 py-2 rounded-full text-xs font-bold ${isEntity ? 'bg-secondary text-inverted' : 'bg-outline/10 text-outline'}`}
-               onClick={() => setIsEntity(true)}
-             >
-               Sou Entidade
-             </button>
-          </div>
+          {user?.role !== 'entity' && (
+            <div className="flex gap-2 mb-4">
+               <button 
+                 className={`px-4 py-2 rounded-full text-xs font-bold ${!isEntityMode ? 'bg-primary text-inverted' : 'bg-outline/10 text-outline'}`}
+                 onClick={() => setIsEntityMode(false)}
+               >
+                 Sou Doador
+               </button>
+               <button 
+                 className={`px-4 py-2 rounded-full text-xs font-bold ${isEntityMode ? 'bg-secondary text-inverted' : 'bg-outline/10 text-outline'}`}
+                 onClick={() => setIsEntityMode(true)}
+               >
+                 Sou Entidade
+               </button>
+            </div>
+          )}
 
           <h2 className="text-2xl font-bold text-primary mb-2">
-            {isEntity ? 'Seja uma entidade autorizada no combate à fome infantil.' : 'Conhece alguém precisando de ajuda?'}
+            {isEntityMode ? 'Seja uma entidade autorizada no combate à fome infantil.' : 'Conhece alguém precisando de ajuda?'}
           </h2>
           <p className="text-outline text-sm leading-relaxed">
-            {isEntity 
+            {isEntityMode 
               ? 'Cadastre famílias da sua comunidade e ajude a transformar doações em alimento.' 
               : 'Cadastre uma família na plataforma e nossa equipe validará o pedido para disponibilizar para doação.'}
           </p>
@@ -115,7 +123,7 @@ const RegisterFamily: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="register-form-container">
-          {isEntity && (
+          {isEntityMode && (
             <>
               <div className="form-group">
                 <label className="form-label">CNPJ da Entidade *</label>

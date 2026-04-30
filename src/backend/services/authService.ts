@@ -1,4 +1,4 @@
-import type { User } from '../types';
+import type { User, UserRole } from '../types';
 import { mockUsers } from '../mockData/users';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
@@ -16,33 +16,47 @@ export const authService = {
   },
 
   getCurrentSession: async (): Promise<User | null> => {
-    await randomDelay(200, 500); // Simulate network load briefly
+    await randomDelay(200, 500);
     return storage.get(SESSION_KEY, null);
   },
 
-  loginWithGoogle: async (): Promise<User> => {
+  loginWithGoogle: async (role: UserRole = 'donor'): Promise<User> => {
     await randomDelay(800, 1200);
     authService.initDB();
     const users = storage.get<User[]>(USERS_KEY, mockUsers);
-    const user = users[0]; // Just picking the configured mock user
+    // Find first user with that role or use mock
+    const user = users.find(u => u.role === role) || {
+      ...users[0],
+      role: role,
+      id: `u-${role}-${Date.now()}`
+    };
     storage.set(SESSION_KEY, user);
     return user;
   },
 
-  loginWithApple: async (): Promise<User> => {
-    return authService.loginWithGoogle();
-  },
-
-  loginWithFacebook: async (): Promise<User> => {
-    return authService.loginWithGoogle();
-  },
-
-  loginWithPhone: async (phone: string): Promise<User> => {
+  loginAsRole: async (role: UserRole, identifier: string): Promise<User> => {
     await randomDelay(800, 1500);
     authService.initDB();
     const users = storage.get<User[]>(USERS_KEY, mockUsers);
-    const user = users[0]; // Picking the configured mock user
-    user.phone = phone;
+    
+    // Simulate finding or creating
+    let user = users.find(u => u.role === role && (u.email === identifier || u.phone === identifier));
+    
+    if (!user) {
+      user = {
+        id: `u-${role}-${Date.now()}`,
+        name: identifier.split('@')[0] || identifier,
+        email: identifier.includes('@') ? identifier : `${identifier}@mealfy.org`,
+        role: role,
+        totalDonated: 0,
+        rankingPosition: 0,
+        rankingPercentile: '',
+        status: role === 'entity' ? 'pending' : 'active'
+      };
+      users.push(user);
+      storage.set(USERS_KEY, users);
+    }
+
     storage.set(SESSION_KEY, user);
     return user;
   },

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { User, Community } from '../backend/types';
+import { storage } from '../backend/utils/storage';
+import type { User, Community, UserRole, PrivacySettings } from '../backend/types';
 import { authService } from '../backend/services/authService';
 import { communityService } from '../backend/services/communityService';
 import SplashScreen from '../components/ui/SplashScreen';
@@ -8,7 +9,8 @@ import SplashScreen from '../components/ui/SplashScreen';
 interface AppContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (method: 'google'|'apple'|'phone'|'facebook', arg?: string) => Promise<void>;
+  login: (method: 'google'|'apple'|'phone'|'facebook', role?: UserRole) => Promise<void>;
+  loginAsRole: (role: UserRole, identifier: string) => Promise<void>;
   logout: () => Promise<void>;
   communities: Community[];
   selectedCommunity: Community | null;
@@ -51,14 +53,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     initApp();
   }, []);
 
-  const login = async (method: 'google'|'apple'|'phone'|'facebook', arg?: string) => {
+  const login = async (method: 'google'|'apple'|'phone'|'facebook', role: UserRole = 'donor') => {
     let loggedUser: User;
-    if (method === 'google') loggedUser = await authService.loginWithGoogle();
-    else if (method === 'apple') loggedUser = await authService.loginWithApple();
-    else if (method === 'facebook') loggedUser = await authService.loginWithFacebook();
-    else loggedUser = await authService.loginWithPhone(arg || '');
+    if (method === 'google') loggedUser = await authService.loginWithGoogle(role);
+    else if (method === 'apple') loggedUser = await authService.loginWithGoogle(role);
+    else if (method === 'facebook') loggedUser = await authService.loginWithGoogle(role);
+    else loggedUser = await authService.loginWithGoogle(role);
 
-    // Set default privacy if not exists
+    if (!loggedUser.privacySettings) {
+      loggedUser.privacySettings = {
+        showOnRanking: true,
+        showInstagram: true,
+        anonymousMode: false
+      };
+    }
+
+    setUser(loggedUser);
+    setIsAuthenticated(true);
+  };
+
+  const loginAsRole = async (role: UserRole, identifier: string) => {
+    const loggedUser = await authService.loginAsRole(role, identifier);
+    
     if (!loggedUser.privacySettings) {
       loggedUser.privacySettings = {
         showOnRanking: true,
@@ -81,7 +97,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     };
     setUser(newUser);
-    // Persist to storage
     const USERS_KEY = 'users_db';
     const users = storage.get<User[]>(USERS_KEY, []);
     const idx = users.findIndex(u => u.id === user.id);
@@ -108,6 +123,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isAuthenticated,
         user,
         login,
+        loginAsRole,
         logout,
         communities,
         selectedCommunity,

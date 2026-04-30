@@ -1,38 +1,34 @@
-/* App specific styles for 100dvh native full-screen */
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
+.entity-dashboard-page, .beneficiary-dashboard-page, .admin-dashboard-page {
+  background-color: var(--color-surface);
+  min-height: 100vh;
 }
 
-#root {
-  width: 100%;
-  height: 100vh; /* Fallback */
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
+.stat-card {
+  transition: transform 0.2s;
 }
 
-.app-wrapper {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  flex: 1;
-  background-color: var(--color-background);
-  position: relative;
-  overflow: hidden;
+.stat-card:active {
+  transform: scale(0.98);
 }
 
-.page-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: env(safe-area-inset-bottom, 20px);
-  /* The padding-bottom for the tab bar will be handled in pages that have it, or globally via a class */
+.shadow-glow-soft {
+  box-shadow: 0 10px 25px -5px rgba(var(--color-primary-rgb), 0.1), 0 8px 10px -6px rgba(var(--color-primary-rgb), 0.1);
 }
 
-/* Base class for screens with tab bar */
-.with-tab-bar {
-  padding-bottom: 80px; /* Leave space for Bottom Tab Bar */
+.status-card {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+}
+
+.gift-card-display {
+  background-image: radial-gradient(circle at 2px 2px, var(--color-outline-low) 1px, transparent 0);
+  background-size: 10px 10px;
+}
+
+.role-card {
+  transition: all 0.2s ease;
+}
+
+.role-card:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-surface-highest);
 }
