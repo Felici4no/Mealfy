@@ -2,6 +2,8 @@ import type { User } from '../types';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 
+import { rankingApi } from '../../api/rankingApi';
+
 export const rankingService = {
   getUserRanking: async (userId: string): Promise<Pick<User, 'rankingPosition' | 'rankingPercentile' | 'totalDonated'>> => {
     await randomDelay(300, 600);
@@ -35,6 +37,13 @@ export const rankingService = {
   },
 
   getTopDonors: async (): Promise<Pick<User, 'id' | 'name' | 'totalDonated' | 'avatar' | 'instagram' | 'privacySettings'>[]> => {
+    try {
+      const apiRanking = await rankingApi.getRanking();
+      if (apiRanking) return apiRanking;
+    } catch (e) {
+      console.warn('Backend Ranking failed, falling back to local mock.', e);
+    }
+
     await randomDelay(300, 700);
     // In a real app, this would filter by privacySettings.showOnRanking
     return [

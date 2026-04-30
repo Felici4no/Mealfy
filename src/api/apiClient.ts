@@ -1,0 +1,42 @@
+import { storage } from '../backend/utils/storage';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+export interface ApiResponse<T = any> {
+  data: T;
+  status: number;
+}
+
+export async function apiRequest<T = any>(
+  endpoint: string,
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET',
+  body?: any
+): Promise<T> {
+  const user = storage.get<{ id: string }>('current_user', null);
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (user?.id) {
+    headers['x-user-id'] = user.id;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `API Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`API Request Failure: [${method}] ${endpoint}`, error);
+    throw error;
+  }
+}

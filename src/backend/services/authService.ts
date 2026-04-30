@@ -3,6 +3,8 @@ import { mockUsers, mockEntities } from '../mockData/users';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 
+import { authApi } from '../../api/authApi';
+
 const SESSION_KEY = 'current_user';
 const USERS_KEY = 'users_db';
 const ENTITIES_KEY = 'entities_db';
@@ -40,6 +42,16 @@ export const authService = {
   },
 
   loginAsRole: async (role: UserRole, identifier: string): Promise<User> => {
+    try {
+      const response = await authApi.loginMock(identifier);
+      if (response && response.user) {
+        storage.set(SESSION_KEY, response.user);
+        return response.user;
+      }
+    } catch (e) {
+      console.warn('Backend Auth failed, falling back to local mock.', e);
+    }
+
     await randomDelay(800, 1500);
     authService.initDB();
     const users = storage.get<User[]>(USERS_KEY, mockUsers);
@@ -87,6 +99,16 @@ export const authService = {
   },
 
   registerDonor: async (data: Partial<User>): Promise<User> => {
+    try {
+      const newUser = await authApi.registerDonor(data);
+      if (newUser) {
+        storage.set(SESSION_KEY, newUser);
+        return newUser;
+      }
+    } catch (e) {
+      console.warn('Backend Register failed, falling back to local mock.', e);
+    }
+
     await randomDelay(800, 1200);
     authService.initDB();
     const users = storage.get<User[]>(USERS_KEY, mockUsers);
@@ -114,6 +136,21 @@ export const authService = {
   },
 
   registerEntity: async (data: Partial<AuthorizingEntity>): Promise<User> => {
+    try {
+      const newUser = await authApi.registerEntity({
+        ...data,
+        cnpj: data.cnpj,
+        region: data.region,
+        type: data.type
+      });
+      if (newUser) {
+        storage.set(SESSION_KEY, newUser);
+        return newUser;
+      }
+    } catch (e) {
+      console.warn('Backend Register Entity failed, falling back to local mock.', e);
+    }
+
     await randomDelay(800, 1200);
     authService.initDB();
     const users = storage.get<User[]>(USERS_KEY, mockUsers);

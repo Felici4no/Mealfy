@@ -4,6 +4,7 @@ import Button from '../components/ui/Button';
 import { ShieldCheck, UserCheck, Building2, FileText, RefreshCw } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
+import { adminService } from '../backend/services/adminService';
 import type { DonorIndication } from '../backend/types';
 import './AdminDashboard.css';
 
@@ -14,9 +15,10 @@ const AdminDashboard: React.FC = () => {
   const [pendingIndications, setPendingIndications] = React.useState<DonorIndication[]>([]);
 
   const refreshCounts = async () => {
-    const users = JSON.parse(localStorage.getItem('users_db') || '[]');
+    const pendingEntities = await adminService.getPendingEntities();
+    setPendingEntitiesCount(pendingEntities.length);
+    
     const families = JSON.parse(localStorage.getItem('families_db') || '[]');
-    setPendingEntitiesCount(users.filter((u: any) => u.role === 'entity' && u.status === 'pending').length);
     setPendingFamiliesCount(families.filter((f: any) => f.status === 'pending').length);
     
     const inds = await familyService.getIndications();
@@ -159,26 +161,11 @@ const AdminDashboard: React.FC = () => {
                variant="outline" 
                fullWidth 
                className="mt-3 border-secondary text-secondary"
-               onClick={() => {
-                 const USERS_KEY = 'users_db';
-                 const ENTITIES_KEY = 'entities_db';
-                 const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-                 const entities = JSON.parse(localStorage.getItem(ENTITIES_KEY) || '[]');
-                 
-                 const pendingUser = users.find((u: any) => u.role === 'entity' && u.status === 'pending');
-                 if (pendingUser) {
-                   pendingUser.status = 'approved';
-                   localStorage.setItem(USERS_KEY, JSON.stringify(users));
-                   
-                   if (pendingUser.entityId) {
-                     const entityToApprove = entities.find((e: any) => e.id === pendingUser.entityId);
-                     if (entityToApprove) {
-                       entityToApprove.status = 'approved';
-                       localStorage.setItem(ENTITIES_KEY, JSON.stringify(entities));
-                     }
-                   }
-
-                   showToast(`Entidade ${pendingUser.name} aprovada com sucesso!`, "success");
+               onClick={async () => {
+                 const pendingEntities = await adminService.getPendingEntities();
+                 if (pendingEntities.length > 0) {
+                   await adminService.approveEntity(pendingEntities[0].id);
+                   showToast(`Entidade ${pendingEntities[0].name} aprovada com sucesso!`, "success");
                    refreshCounts();
                  } else {
                    showToast("Nenhuma entidade pendente encontrada para aprovar.", "info");

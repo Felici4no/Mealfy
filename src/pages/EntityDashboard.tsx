@@ -4,6 +4,7 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
+import { entityService } from '../backend/services/entityService';
 import { normalizeString } from '../backend/utils/normalizeUtils';
 import { Users, PlusCircle, CheckCircle, Clock, AlertCircle, FileText, Check, X } from 'lucide-react';
 import type { Family, DonorIndication, AuthorizingEntity } from '../backend/types';
@@ -23,9 +24,8 @@ const EntityDashboard: React.FC = () => {
     const allInd = await familyService.getIndications();
     
     // Pegar dados reais da Entidade
-    const entities = JSON.parse(localStorage.getItem('entities_db') || '[]');
-    const currentEntity = entities.find((e: any) => e.id === user?.entityId);
-    setEntityData(currentEntity || null);
+    const currentEntity = user?.entityId ? await entityService.getEntityById(user.entityId) : null;
+    setEntityData(currentEntity);
 
     setFamilies(allFam.filter(f => f.authorizingEntityId === user?.entityId || !f.authorizingEntityId));
     

@@ -4,6 +4,8 @@ import { familyService } from './familyService';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 
+import { donationsApi } from '../../api/donationsApi';
+
 const DONATIONS_KEY = 'donations_db';
 const GIFTCARDS_KEY = 'giftcards_db';
 
@@ -48,11 +50,27 @@ export const donationService = {
   createDonation: async (payload: { 
     amount: number; 
     communityId: string; 
-    donorId?: string; // Optional if anonymous
-    familyId?: string; // Explicit target
+    donorId?: string; 
+    familyId?: string; 
     message?: string;
   }): Promise<{ donation: Donation, giftCard: GiftCard, familyAssigned: Family }> => {
-    await randomDelay(1000, 2000); // Simulate transaction
+    if (payload.familyId) {
+      try {
+        const response = await donationsApi.createDonation({ familyId: payload.familyId, amount: payload.amount });
+        if (response && response.donation) {
+          // Sync local state if necessary
+          return { 
+            donation: response.donation, 
+            giftCard: response.giftCard, 
+            familyAssigned: { id: payload.familyId } as any // Simplified for callback
+          };
+        }
+      } catch (e) {
+        console.warn('Backend Donation failed, falling back to local mock.', e);
+      }
+    }
+
+    await randomDelay(1000, 2000); 
     donationService.initDB();
 
     const families = await familyService.getFamiliesByCommunity(payload.communityId);
@@ -119,18 +137,10 @@ export const donationService = {
     }
 
     // Update Family Status
-    const FAMILIES_KEY = 'families_db';
     const familyAssigned = await familyService.updateFamilyStatus(selectedFamily!.id, 'supported');
     familyAssigned.lastFedAt = new Date().toISOString();
     familyAssigned.supportStatus = 'fed';
     
-    const allFamilies = storage.get<Family[]>(FAMILIES_KEY, []);
-    const fIdx = allFamilies.findIndex(f => f.id === familyAssigned.id);
-    if (fIdx !== -1) {
-      allFamilies[fIdx] = familyAssigned;
-      storage.set(FAMILIES_KEY, allFamilies);
-    }
-
     return { donation: newDonation, giftCard, familyAssigned };
   },
 
@@ -140,6 +150,18 @@ export const donationService = {
     donorId: string;
     communityId: string;
   }): Promise<{ donations: Donation[], giftCards: GiftCard[] }> => {
+    try {
+      const results = await donationsApi.createBatchDonation(payload.familyIds);
+      if (results && results.length > 0) {
+        return {
+          donations: results.map((r: any) => r.donation),
+          giftCards: results.map((r: any) => r.giftCard)
+        };
+      }
+    } catch (e) {
+      console.warn('Backend Batch Donation failed, falling back to local mock.', e);
+    }
+
     await randomDelay(1500, 2500);
     donationService.initDB();
 
@@ -186,27 +208,22 @@ export const donationService = {
       }
     }
 
-    // Update user global total
-    const totalBatchAmount = payload.amountPerFamily * payload.familyIds.length;
-    if (payload.donorId && !payload.donorId.startsWith('anon-')) {
-      const USERS_KEY = 'users_db';
-      const sessionUser = storage.get<any>('current_user', null);
-      if (sessionUser && sessionUser.id === payload.donorId) {
-         sessionUser.totalDonated += totalBatchAmount;
-         storage.set('current_user', sessionUser);
-         const users = storage.get<any[]>(USERS_KEY, []);
-         const idx = users.findIndex(u => u.id === sessionUser.id);
-         if (idx !== -1) {
-            users[idx].totalDonated += totalBatchAmount;
-            storage.set(USERS_KEY, users);
-         }
-      }
-    }
-
     return { donations, giftCards };
   },
 
   getDonationHistoryByUser: async (userId: string): Promise<{donation: Donation, giftCard: GiftCard}[]> => {
+    try {
+      const history = await donationsApi.getMyDonations();
+      if (history) {
+        return history.map((h: any) => ({
+          donation: h,
+          giftCard: h.giftCard
+        })).reverse();
+      }
+    } catch (e) {
+      console.warn('Backend History failed, falling back to local mock.', e);
+    }
+
     await randomDelay(400, 800);
     donationService.initDB();
     const donations = storage.get<Donation[]>(DONATIONS_KEY, mockDonations).filter(d => d.donorId === userId);

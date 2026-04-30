@@ -27,6 +27,11 @@ export const entityService = {
     ]);
   },
 
+  getEntityById: async (id: string): Promise<AuthorizingEntity | null> => {
+    const all = await entityService.getEntities();
+    return all.find(e => e.id === id) || null;
+  },
+
   registerEntity: async (data: Omit<AuthorizingEntity, 'id' | 'status' | 'createdAt'>): Promise<AuthorizingEntity> => {
     await randomDelay(500, 1000);
     const entities = await entityService.getEntities();

@@ -4,8 +4,11 @@ import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 import { normalizeString } from '../utils/normalizeUtils';
 
+import { familiesApi } from '../../api/familiesApi';
+import { indicationsApi } from '../../api/indicationsApi';
+
 const FAMILIES_KEY = 'families_db';
-const INDICATIONS_KEY = 'indications_db';
+const INDICATIONS_KEY = 'donor_indications_db';
 
 export const familyService = {
   initDB: () => {
@@ -54,17 +57,24 @@ export const familyService = {
     return newFamily;
   },
 
-  addIndication: async (indicationData: Omit<DonorIndication, 'id' | 'status' | 'createdAt'>): Promise<DonorIndication> => {
-    await randomDelay(300, 600);
+  addIndication: async (data: Omit<DonorIndication, 'id' | 'status' | 'createdAt'>): Promise<DonorIndication> => {
+    try {
+      const newIndication = await indicationsApi.createIndication(data);
+      if (newIndication) return newIndication;
+    } catch (e) {
+      console.warn('Backend Add Indication failed, falling back to local mock.', e);
+    }
+
+    await randomDelay(500, 1000);
     const indications = storage.get<DonorIndication[]>(INDICATIONS_KEY, []);
     
     const newIndication: DonorIndication = {
-      ...indicationData,
-      id: `ind-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      ...data,
+      id: `ind-${Date.now()}`,
       status: 'pending',
       createdAt: new Date().toISOString()
     };
-    
+
     indications.unshift(newIndication);
     storage.set(INDICATIONS_KEY, indications);
     return newIndication;
@@ -87,62 +97,62 @@ export const familyService = {
     throw new Error('Indicação não encontrada');
   },
 
-  convertIndicationToFamily: async (indicationId: string, user: any, sourceLabel: string, entityId?: string): Promise<Family> => {
-    await randomDelay(500, 800);
-    const indications = storage.get<DonorIndication[]>(INDICATIONS_KEY, []);
-    const idx = indications.findIndex(i => i.id === indicationId);
+  convertIndicationToFamily: async (indicationId: string, user: any, sourceLabel: string): Promise<Family> => {
+    try {
+      const newFamily = await indicationsApi.convertIndication(indicationId);
+      if (newFamily) return newFamily;
+    } catch (e) {
+      console.warn('Backend Convert Indication failed, falling back to local mock.', e);
+    }
+
+    await randomDelay(800, 1500);
     
-    if (idx === -1) throw new Error('Indicação não encontrada');
-    const indication = indications[idx];
-
-    // Proteção 1: Evitar conversão duplicada
-    if (indication.status === 'converted') {
-      throw new Error('Esta indicação já foi convertida em família.');
+    // 1. Validar se a indicação existe e não foi convertida
+    const indications = storage.get<DonorIndication[]>(INDICATIONS_KEY, []);
+    const indicationIdx = indications.findIndex(i => i.id === indicationId);
+    
+    if (indicationIdx === -1) {
+      throw new Error('Indicação não encontrada.');
     }
 
-    // Proteção 2: Impedir entidade pending de converter
-    if (user?.role === 'entity' && (user?.status === 'pending' || user?.status === 'rejected')) {
-      throw new Error('Entidades em análise ou rejeitadas não podem converter indicações.');
+    if (indications[indicationIdx].status === 'converted') {
+      throw new Error('Esta indicação já foi convertida em beneficiário oficial.');
     }
 
-    // Proteção 3: Validar região (exceto admin)
-    if (user?.role !== 'admin') {
-      // Pega a entidade para validar a região real dela
+    // 2. Validar permissões da entidade (status approved)
+    if (user.role === 'entity' && user.status !== 'approved') {
+      throw new Error('Sua entidade ainda está pendente de aprovação. Somente entidades aprovadas podem validar famílias.');
+    }
+
+    // 3. Validar região compatível (se for entidade)
+    if (user.role === 'entity') {
       const entities = storage.get<any[]>('entities_db', []);
-      const entityData = entities.find(e => e.id === user?.entityId);
+      const entityData = entities.find(e => e.id === user.entityId);
       
-      const indRegion = normalizeString(indication.region);
-      // Extrai apenas a cidade principal se houver formato "Cidade - UF"
+      const indRegion = normalizeString(indications[indicationIdx].region);
       const entityRegion = normalizeString(entityData?.region?.split('-')[0]);
 
       if (!indRegion.includes(entityRegion) && !entityRegion.includes(indRegion)) {
-        throw new Error('Você não pode converter uma indicação fora da sua região de atuação.');
+        throw new Error(`Esta indicação está fora da sua região de atuação (${entityData?.region}).`);
       }
     }
 
-    // Cria a família a partir da indicação
-    const newFamilyData: Omit<Family, 'id'> = {
-      communityId: 'c1', // Mock genérico
-      representativeName: indication.representativeName,
-      neighborhood: indication.region,
-      city: 'São Paulo', // Mock genérico
-      state: 'SP', // Mock genérico
-      shortAddress: indication.region,
-      description: indication.observation,
-      childrenCount: indication.childrenCount,
-      children: Array.from({ length: indication.childrenCount }).map((_, i) => ({
-        id: `c-ind-${i}`,
-        name: `Criança ${i+1}`,
-        age: 5,
-        school: 'Escola Local'
-      })),
+    // 4. Criar a Família
+    const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+    const newFamily: Family = {
+      id: `f-conv-${Date.now()}`,
+      representativeName: indications[indicationIdx].representativeName,
+      neighborhood: indications[indicationIdx].region,
+      city: 'São Paulo',
+      state: 'SP',
+      communityId: 'c1',
+      shortAddress: indications[indicationIdx].region,
+      description: indications[indicationIdx].observation,
+      childrenCount: indications[indicationIdx].childrenCount,
+      children: [],
       mainNeed: 'Alimentação Básica',
+      status: 'approved',
       supportStatus: 'needs_help',
-      distanceToUser: '2.5 km',
-      priorityLevel: 3,
-      latitude: -23.612 + (Math.random() * 0.05),
-      longitude: -46.593 + (Math.random() * 0.05),
-      authorizingEntityId: entityId,
       createdByEntityId: entityId,
       sourceType: 'entity',
       sourceLabel: sourceLabel,
