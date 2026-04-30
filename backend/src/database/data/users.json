@@ -19,5 +19,20 @@
       "showInstagram": true,
       "anonymousMode": false
     }
+  },
+  {
+    "id": "u-d8740b0c-0557-4930-914c-5f8980c3345f",
+    "name": "Test Donor",
+    "email": "test_donor@audit.com",
+    "role": "donor",
+    "documentType": "cpf",
+    "documentNumber": "12345678901",
+    "totalDonated": 40,
+    "status": "active",
+    "privacySettings": {
+      "showOnRanking": true,
+      "showInstagram": false,
+      "anonymousMode": false
+    }
   }
 ]

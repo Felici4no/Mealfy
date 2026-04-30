@@ -3,6 +3,7 @@ import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 
 import { rankingApi } from '../../api/rankingApi';
+import { handleApiError } from '../utils/fallback';
 
 export const rankingService = {
   getUserRanking: async (userId: string): Promise<Pick<User, 'rankingPosition' | 'rankingPercentile' | 'totalDonated'>> => {
@@ -41,7 +42,7 @@ export const rankingService = {
       const apiRanking = await rankingApi.getRanking();
       if (apiRanking) return apiRanking;
     } catch (e) {
-      console.warn('Backend Ranking failed, falling back to local mock.', e);
+      handleApiError(e, 'Get Ranking');
     }
 
     await randomDelay(300, 700);

@@ -5,6 +5,7 @@ import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 
 import { donationsApi } from '../../api/donationsApi';
+import { handleApiError } from '../utils/fallback';
 
 const DONATIONS_KEY = 'donations_db';
 const GIFTCARDS_KEY = 'giftcards_db';
@@ -66,7 +67,7 @@ export const donationService = {
           };
         }
       } catch (e) {
-        console.warn('Backend Donation failed, falling back to local mock.', e);
+        handleApiError(e, 'Create Donation');
       }
     }
 
@@ -159,7 +160,7 @@ export const donationService = {
         };
       }
     } catch (e) {
-      console.warn('Backend Batch Donation failed, falling back to local mock.', e);
+      handleApiError(e, 'Create Batch Donation');
     }
 
     await randomDelay(1500, 2500);
@@ -221,7 +222,7 @@ export const donationService = {
         })).reverse();
       }
     } catch (e) {
-      console.warn('Backend History failed, falling back to local mock.', e);
+      handleApiError(e, 'Get Donation History');
     }
 
     await randomDelay(400, 800);
@@ -252,7 +253,7 @@ export const donationService = {
         };
       }
     } catch (e) {
-      console.warn('Backend Big Donation failed, falling back to local mock.', e);
+      handleApiError(e, 'Create Big Donation');
     }
 
     await randomDelay(1000, 2000);

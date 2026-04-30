@@ -6,6 +6,7 @@ import { normalizeString } from '../utils/normalizeUtils';
 
 import { familiesApi } from '../../api/familiesApi';
 import { indicationsApi } from '../../api/indicationsApi';
+import { handleApiError } from '../utils/fallback';
 
 const FAMILIES_KEY = 'families_db';
 const INDICATIONS_KEY = 'donor_indications_db';
@@ -24,7 +25,7 @@ export const familyService = {
       const apiFamilies = await familiesApi.getPublicFamilies();
       if (apiFamilies) return apiFamilies;
     } catch (e) {
-      console.warn('Backend Families failed, falling back to local mock.', e);
+      handleApiError(e, 'Get Families');
     }
     
     await randomDelay();
@@ -41,7 +42,7 @@ export const familyService = {
         return apiFamilies.filter(f => f.communityId === communityId);
       }
     } catch (e) {
-      console.warn('Backend Community Families failed, falling back to local mock.', e);
+      handleApiError(e, 'Get Families by Community');
     }
 
     await randomDelay();
@@ -80,7 +81,7 @@ export const familyService = {
       const newIndication = await indicationsApi.createIndication(data);
       if (newIndication) return newIndication;
     } catch (e) {
-      console.warn('Backend Add Indication failed, falling back to local mock.', e);
+      handleApiError(e, 'Add Indication');
     }
 
     await randomDelay(500, 1000);
@@ -103,7 +104,7 @@ export const familyService = {
       const apiIndications = await indicationsApi.getIndications();
       if (apiIndications) return apiIndications;
     } catch (e) {
-      console.warn('Backend Indications failed, falling back to local mock.', e);
+      handleApiError(e, 'Get Indications');
     }
 
     await randomDelay(200, 400);
@@ -127,7 +128,7 @@ export const familyService = {
       const newFamily = await indicationsApi.convertIndication(indicationId);
       if (newFamily) return newFamily;
     } catch (e) {
-      console.warn('Backend Convert Indication failed, falling back to local mock.', e);
+      handleApiError(e, 'Convert Indication');
     }
 
     await randomDelay(800, 1500);

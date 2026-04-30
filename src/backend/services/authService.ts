@@ -4,6 +4,7 @@ import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 
 import { authApi } from '../../api/authApi';
+import { handleApiError } from '../utils/fallback';
 
 const SESSION_KEY = 'current_user';
 const USERS_KEY = 'users_db';
@@ -49,7 +50,7 @@ export const authService = {
         return response.user;
       }
     } catch (e) {
-      console.warn('Backend Auth failed, falling back to local mock.', e);
+      handleApiError(e, 'Auth Login');
     }
 
     await randomDelay(800, 1500);
@@ -106,7 +107,7 @@ export const authService = {
         return newUser;
       }
     } catch (e) {
-      console.warn('Backend Register failed, falling back to local mock.', e);
+      handleApiError(e, 'Register Donor');
     }
 
     await randomDelay(800, 1200);
@@ -148,7 +149,7 @@ export const authService = {
         return newUser;
       }
     } catch (e) {
-      console.warn('Backend Register Entity failed, falling back to local mock.', e);
+      handleApiError(e, 'Register Entity');
     }
 
     await randomDelay(800, 1200);

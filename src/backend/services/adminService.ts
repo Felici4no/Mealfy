@@ -1,5 +1,6 @@
 import { adminApi } from '../../api/adminApi';
 import { randomDelay } from '../utils/delay';
+import { handleApiError } from '../utils/fallback';
 
 export const adminService = {
   getPendingEntities: async () => {
@@ -7,7 +8,7 @@ export const adminService = {
       const response = await adminApi.getPendingEntities();
       if (response) return response;
     } catch (e) {
-      console.warn('Backend Admin failed, falling back to local mock.', e);
+      handleApiError(e, 'Get Pending Entities');
     }
     
     await randomDelay(300, 600);
@@ -20,7 +21,7 @@ export const adminService = {
       await adminApi.approveEntity(userId);
       return true;
     } catch (e) {
-      console.warn('Backend Approve failed, falling back to local mock.', e);
+      handleApiError(e, 'Approve Entity');
     }
 
     await randomDelay(500, 800);
@@ -48,7 +49,7 @@ export const adminService = {
       await adminApi.rejectEntity(userId);
       return true;
     } catch (e) {
-      console.warn('Backend Reject failed, falling back to local mock.', e);
+      handleApiError(e, 'Reject Entity');
     }
 
     await randomDelay(500, 800);

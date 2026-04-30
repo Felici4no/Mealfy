@@ -5,10 +5,11 @@
     "region": "Heliópolis",
     "childrenCount": 2,
     "status": "approved",
-    "supportStatus": "needs_help",
+    "supportStatus": "fed",
     "sourceType": "entity",
     "sourceLabel": "Cadastrado por Admin",
     "latitude": -23.612,
-    "longitude": -46.593
+    "longitude": -46.593,
+    "lastFedAt": "2026-04-30T07:56:31.808Z"
   }
 ]
