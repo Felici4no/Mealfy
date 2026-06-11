@@ -13,6 +13,10 @@ export const entityService = {
         name: 'ONG Alimento para Todos',
         cnpj: '12.345.678/0001-99',
         type: 'ONG',
+        responsibleName: 'Maria Silva',
+        email: 'contato@ongalimento.org',
+        phone: '+5511988887777',
+        region: 'São Paulo',
         status: 'approved',
         createdAt: new Date().toISOString()
       },
@@ -21,6 +25,10 @@ export const entityService = {
         name: 'Igreja da Comunidade',
         cnpj: '98.765.432/0001-00',
         type: 'igreja',
+        responsibleName: 'João Santos',
+        email: 'contato@igrejacomunidade.org',
+        phone: '+5511977776666',
+        region: 'São Paulo',
         status: 'pending',
         createdAt: new Date().toISOString()
       }

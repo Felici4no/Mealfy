@@ -49,11 +49,11 @@ export const familyService = {
 
   getFamiliesByCommunity: async (communityId: string): Promise<Family[]> => {
     try {
-      // O backend /families/public já retorna famílias. 
-      // Em uma API real teríamos /families/public?communityId=...
+      // O backend /families/public ja retorna familias.
+      // Em uma API real teriamos /families/public?communityId=...
       const apiFamilies = await familiesApi.getPublicFamilies();
       if (apiFamilies) {
-        return apiFamilies.filter(f => f.communityId === communityId);
+        return (apiFamilies as Family[]).filter((f: Family) => f.communityId === communityId);
       }
     } catch (e) {
       handleApiError(e, 'Get Families by Community');
@@ -62,6 +62,19 @@ export const familyService = {
     await randomDelay();
     const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
     return families.filter(f => f.communityId === communityId);
+  },
+
+  getFamilyById: async (id: string): Promise<Family | null> => {
+    try {
+      const family = await familiesApi.getFamilyById(id);
+      if (family) return family;
+    } catch (e) {
+      handleApiError(e, 'Get Family by ID');
+    }
+
+    await randomDelay(100, 200);
+    const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+    return families.find(f => f.id === id) || null;
   },
 
   updateFamilyStatus: async (familyId: string, newStatus: 'needs_help' | 'supported'): Promise<Family> => {

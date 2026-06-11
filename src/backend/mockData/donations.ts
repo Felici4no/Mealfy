@@ -27,20 +27,24 @@ export const mockGiftCards: GiftCard[] = [
     id: 'gc-1',
     familyId: 'f4',
     donorId: 'u-12345',
+    donationId: 'don-1',
     amount: 40,
     createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     status: 'redeemed',
-    label: 'Gift Card Apoio Familiar — R$40',
-    provider: 'Mercado Parceiro Local'
+    label: 'Gift Card Apoio Familiar - R$40',
+    provider: 'Mercado Parceiro Local',
+    code: 'MEALFY-ABC123'
   },
   {
     id: 'gc-2',
     familyId: 'f4',
     donorId: 'u-12345',
+    donationId: 'don-2',
     amount: 90,
     createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
     status: 'redeemed',
-    label: 'Gift Card Apoio Alimentar — R$90',
-    provider: 'Itaú Alimentação'
+    label: 'Gift Card Apoio Alimentar - R$90',
+    provider: 'Itau Alimentacao',
+    code: 'MEALFY-XYZ789'
   }
 ]

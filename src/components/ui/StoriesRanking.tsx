@@ -28,11 +28,10 @@ const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor }
         {donors.map((donor) => {
           const isAnon = donor.isAnonymous || donor.privacySettings?.anonymousMode;
           const displayName = isAnon ? 'Anônimo' : donor.name;
-          const showInsta = donor.privacySettings?.showInstagram !== false && donor.instagram;
 
           return (
-            <div 
-              key={donor.id} 
+            <div
+              key={donor.id}
               className="story-item"
               onClick={() => onSelectDonor?.(donor)}
             >

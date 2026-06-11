@@ -13,7 +13,6 @@ const RegisterFamily: React.FC = () => {
   const { communities, user } = useAppContext();
   const { showToast } = useToast();
 
-  const [isEntityMode, setIsEntityMode] = useState(true);
   const [formData, setFormData] = useState({
     representativeName: '',
     communityId: communities.length > 0 ? communities[0].id : '',

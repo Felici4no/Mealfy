@@ -13,6 +13,7 @@ interface AppContextType {
   login: (method: 'google'|'apple'|'phone'|'facebook', role?: UserRole) => Promise<void>;
   loginAsRole: (role: UserRole, identifier: string) => Promise<void>;
   logout: () => Promise<void>;
+  fetchSession: () => Promise<void>;
   communities: Community[];
   selectedCommunity: Community | null;
   setSelectedCommunity: (community: Community) => void;
@@ -140,6 +141,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     storage.set('current_user', newUser);
   };
 
+  const fetchSession = async () => {
+    const sessionUser = await authService.getCurrentSession();
+    if (sessionUser) {
+      setUser(sessionUser);
+      setIsAuthenticated(true);
+    }
+  };
+
   const logout = async () => {
     await authService.logout();
     setUser(null);
@@ -159,6 +168,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         login,
         loginAsRole,
         logout,
+        fetchSession,
         communities,
         selectedCommunity,
         setSelectedCommunity,

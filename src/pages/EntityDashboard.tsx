@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { entityService } from '../backend/services/entityService';
 import { normalizeString } from '../backend/utils/normalizeUtils';
-import { Users, PlusCircle, CheckCircle, Clock, AlertCircle, FileText, Check, X } from 'lucide-react';
+import { Users, PlusCircle, CheckCircle, Clock, FileText, Check, X } from 'lucide-react';
 import type { Family, DonorIndication, AuthorizingEntity } from '../backend/types';
 import './EntityDashboard.css';
 
@@ -51,7 +51,7 @@ const EntityDashboard: React.FC = () => {
   const handleValidateIndication = async (indId: string) => {
     try {
       const label = `Validado por ${entityData?.name || user?.name}`;
-      await familyService.convertIndicationToFamily(indId, user, label, user?.entityId);
+      await familyService.convertIndicationToFamily(indId, user, label);
       fetchData(); // Recarrega listas
     } catch (err) {
       console.error(err);

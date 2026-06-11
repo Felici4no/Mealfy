@@ -1,4 +1,4 @@
-import type { Family, Child } from '../types';
+import type { Family } from '../types';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 import { isBeneficiaryEligible } from '../utils/timeUtils';

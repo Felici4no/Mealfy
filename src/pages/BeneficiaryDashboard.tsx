@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { donationService } from '../backend/services/donationService';
-import { Gift, Calendar, MessageSquare, Heart, Clock } from 'lucide-react';
+import { Gift, Calendar, Heart, Clock } from 'lucide-react';
 import type { Family, GiftCard, Donation } from '../backend/types';
 import './BeneficiaryDashboard.css';
 

@@ -47,12 +47,11 @@ const PrivateRoute = ({ children, allowedRoles }: { children: React.ReactNode, a
 // Global Layout wrapper
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const { user } = useAppContext();
-  
+
   // We hide the bottom tab bar on certain screens
   const hideTabBarRoutes = ['/auth', '/register', '/donate', '/success', '/unauthorized'];
   const isHiddenRoute = hideTabBarRoutes.some(route => location.pathname.startsWith(route));
-  
+
   // Hide if beneficiary or admin (they have their own navigation or are simple)
   // Actually, keep it for all but hide on specific pages
   const showTabBar = !isHiddenRoute;
