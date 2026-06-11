@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { rankingService } from '../backend/services/rankingService';
 import type { Family } from '../backend/types';
-import { Trophy, Loader2, Heart } from 'lucide-react';
+import { Trophy, Loader as Loader2, Heart } from 'lucide-react';
 import StoriesRanking from '../components/ui/StoriesRanking';
 import BottomSheet from '../components/ui/BottomSheet';
 import ImpactRegionSelector from '../components/modals/ImpactRegionSelector';

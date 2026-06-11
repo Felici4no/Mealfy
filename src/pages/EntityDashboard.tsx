@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { entityService } from '../backend/services/entityService';
 import { normalizeString } from '../backend/utils/normalizeUtils';
-import { Users, PlusCircle, CheckCircle, Clock, FileText, Check, X } from 'lucide-react';
+import { Users, CirclePlus as PlusCircle, CircleCheck as CheckCircle, Clock, FileText, Check, X } from 'lucide-react';
 import type { Family, DonorIndication, AuthorizingEntity } from '../backend/types';
 import './EntityDashboard.css';
 

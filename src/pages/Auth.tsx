@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { Heart, Building2, UserCircle, ArrowRight } from 'lucide-react';
+import { Heart, Building2, CircleUser as UserCircle, ArrowRight } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import type { UserRole } from '../backend/types';
