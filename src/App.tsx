@@ -21,10 +21,10 @@ import Recurrence from './pages/Recurrence';
 import RegisterFamily from './pages/RegisterFamily';
 import EntityDashboard from './pages/EntityDashboard';
 import BeneficiaryDashboard from './pages/BeneficiaryDashboard';
-import AdminDashboard from './pages/AdminDashboard';
 import Unauthorized from './pages/Unauthorized';
 import Register from './pages/Register';
 import IndicateFamily from './pages/IndicateFamily';
+import ForgotPassword from './pages/ForgotPassword';
 
 import './App.css';
 
@@ -49,7 +49,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   // We hide the bottom tab bar on certain screens
-  const hideTabBarRoutes = ['/auth', '/register', '/donate', '/success', '/unauthorized'];
+  const hideTabBarRoutes = ['/auth', '/register', '/forgot-password', '/donate', '/success', '/unauthorized'];
   const isHiddenRoute = hideTabBarRoutes.some(route => location.pathname.startsWith(route));
 
   // Hide if beneficiary or admin (they have their own navigation or are simple)
@@ -75,6 +75,7 @@ function App() {
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Common Public/Semi-Public Routes (Restricted for Beneficiaries) */}
@@ -101,8 +102,7 @@ function App() {
             {/* Beneficiary Routes */}
             <Route path="/beneficiary/dashboard" element={<PrivateRoute allowedRoles={['beneficiary']}><BeneficiaryDashboard /></PrivateRoute>} />
             
-            {/* Admin Routes */}
-            <Route path="/admin/dashboard" element={<PrivateRoute allowedRoles={['admin']}><AdminDashboard /></PrivateRoute>} />
+            {/* Admin dashboard removed from mobile app — managed via separate admin application */}
 
             {/* Automatic Redirect based on Role */}
             <Route path="/dashboard-redirect" element={<DashboardRedirect />} />
@@ -123,10 +123,11 @@ const DashboardRedirect = () => {
   if (!isAuthenticated) return <Navigate to="/auth" replace />;
   
   switch(user?.role) {
-    case 'admin': return <Navigate to="/admin/dashboard" replace />;
-    case 'entity': return <Navigate to="/entity/dashboard" replace />;
+    case 'entity':      return <Navigate to="/entity/dashboard" replace />;
     case 'beneficiary': return <Navigate to="/beneficiary/dashboard" replace />;
-    case 'donor': default: return <Navigate to="/" replace />;
+    case 'admin':       return <Navigate to="/unauthorized" replace />;
+    case 'donor':
+    default:            return <Navigate to="/" replace />;
   }
 };
 

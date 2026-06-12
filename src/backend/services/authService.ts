@@ -1,112 +1,69 @@
 import type { User, UserRole, AuthorizingEntity } from '../types';
-import { mockUsers, mockEntities } from '../mockData/users';
+import { mockAuthProvider, AuthError, type RegisterData } from './authProvider';
+import { mockEntities } from '../mockData/users';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
-
 import { authApi } from '../../api/authApi';
 import { handleApiError } from '../utils/fallback';
 
+// Re-exporta para uso pelos consumidores
+export { AuthError, type AuthErrorCode } from './authProvider';
+
 const SESSION_KEY = 'current_user';
-const USERS_KEY = 'users_db';
 const ENTITIES_KEY = 'entities_db';
 
 export const authService = {
-  // Initiates our DB in localStorage if it doesn't exist
-  initDB: () => {
-    const users = storage.get(USERS_KEY, null);
-    if (!users) {
-      storage.set(USERS_KEY, mockUsers);
-    }
-    const entities = storage.get(ENTITIES_KEY, null);
-    if (!entities) {
-      storage.set(ENTITIES_KEY, mockEntities);
-    }
+  // ─── Novos métodos reais (delegam ao MockAuthProvider) ───────────────────
+
+  /**
+   * Autenticação por e-mail e senha.
+   * Busca credenciais mockadas + registros locais. Nunca retorna senha no User.
+   */
+  signInWithEmail: (email: string, password: string): Promise<User> =>
+    mockAuthProvider.signInWithEmail(email, password),
+
+  /**
+   * Login com Google (simulado em DEV).
+   * Recebe o usuário selecionado no modal — não chama OAuth real.
+   */
+  signInWithGoogle: (selectedUser: User): Promise<User> =>
+    mockAuthProvider.signInWithGoogle(selectedUser),
+
+  /**
+   * Retorna usuários mockados ativos para o seletor Google (DEV).
+   * Somente role !== 'admin' e status === 'active'.
+   */
+  getActiveMockUsers: (): User[] => mockAuthProvider.getActiveMockUsers(),
+
+  /**
+   * Recuperação de senha (mock).
+   * Sempre resolve — nunca revela se o e-mail existe.
+   */
+  resetPassword: (email: string): Promise<void> =>
+    mockAuthProvider.resetPassword(email),
+
+  /**
+   * Cadastro de novo usuário.
+   * Salva perfil e credencial em chaves separadas do localStorage.
+   */
+  registerUser: (data: RegisterData): Promise<User> =>
+    mockAuthProvider.registerUser(data),
+
+  // ─── Recuperação de sessão ─────────────────────────────────────────────────
+
+  getCurrentSession: (): Promise<User | null> =>
+    mockAuthProvider.getCurrentUser(),
+
+  logout: async (): Promise<void> => {
+    await mockAuthProvider.signOut();
   },
 
-  getCurrentSession: async (): Promise<User | null> => {
-    await randomDelay(200, 500);
-    return storage.get(SESSION_KEY, null);
-  },
+  // ─── Métodos legados — mantidos para compatibilidade com Register.tsx ──────
 
-  loginWithGoogle: async (role: UserRole = 'donor'): Promise<User> => {
-    await randomDelay(800, 1200);
-    authService.initDB();
-    const users = storage.get<User[]>(USERS_KEY, mockUsers);
-    // Find first user with that role or use mock
-    const user = users.find(u => u.role === role) || {
-      ...users[0],
-      role: role,
-      id: `u-${role}-${Date.now()}`
-    };
-    storage.set(SESSION_KEY, user);
-    return user;
-  },
-
-  loginAsRole: async (role: UserRole, identifier: string): Promise<User> => {
-    const demoEmailByRole: Record<string, string> = {
-      donor: 'doador@mealfy.com',
-      entity: 'entidade@mealfy.com',
-      beneficiary: 'beneficiario@mealfy.com',
-      admin: 'admin@mealfy.com'
-    };
-    const targetEmail = identifier.includes('@') ? identifier : demoEmailByRole[role];
-
-    try {
-      const response = await authApi.loginMock(targetEmail);
-      if (response && response.user) {
-        storage.set(SESSION_KEY, response.user);
-        return response.user;
-      }
-    } catch (e) {
-      handleApiError(e, 'Auth Login');
-    }
-
-    await randomDelay(800, 1500);
-    authService.initDB();
-    const users = storage.get<User[]>(USERS_KEY, mockUsers);
-    
-    // Simulate finding
-    let user = users.find(u => u.role === role && (u.email === identifier || u.phone === identifier || u.documentNumber === identifier));
-    
-    // Fallback para login rápido durante desenvolvimento
-    if (!user) {
-      user = {
-        id: `u-${role}-${Date.now()}`,
-        name: identifier.split('@')[0] || identifier,
-        email: identifier.includes('@') ? identifier : `${identifier}@mealfy.org`,
-        role: role,
-        totalDonated: 0,
-        rankingPosition: 0,
-        rankingPercentile: '',
-        status: role === 'entity' ? 'pending' : 'active'
-      };
-      if (role === 'entity') {
-         // Auto-create a mock entity to link
-         const entityId = `e-${Date.now()}`;
-         const entities = storage.get<AuthorizingEntity[]>(ENTITIES_KEY, mockEntities);
-         entities.push({
-           id: entityId,
-           name: user.name,
-           cnpj: identifier,
-           type: 'ONG',
-           responsibleName: user.name,
-           email: user.email,
-           phone: '',
-           region: 'Local',
-           status: 'pending',
-           createdAt: new Date().toISOString()
-         });
-         storage.set(ENTITIES_KEY, entities);
-         user.entityId = entityId;
-      }
-      users.push(user);
-      storage.set(USERS_KEY, users);
-    }
-
-    storage.set(SESSION_KEY, user);
-    return user;
-  },
-
+  /**
+   * @deprecated Usado somente por fluxos legados (Register.tsx).
+   * Não utilizar em novas telas. Migrar para registerUser() quando possível.
+   */
   registerDonor: async (data: Partial<User>): Promise<User> => {
     try {
       const newUser = await authApi.registerDonor(data);
@@ -118,39 +75,26 @@ export const authService = {
       handleApiError(e, 'Register Donor');
     }
 
-    await randomDelay(800, 1200);
-    authService.initDB();
-    const users = storage.get<User[]>(USERS_KEY, mockUsers);
-    
-    const newUser: User = {
-      id: `u-donor-${Date.now()}`,
-      name: data.name || 'Doador Novo',
+    return mockAuthProvider.registerUser({
+      name: data.name || 'Doador',
       email: data.email || '',
+      password: '123456', // senha padrão mock
       role: 'donor',
       phone: data.phone,
-      documentType: data.documentType,
-      documentNumber: data.documentNumber,
-      instagram: data.instagram,
-      privacySettings: data.privacySettings,
-      totalDonated: 0,
-      rankingPosition: 0,
-      rankingPercentile: 'Top 100%',
-      status: 'active'
-    };
-
-    users.push(newUser);
-    storage.set(USERS_KEY, users);
-    storage.set(SESSION_KEY, newUser);
-    return newUser;
+    });
   },
 
+  /**
+   * @deprecated Usado somente por fluxos legados (Register.tsx).
+   * Não utilizar em novas telas. Migrar para registerUser() quando possível.
+   */
   registerEntity: async (data: Partial<AuthorizingEntity>): Promise<User> => {
     try {
       const newUser = await authApi.registerEntity({
         ...data,
         cnpj: data.cnpj,
         region: data.region,
-        type: data.type
+        type: data.type,
       });
       if (newUser) {
         storage.set(SESSION_KEY, newUser);
@@ -161,10 +105,9 @@ export const authService = {
     }
 
     await randomDelay(800, 1200);
-    authService.initDB();
-    const users = storage.get<User[]>(USERS_KEY, mockUsers);
+
+    // Cria entidade no storage para o dashboard
     const entities = storage.get<AuthorizingEntity[]>(ENTITIES_KEY, mockEntities);
-    
     const newEntity: AuthorizingEntity = {
       id: `e-${Date.now()}`,
       name: data.name || 'Nova Entidade',
@@ -177,36 +120,55 @@ export const authService = {
       addressOrDistrict: data.addressOrDistrict,
       websiteOrInstagram: data.websiteOrInstagram,
       shortDescription: data.shortDescription,
-      status: 'pending', // Regra: toda entidade entra pending
-      createdAt: new Date().toISOString()
+      status: 'pending',
+      createdAt: new Date().toISOString(),
     };
-
     entities.push(newEntity);
     storage.set(ENTITIES_KEY, entities);
 
-    // O usuário atrelado à entidade
-    const newUser: User = {
-      id: `u-entity-${Date.now()}`,
-      name: newEntity.responsibleName,
-      email: newEntity.email,
+    const newUser = await mockAuthProvider.registerUser({
+      name: data.responsibleName || data.name || 'Entidade',
+      email: data.email || '',
+      password: '123456',
       role: 'entity',
-      phone: newEntity.phone,
-      entityId: newEntity.id,
-      totalDonated: 0,
-      rankingPosition: 0,
-      rankingPercentile: '',
-      status: 'pending' // Entidade pending, usuário pending
-    };
+      phone: data.phone,
+    });
 
-    users.push(newUser);
-    storage.set(USERS_KEY, users);
-    storage.set(SESSION_KEY, newUser);
-    
-    return newUser;
+    // Atualiza entityId no usuário registrado
+    const registered = storage.get<User[]>('registered_users', []);
+    const idx = registered.findIndex((u) => u.id === newUser.id);
+    if (idx !== -1) {
+      registered[idx] = { ...registered[idx], entityId: newEntity.id };
+      storage.set('registered_users', registered);
+    }
+
+    return { ...newUser, entityId: newEntity.id };
   },
 
-  logout: async (): Promise<void> => {
-    await randomDelay(500, 1000);
-    storage.remove(SESSION_KEY);
-  }
+  /**
+   * @deprecated Não utilizar em novas telas.
+   * loginAsRole permitia entrar escolhendo a role manualmente — porta lateral removida da UI.
+   */
+  loginAsRole: async (_role: UserRole, _identifier: string): Promise<User> => {
+    // Bloqueado intencionalmente — a nova UI não deve chamar este método.
+    // Mantido somente para não quebrar imports enquanto a migração é finalizada.
+    throw new AuthError(
+      'provider_unavailable',
+      '[loginAsRole] Método legado desativado. Use signInWithEmail().'
+    );
+  },
+
+  /**
+   * @deprecated Não utilizar em novas telas.
+   */
+  loginWithGoogle: async (_role: UserRole): Promise<User> => {
+    throw new AuthError(
+      'provider_unavailable',
+      '[loginWithGoogle] Método legado desativado. Use signInWithGoogle().'
+    );
+  },
+
+  fetchSession: async (): Promise<User | null> => {
+    return mockAuthProvider.getCurrentUser();
+  },
 };

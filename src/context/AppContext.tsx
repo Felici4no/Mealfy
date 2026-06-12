@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { storage } from '../backend/utils/storage';
-import type { User, Community, UserRole, PrivacySettings } from '../backend/types';
+import type { User, Community, PrivacySettings } from '../backend/types';
 import { authService } from '../backend/services/authService';
 import { communityService } from '../backend/services/communityService';
 import { usersApi } from '../api/usersApi';
@@ -10,9 +10,13 @@ import SplashScreen from '../components/ui/SplashScreen';
 interface AppContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (method: 'google'|'apple'|'phone'|'facebook', role?: UserRole) => Promise<void>;
-  loginAsRole: (role: UserRole, identifier: string) => Promise<void>;
+  /** Nova autenticação por email/senha — usa MockAuthProvider */
+  signIn: (email: string, password: string) => Promise<void>;
+  /** Login Google simulado — recebe o usuário escolhido no modal DEV */
+  signInWithGoogle: (selectedUser: User) => Promise<void>;
+  /** Encerra a sessão e limpa os dados locais do usuário */
   logout: () => Promise<void>;
+  /** Recarrega o usuário da sessão local — usado por Register.tsx após cadastro */
   fetchSession: () => Promise<void>;
   communities: Community[];
   selectedCommunity: Community | null;
@@ -27,9 +31,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  
+
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [selectedRegion, setSelectedRegionState] = useState<string | null>(null);
@@ -37,7 +42,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const initApp = async () => {
       try {
-        // Fetch session
         const sessionUser = await authService.getCurrentSession();
         if (sessionUser) {
           setIsAuthenticated(true);
@@ -46,60 +50,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setSelectedRegionState(sessionUser.impactPreferences.preferredRegion);
           }
         }
-
-        // Fetch initial communities
         const comms = await communityService.getCommunities();
         setCommunities(comms);
         setSelectedCommunity(comms[0] || null);
-
       } catch (err) {
-        console.error("Erro inicializando app", err);
+        console.error('Erro inicializando app', err);
       } finally {
         setIsInitializing(false);
+        setTimeout(() => setShowSplash(false), 400);
       }
     };
-
     initApp();
   }, []);
 
-  const setSelectedRegion = async (region: string | null) => {
-    setSelectedRegionState(region);
-    
-    if (user && user.role === 'donor') {
-      const newPreferences = { ...user.impactPreferences, preferredRegion: region || undefined };
-      try {
-        await usersApi.updateImpactPreferences(newPreferences);
-      } catch (e) {
-        console.warn('Failed to save preference in API', e);
-      }
-      
-      const newUser = { ...user, impactPreferences: newPreferences };
-      setUser(newUser);
-      
-      const USERS_KEY = 'users_db';
-      const users = storage.get<User[]>(USERS_KEY, []);
-      const idx = users.findIndex(u => u.id === user.id);
-      if (idx !== -1) {
-        users[idx] = newUser;
-        storage.set(USERS_KEY, users);
-      }
-      storage.set('current_user', newUser);
-    }
-  };
+  // ─── Helpers de sessão ───────────────────────────────────────────────────
 
-  const clearSelectedRegion = () => setSelectedRegion(null);
-
-  const login = async (method: 'google'|'apple'|'phone'|'facebook', role: UserRole = 'donor') => {
-    let loggedUser: User;
-    if (method === 'google') loggedUser = await authService.loginWithGoogle(role);
-    else if (method === 'apple') loggedUser = await authService.loginWithGoogle(role);
-    else if (method === 'facebook') loggedUser = await authService.loginWithGoogle(role);
-    else loggedUser = await authService.loginWithGoogle(role);
-
+  const applySession = (loggedUser: User) => {
     if (!loggedUser.privacySettings) {
       loggedUser.privacySettings = { showOnRanking: true, showInstagram: true, anonymousMode: false };
     }
-
     setUser(loggedUser);
     setIsAuthenticated(true);
     if (loggedUser.role === 'donor' && loggedUser.impactPreferences?.preferredRegion) {
@@ -107,41 +76,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const loginAsRole = async (role: UserRole, identifier: string) => {
-    const loggedUser = await authService.loginAsRole(role, identifier);
-    
-    if (!loggedUser.privacySettings) {
-      loggedUser.privacySettings = { showOnRanking: true, showInstagram: true, anonymousMode: false };
-    }
+  // ─── Nova autenticação — delegada ao MockAuthProvider via authService ────
 
-    setUser(loggedUser);
-    setIsAuthenticated(true);
-    if (loggedUser.role === 'donor' && loggedUser.impactPreferences?.preferredRegion) {
-      setSelectedRegionState(loggedUser.impactPreferences.preferredRegion);
-    }
+  const signIn = async (email: string, password: string): Promise<void> => {
+    const loggedUser = await authService.signInWithEmail(email, password);
+    applySession(loggedUser);
   };
 
-  const updateUserPrivacy = async (settings: Partial<PrivacySettings>) => {
-    if (!user) return;
-    const newUser = {
-      ...user,
-      privacySettings: {
-        ...user.privacySettings!,
-        ...settings
-      }
-    };
-    setUser(newUser);
-    const USERS_KEY = 'users_db';
-    const users = storage.get<User[]>(USERS_KEY, []);
-    const idx = users.findIndex(u => u.id === user.id);
-    if (idx !== -1) {
-      users[idx] = newUser;
-      storage.set(USERS_KEY, users);
-    }
-    storage.set('current_user', newUser);
+  const signInWithGoogle = async (selectedUser: User): Promise<void> => {
+    const loggedUser = await authService.signInWithGoogle(selectedUser);
+    applySession(loggedUser);
   };
 
-  const fetchSession = async () => {
+  // ─── Sessão e logout ────────────────────────────────────────────────────
+
+  const fetchSession = async (): Promise<void> => {
     const sessionUser = await authService.getCurrentSession();
     if (sessionUser) {
       setUser(sessionUser);
@@ -149,15 +98,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     await authService.logout();
     setUser(null);
     setIsAuthenticated(false);
     setSelectedRegionState(null);
   };
 
-  if (isInitializing) {
-    return <SplashScreen />;
+  // ─── Região e privacidade ───────────────────────────────────────────────
+
+  const setSelectedRegion = async (region: string | null) => {
+    setSelectedRegionState(region);
+    if (user && user.role === 'donor') {
+      const newPreferences = { ...user.impactPreferences, preferredRegion: region || undefined };
+      try {
+        await usersApi.updateImpactPreferences(newPreferences);
+      } catch (e) {
+        console.warn('Failed to save preference in API', e);
+      }
+      const newUser = { ...user, impactPreferences: newPreferences };
+      setUser(newUser);
+      const users = storage.get<User[]>('users_db', []);
+      const idx = users.findIndex((u) => u.id === user.id);
+      if (idx !== -1) {
+        users[idx] = newUser;
+        storage.set('users_db', users);
+      }
+      storage.set('current_user', newUser);
+    }
+  };
+
+  const clearSelectedRegion = () => setSelectedRegion(null);
+
+  const updateUserPrivacy = async (settings: Partial<PrivacySettings>): Promise<void> => {
+    if (!user) return;
+    const newUser = {
+      ...user,
+      privacySettings: { ...user.privacySettings!, ...settings },
+    };
+    setUser(newUser);
+    const users = storage.get<User[]>('users_db', []);
+    const idx = users.findIndex((u) => u.id === user.id);
+    if (idx !== -1) {
+      users[idx] = newUser;
+      storage.set('users_db', users);
+    }
+    storage.set('current_user', newUser);
+  };
+
+  if (showSplash) {
+    return <SplashScreen isLoaded={!isInitializing} />;
   }
 
   return (
@@ -165,8 +155,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       value={{
         isAuthenticated,
         user,
-        login,
-        loginAsRole,
+        signIn,
+        signInWithGoogle,
         logout,
         fetchSession,
         communities,
