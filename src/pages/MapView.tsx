@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Family } from '../backend/types';
 import Button from '../components/ui/Button';
-import { LocateFixed, Filter, MapPin, Layers, Heart, ShieldAlert, Check } from 'lucide-react';
+import { LocateFixed, Layers, ShieldAlert, Check } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import BottomSheet from '../components/ui/BottomSheet';
 import './MapView.css';

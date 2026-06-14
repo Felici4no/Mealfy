@@ -11,7 +11,7 @@ import './DonationChoice.css';
 const BigDonation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, selectedRegion, setSelectedRegion } = useAppContext();
+  const { selectedRegion, setSelectedRegion } = useAppContext();
   const { showToast } = useToast();
   
   const community = location.state?.community as Community | undefined;

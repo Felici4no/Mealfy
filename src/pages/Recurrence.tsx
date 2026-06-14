@@ -4,7 +4,7 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import BottomSheet from '../components/ui/BottomSheet';
 import { useToast } from '../context/ToastContext';
-import { MapPin, Calendar, PauseCircle, PlayCircle, Edit3, Trash2, ShieldAlert, Check } from 'lucide-react';
+import { MapPin, Calendar, PauseCircle, PlayCircle, Edit3, Trash2, ShieldAlert } from 'lucide-react';
 import './DonationChoice.css'; // Reuse form styles
 
 interface MockRecurrence {

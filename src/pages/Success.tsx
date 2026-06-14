@@ -17,8 +17,6 @@ const Success: React.FC = () => {
   // Read data passed from DonationChoice or BigDonation
   const donationResult = location.state?.donationResult as any;
   const totalAmount = location.state?.totalAmount as number | undefined;
-  const count = location.state?.count as number | undefined;
-  const isBatch = location.state?.isBatch as boolean | undefined;
 
   // If user accesses /success directly, send back
   if (!donationResult) {

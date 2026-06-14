@@ -10,9 +10,9 @@ interface Donor {
   instagram?: string;
   isAnonymous?: boolean;
   privacySettings?: {
-    showOnRanking: boolean;
-    showInstagram: boolean;
-    anonymousMode: boolean;
+    showOnRanking?: boolean;
+    showInstagram?: boolean;
+    anonymousMode?: boolean;
   };
 }
 

@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
-import { communityService } from '../backend/services/communityService';
-import { familyService } from '../backend/services/familyService';
 import type { Community, Family } from '../backend/types';
 import { MapPin, Heart, ShieldAlert, Users, CheckSquare, Square } from 'lucide-react';
 import './CommunityDetails.css';

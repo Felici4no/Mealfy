@@ -4,14 +4,13 @@ import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
-import { donationService } from '../backend/services/donationService';
-import { MapPin, Info, Loader2, Users, Layers, Award, Sparkles, Check, ChevronRight } from 'lucide-react';
+import { Users, Check, ChevronRight } from 'lucide-react';
 import './DonationChoice.css';
 
 const DonationChoice: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { selectedCommunity, user } = useAppContext();
+  const { selectedCommunity } = useAppContext();
   const { showToast } = useToast();
   
   // Navigation states

@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
-import { Lock, ShieldAlert, Check, HelpCircle } from 'lucide-react';
+import { Lock, ShieldAlert } from 'lucide-react';
 import './RegisterFamily.css';
 
 const IndicateFamily: React.FC = () => {

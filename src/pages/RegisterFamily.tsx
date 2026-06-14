@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
-import { ShieldCheck, UserCheck, Search, Loader2 } from 'lucide-react';
+import { ShieldCheck, Search, Loader2 } from 'lucide-react';
 import type { Family } from '../backend/types';
 import './RegisterFamily.css';
 

@@ -4,7 +4,7 @@ import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import type { Family } from '../backend/types';
-import { Trophy, Loader as Loader2, Heart, Share2, AtSign, X, Copy, MessageCircle, Mail, QrCode } from 'lucide-react';
+import { Trophy, Loader as Loader2, Share2, AtSign, X, Copy, MessageCircle, Mail, QrCode } from 'lucide-react';
 import StoriesRanking from '../components/ui/StoriesRanking';
 import BottomSheet from '../components/ui/BottomSheet';
 import ImpactRegionSelector from '../components/modals/ImpactRegionSelector';

@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
 import { donationService } from '../backend/services/donationService';
-import { Gift, Calendar, Heart, Clock, AlertTriangle, CheckCircle2, QrCode, Copy, ShieldAlert, Phone } from 'lucide-react';
+import { Gift, Calendar, Heart, Clock, AlertTriangle, QrCode, Copy, Phone } from 'lucide-react';
 import type { Family, GiftCard, Donation } from '../backend/types';
 import './BeneficiaryDashboard.css';
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import BottomSheet from '../components/ui/BottomSheet';
-import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings, QrCode, Share2, Award, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings, QrCode, Share2, Award } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { donationService } from '../backend/services/donationService';
 import { rankingService } from '../backend/services/rankingService';
