@@ -1,26 +1,12 @@
 /* Admin Dashboard Styles */
-.admin-dashboard-page .content {
-  padding-bottom: 100px;
+.admin-dashboard-page {
+  background-color: var(--color-background);
+  min-height: 100vh;
 }
 
-.admin-dashboard-page .section-title {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--text-main);
+.admin-dashboard-page .content {
+  padding-bottom: 80px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.admin-dashboard-page .animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  justify-content: center;
 }

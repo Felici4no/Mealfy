@@ -13,38 +13,46 @@ const Help: React.FC = () => {
       
       <main className="content p-4">
         <h1 className="page-title text-primary mb-2">Primeiros Passos</h1>
-        <p className="page-subtitle mb-6">Aprenda a utilizar o ecossistema Mealfy para extrair o máximo de impacto social.</p>
+        <p className="page-subtitle mb-6">Aprenda a utilizar o ecossistema Mealfy para combater a fome infantil em sua região.</p>
 
-        <div className="flex-col gap-4">
-          <div className="faq-item flex gap-3 items-start">
+        <div className="flex flex-col gap-3">
+          <div className="faq-item flex gap-3 items-start p-4 bg-white border border-outline-variant/30 rounded">
             <Compass size={24} className="text-secondary shrink-0 mt-1" />
             <div>
-              <h4 className="faq-question">1. Explorando Regiões</h4>
-              <p className="faq-answer">Navegue na aba "Explorar" para descobrir as comunidades com alertas de urgência. Você pode abrir o Raio-X da comunidade e ver o nível individual de cada família mapeada.</p>
+              <h4 className="faq-question font-bold text-primary text-sm mb-1">1. Explorando o Mapa</h4>
+              <p className="faq-answer text-xs text-outline leading-relaxed">
+                Navegue na aba "Mapa" para ver a distribuição geográfica de famílias sinalizadas. É possível filtrar por bairro, urgência e ver os relatos de cada representante.
+              </p>
             </div>
           </div>
 
-          <div className="faq-item flex gap-3 items-start">
+          <div className="faq-item flex gap-3 items-start p-4 bg-white border border-outline-variant/30 rounded">
             <ShieldAlert size={24} className="text-primary shrink-0 mt-1" />
             <div>
-              <h4 className="faq-question">2. O Poder da Doação Ampliada</h4>
-              <p className="faq-answer">Para agir mais rápido, use a <strong>Big Donation (Apoio Regional)</strong>. O sistema fracionará e mirará as famílias necessitadas emitindo múltiplos Gift Cards ao mesmo tempo com o seu Nome na etiqueta.</p>
+              <h4 className="faq-question font-bold text-primary text-sm mb-1">2. O Poder do Apoio Ampliado</h4>
+              <p className="faq-answer text-xs text-outline leading-relaxed">
+                Para acelerar o impacto em grande escala, utilize a opção de <strong>Apoio Ampliado (Apoio Regional)</strong>. O sistema distribui o valor automaticamente entre as famílias de maior necessidade.
+              </p>
             </div>
           </div>
 
-          <div className="faq-item flex gap-3 items-start">
+          <div className="faq-item flex gap-3 items-start p-4 bg-white border border-outline-variant/30 rounded">
             <Heart size={24} className="text-error shrink-0 mt-1" />
             <div>
-              <h4 className="faq-question">3. O Sistema Gamificado</h4>
-              <p className="faq-answer">Seu total de Doações acumula "Pontos de Impacto". Visite o seu <strong>Meu Ranking Exclusivo</strong> no Perfil para monitorar e competir no bem frente a outros doadores.</p>
+              <h4 className="faq-question font-bold text-primary text-sm mb-1">3. Sistema de Patentes e Impacto</h4>
+              <p className="faq-answer text-xs text-outline leading-relaxed">
+                Cada contribuição concluída ajuda a subir seu nível no perfil. Conquiste insígnias como "Pioneiro" ou "Guardião Regional" e lidere as tabelas de impacto.
+              </p>
             </div>
           </div>
 
-          <div className="faq-item flex gap-3 items-start">
+          <div className="faq-item flex gap-3 items-start p-4 bg-white border border-outline-variant/30 rounded">
             <CreditCard size={24} className="text-success shrink-0 mt-1" />
             <div>
-              <h4 className="faq-question">4. Assinantes</h4>
-              <p className="faq-answer">A jornada constante é mais poderosa. Vá na sua aba "Recorrência Mensal" e cadastre cobranças que automatizam a caça aos corações partidos periodicamente pelo Back-End.</p>
+              <h4 className="faq-question font-bold text-primary text-sm mb-1">4. Apoio Recorrente</h4>
+              <p className="faq-answer text-xs text-outline leading-relaxed">
+                Mantenha a ajuda ativa. Habilite a assinatura de apoios mensais na aba "Recorrência" para garantir que as cozinhas e vales-refeição das crianças permaneçam abastecidos.
+              </p>
             </div>
           </div>
         </div>

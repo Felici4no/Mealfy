@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Heart, Map, User, MapPin, LayoutDashboard, Users, ShieldCheck } from 'lucide-react';
+import { Home, Soup, User, MapPin, LayoutDashboard, Users, ShieldCheck } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import './BottomTabBar.css';
 
@@ -9,30 +9,26 @@ const BottomTabBar: React.FC = () => {
 
   if (!user) return null;
 
-  // Donor Navigation
+  // Donor Navigation: Início | Mapa | Alimente | Perfil
   if (user.role === 'donor') {
     return (
-      <nav className="bottom-tab-bar">
+      <nav className="bottom-tab-bar glassmorphism">
         <NavLink to="/" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <Home size={24} />
+          <Home size={22} />
           <span>Início</span>
+        </NavLink>
+        <NavLink to="/map" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
+          <MapPin size={22} />
+          <span>Mapa</span>
         </NavLink>
         <NavLink to="/donate" className={({ isActive }) => `tab-item donate-tab ${isActive ? 'active' : ''}`}>
           <div className="donate-icon-wrapper">
-            <Heart size={28} color="white" fill="white" />
+            <Soup size={26} color="white" />
           </div>
-          <span>Doar</span>
-        </NavLink>
-        <NavLink to="/explore" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <Map size={24} />
-          <span>Regiões</span>
-        </NavLink>
-        <NavLink to="/map" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <MapPin size={24} />
-          <span>Mapa</span>
+          <span>Alimente</span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <User size={24} />
+          <User size={22} />
           <span>Perfil</span>
         </NavLink>
       </nav>
@@ -42,17 +38,17 @@ const BottomTabBar: React.FC = () => {
   // Entity Navigation
   if (user.role === 'entity') {
     return (
-      <nav className="bottom-tab-bar">
+      <nav className="bottom-tab-bar glassmorphism">
         <NavLink to="/entity/dashboard" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <LayoutDashboard size={24} />
+          <LayoutDashboard size={22} />
           <span>Painel</span>
         </NavLink>
         <NavLink to="/register-family" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <Users size={24} />
+          <Users size={22} />
           <span>Cadastrar</span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <User size={24} />
+          <User size={22} />
           <span>Perfil</span>
         </NavLink>
       </nav>
@@ -62,13 +58,13 @@ const BottomTabBar: React.FC = () => {
   // Beneficiary Navigation
   if (user.role === 'beneficiary') {
     return (
-      <nav className="bottom-tab-bar">
+      <nav className="bottom-tab-bar glassmorphism">
         <NavLink to="/beneficiary/dashboard" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <Home size={24} />
+          <Home size={22} />
           <span>Início</span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <User size={24} />
+          <User size={22} />
           <span>Perfil</span>
         </NavLink>
       </nav>
@@ -78,13 +74,13 @@ const BottomTabBar: React.FC = () => {
   // Admin Navigation
   if (user.role === 'admin') {
     return (
-      <nav className="bottom-tab-bar">
-        <NavLink to="/admin/dashboard" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <ShieldCheck size={24} />
+      <nav className="bottom-tab-bar glassmorphism">
+        <NavLink to="/unauthorized" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
+          <ShieldCheck size={22} />
           <span>Admin</span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-          <User size={24} />
+          <User size={22} />
           <span>Perfil</span>
         </NavLink>
       </nav>
@@ -93,13 +89,13 @@ const BottomTabBar: React.FC = () => {
 
   // Default Fallback
   return (
-    <nav className="bottom-tab-bar">
+    <nav className="bottom-tab-bar glassmorphism">
       <NavLink to="/dashboard-redirect" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-        <Home size={24} />
+        <Home size={22} />
         <span>Início</span>
       </NavLink>
       <NavLink to="/profile" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
-        <User size={24} />
+        <User size={22} />
         <span>Perfil</span>
       </NavLink>
     </nav>

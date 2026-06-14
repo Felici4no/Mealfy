@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { authService } from '../backend/services/authService';
 import { useToast } from '../context/ToastContext';
 import { useAppContext } from '../context/AppContext';
-import { Heart, Building2, ArrowRight, CircleUser as UserCircle, Eye, EyeOff } from 'lucide-react';
+import { Soup, Building2, ArrowRight, CircleUser as UserCircle, Eye, EyeOff } from 'lucide-react';
 import './Auth.css';
 
 type Step = 'picker' | 'donor' | 'entity' | 'beneficiary';
@@ -161,8 +161,8 @@ const Register: React.FC = () => {
           <button className="back-btn" onClick={() => setStep('picker')} aria-label="Voltar">
             <ArrowRight size={24} style={{ transform: 'rotate(180deg)' }} />
           </button>
-          <h1 className="login-hero-title">Criar conta como Doador</h1>
-          <p className="login-hero-subtitle">Doe em poucos segundos e acompanhe seu impacto.</p>
+          <h1 className="login-hero-title">Criar conta como Apoiador</h1>
+          <p className="login-hero-subtitle">Apoie em poucos segundos e acompanhe seu impacto.</p>
         </div>
         <main className="login-content p-6 flex-col">
           <form onSubmit={handleRegisterDonor} className="flex-col gap-4 mt-2">
@@ -191,7 +191,7 @@ const Register: React.FC = () => {
 
             <div className="form-group">
               <label className="form-label">Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:14}}>
+              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
                 <input type={showPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={donorData.password} onChange={e => setDonorData({...donorData, password: e.target.value})} autoComplete="new-password" />
                 <PwdToggle show={showPwd} onToggle={() => setShowPwd(v => !v)} />
               </div>
@@ -199,7 +199,7 @@ const Register: React.FC = () => {
 
             <div className="form-group">
               <label className="form-label">Confirmar Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:14}}>
+              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
                 <input type={showConfirmPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={donorData.confirmPassword} onChange={e => setDonorData({...donorData, confirmPassword: e.target.value})} autoComplete="new-password" />
                 <PwdToggle show={showConfirmPwd} onToggle={() => setShowConfirmPwd(v => !v)} />
               </div>
@@ -226,7 +226,7 @@ const Register: React.FC = () => {
               </label>
               <label className="flex items-center gap-2 text-sm text-text-main">
                 <input type="checkbox" checked={donorData.anonymousMode} onChange={e => setDonorData({...donorData, anonymousMode: e.target.checked})} />
-                Doar anonimamente
+                Apoiar anonimamente
               </label>
             </div>
 
@@ -283,7 +283,7 @@ const Register: React.FC = () => {
 
             <div className="form-group">
               <label className="form-label">Senha de acesso</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:14}}>
+              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
                 <input type={showPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={entityData.password} onChange={e => setEntityData({...entityData, password: e.target.value})} autoComplete="new-password" />
                 <PwdToggle show={showPwd} onToggle={() => setShowPwd(v => !v)} />
               </div>
@@ -291,7 +291,7 @@ const Register: React.FC = () => {
 
             <div className="form-group">
               <label className="form-label">Confirmar Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:14}}>
+              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
                 <input type={showConfirmPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={entityData.confirmPassword} onChange={e => setEntityData({...entityData, confirmPassword: e.target.value})} autoComplete="new-password" />
                 <PwdToggle show={showConfirmPwd} onToggle={() => setShowConfirmPwd(v => !v)} />
               </div>
@@ -341,7 +341,7 @@ const Register: React.FC = () => {
 
             <div className="form-group">
               <label className="form-label">Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:14}}>
+              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
                 <input type={showPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={beneficiaryData.password} onChange={e => setBeneficiaryData({...beneficiaryData, password: e.target.value})} autoComplete="new-password" />
                 <PwdToggle show={showPwd} onToggle={() => setShowPwd(v => !v)} />
               </div>
@@ -349,7 +349,7 @@ const Register: React.FC = () => {
 
             <div className="form-group">
               <label className="form-label">Confirmar Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:14}}>
+              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
                 <input type={showConfirmPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={beneficiaryData.confirmPassword} onChange={e => setBeneficiaryData({...beneficiaryData, confirmPassword: e.target.value})} autoComplete="new-password" />
                 <PwdToggle show={showConfirmPwd} onToggle={() => setShowConfirmPwd(v => !v)} />
               </div>
@@ -394,11 +394,11 @@ const Register: React.FC = () => {
         <div className="roles-list flex-col gap-4 mb-6 mt-4">
           <button className="role-card-btn" onClick={() => setStep('donor')}>
             <div className="role-icon-wrapper bg-primary/10 text-primary">
-              <Heart size={24} />
+              <Soup size={24} />
             </div>
             <div className="role-card-text">
-              <h3>Quero doar</h3>
-              <p>Doe em poucos segundos e acompanhe seu impacto.</p>
+              <h3>Quero apoiar</h3>
+              <p>Apoie em poucos segundos e acompanhe seu impacto.</p>
             </div>
             <ArrowRight size={20} className="text-outline/40" />
           </button>
@@ -409,7 +409,7 @@ const Register: React.FC = () => {
             </div>
             <div className="role-card-text">
               <h3>Sou uma entidade</h3>
-              <p>Cadastre famílias e conecte doações à sua comunidade.</p>
+              <p>Cadastre famílias e gerencie apoios para sua comunidade.</p>
             </div>
             <ArrowRight size={20} className="text-outline/40" />
           </button>

@@ -4,12 +4,25 @@
   align-items: center;
   padding: var(--spacing-4) 0;
   border-bottom: 1px solid var(--color-surface-highest);
+  border-radius: var(--radius-lg);
+  background: white;
+}
+
+.urgent-header-glow {
+  border: 1px solid var(--color-error);
+  box-shadow: 0 0 15px rgba(220, 53, 69, 0.2);
+  animation: urgent-header-pulse 2s infinite alternate ease-in-out;
+}
+
+@keyframes urgent-header-pulse {
+  from { box-shadow: 0 0 4px rgba(220, 53, 69, 0.1); }
+  to { box-shadow: 0 0 16px rgba(220, 53, 69, 0.35); }
 }
 
 .fh-avatar {
   width: 80px;
   height: 80px;
-  border-radius: 50%;
+  border-radius: var(--radius-xl); /* Geometric */
   background-color: var(--color-surface-highest);
   color: var(--color-primary);
   display: flex;
@@ -39,7 +52,7 @@
 .tag-school {
   background: var(--color-surface-highest);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .urgency-box {

@@ -11,12 +11,13 @@
   align-items: center;
   text-align: center;
   background-color: #ffffff;
-  border-bottom-left-radius: var(--radius-xl);
-  border-bottom-right-radius: var(--radius-xl);
+  border-bottom: 1px solid var(--color-surface-highest);
+  padding-bottom: var(--spacing-6);
 }
 
 .avatar-container {
   position: relative;
+  margin-bottom: var(--spacing-3);
 }
 
 .avatar {
@@ -24,46 +25,50 @@
   height: 80px;
   background-color: var(--color-primary-container);
   color: var(--color-text-inverted);
-  border-radius: 50%;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
   font-weight: 800;
   font-family: var(--font-family-heading);
+  border: 2px solid var(--color-secondary);
 }
 
 .ranking-badge {
   position: absolute;
-  bottom: -4px;
+  bottom: -6px;
   left: 50%;
   transform: translateX(-50%);
   background-color: var(--color-secondary);
-  color: var(--color-text-main);
+  color: var(--color-primary);
   padding: 2px 8px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   font-size: 0.65rem;
   font-weight: 800;
   white-space: nowrap;
   box-shadow: var(--shadow-sm);
   border: 1px solid #ffffff;
+  cursor: pointer;
 }
 
 .user-name {
   font-family: var(--font-family-heading);
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: var(--color-text-main);
 }
 
 .user-email {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--color-outline);
 }
 
 .impact-summary-container {
-  margin-top: -30px;
+  margin-top: -20px;
   position: relative;
   z-index: 10;
+  padding: 0 var(--spacing-4);
 }
 
 .impact-summary {
@@ -108,29 +113,166 @@
   background-color: var(--color-surface-highest);
 }
 
-.message-box {
-  background-color: rgba(199, 167, 84, 0.1);
-  border: 1px solid rgba(199, 167, 84, 0.3);
-  border-radius: var(--radius-md);
+/* Achievement Progress CSS */
+.achievement-card {
+  background-color: #ffffff;
+  border: 1px solid var(--color-surface-highest);
+  border-radius: var(--radius-lg);
   padding: var(--spacing-4);
+  margin: var(--spacing-4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.achievement-card:hover {
+  border-color: var(--color-secondary);
+  background-color: rgba(199, 167, 84, 0.02);
+}
+
+.achievement-header {
   display: flex;
-  gap: var(--spacing-3);
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-2);
 }
 
-.quote {
+.achievement-title {
+  font-family: var(--font-family-heading);
   font-size: 0.9rem;
-  font-style: italic;
-  font-weight: 500;
-  color: var(--color-text-main);
-  line-height: 1.5;
-  margin-bottom: 4px;
+  font-weight: 800;
+  color: var(--color-primary);
 }
 
-.author {
-  font-size: 0.8rem;
+.achievement-level {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-secondary);
+}
+
+.achievement-progress-container {
+  width: 100%;
+  background-color: var(--color-surface-highest);
+  height: 6px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--spacing-2);
+}
+
+.achievement-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  border-radius: var(--radius-sm);
+}
+
+.achievement-footer {
+  font-size: 0.75rem;
+  color: var(--color-outline);
+}
+
+/* Wikipedia-Style Infobox Card */
+.wikipedia-infobox-container {
+  margin: var(--spacing-4);
+  background-color: #ffffff;
+  border: 1px solid var(--color-surface-highest);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+}
+
+.infobox-title {
+  font-family: var(--font-family-heading);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  border-bottom: 1.5px solid var(--color-secondary);
+  padding-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.infobox-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing-4);
+}
+
+.infobox-row {
+  border-bottom: 1px solid rgba(0, 54, 95, 0.05);
+}
+
+.infobox-row:last-child {
+  border-bottom: none;
+}
+
+.infobox-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-outline);
+  padding: var(--spacing-2) 0;
+  width: 40%;
+  text-transform: uppercase;
+}
+
+.infobox-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+  padding: var(--spacing-2) 0;
+}
+
+.infobox-qr-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-4);
+  background-color: var(--color-background);
+  border: 1px dashed var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-4);
+}
+
+.infobox-qr-label {
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-outline);
+  margin-top: var(--spacing-2);
+  text-transform: uppercase;
+}
+
+/* Quotes */
+.quote-section {
+  background-color: rgba(199, 167, 84, 0.05);
+  border-left: 3px solid var(--color-secondary);
+  border-radius: var(--radius-sm);
+  margin: var(--spacing-4);
+  padding: var(--spacing-4);
+}
+
+.quote-text {
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--color-text-main);
+}
+
+.quote-author {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-outline);
+  text-align: right;
+  margin-top: var(--spacing-2);
+}
+
+/* History List */
+.history-section {
+  margin: var(--spacing-4);
+}
+
+.section-title {
+  font-family: var(--font-family-heading);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-primary);
 }
 
 .history-card {
@@ -141,13 +283,14 @@
   padding: var(--spacing-3);
   border: 1px solid var(--color-surface-highest);
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  margin-bottom: var(--spacing-2);
 }
 
 .history-icon-wrapper {
   width: 36px;
   height: 36px;
   background-color: rgba(0, 54, 95, 0.05);
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,6 +312,7 @@
 
 .history-date {
   font-size: 0.75rem;
+  color: var(--color-outline);
 }
 
 .history-amount {
@@ -176,6 +320,14 @@
   font-weight: 800;
   font-size: 1rem;
   color: var(--color-primary);
+}
+
+/* Action Menu buttons */
+.action-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin: var(--spacing-4);
 }
 
 .menu-btn {
@@ -186,14 +338,67 @@
   height: 52px;
   background-color: #ffffff;
   border: 1px solid var(--color-surface-highest);
+  border-radius: var(--radius-md);
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
 }
 
-.menu-btn .btn-icon {
-  margin-right: var(--spacing-2);
+.menu-btn:hover {
+  background-color: var(--color-background);
+  border-color: var(--color-outline-variant);
+}
+
+/* Modal badge grid */
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-4);
+}
+
+.badge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-3);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-surface-highest);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.badge-item.locked {
+  opacity: 0.5;
+}
+
+.badge-icon-container {
+  width: 48px;
+  height: 48px;
+  background-color: rgba(199, 167, 84, 0.1);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-2);
+  color: var(--color-secondary);
+}
+
+.locked .badge-icon-container {
+  background-color: var(--color-surface-highest);
   color: var(--color-outline);
 }
 
-.text-sm {
-  font-size: 0.85rem;
+.badge-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.badge-desc {
+  font-size: 0.6rem;
+  color: var(--color-outline);
+  margin-top: 2px;
 }

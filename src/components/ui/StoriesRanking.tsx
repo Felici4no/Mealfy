@@ -35,15 +35,27 @@ const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor }
               className="story-item"
               onClick={() => onSelectDonor?.(donor)}
             >
-              <div className={`story-avatar-ring ${donor.totalDonated > 5000 ? 'top-tier' : ''}`}>
+              <div className={`story-avatar-ring ${donor.totalDonated > 100 ? 'top-tier' : ''}`}>
                 <div className="story-avatar">
-                  {isAnon ? <User size={28} className="text-outline/40" /> : (donor.avatar || donor.name[0])}
+                  {isAnon ? <User size={24} className="text-outline/40" /> : (donor.avatar || donor.name[0])}
                 </div>
               </div>
               <span className="story-name">{displayName}</span>
             </div>
           );
         })}
+        {/* Posição 21+ Sorteio */}
+        <div
+          className="story-item"
+          onClick={() => onSelectDonor?.({ id: 'sorteio', name: 'Sorteio Destaque', totalDonated: 0, isSorteio: true } as any)}
+        >
+          <div className="story-avatar-ring special-tier">
+            <div className="story-avatar bg-secondary text-primary font-bold text-xs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              21+
+            </div>
+          </div>
+          <span className="story-name" style={{ color: 'var(--color-secondary)' }}>Sorteio 21+</span>
+        </div>
       </div>
     </div>
   );

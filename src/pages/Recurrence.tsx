@@ -1,149 +1,309 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
-import CommunitySelectorModal from '../components/modals/CommunitySelectorModal';
-import { recurrenceService } from '../backend/services/recurrenceService';
-import { useAppContext } from '../context/AppContext';
-import { MapPin, Calendar, CheckCircle2, PauseCircle, Loader2 } from 'lucide-react';
-import type { Recurrence } from '../backend/types';
-import './DonationChoice.css';
+import BottomSheet from '../components/ui/BottomSheet';
+import { useToast } from '../context/ToastContext';
+import { MapPin, Calendar, PauseCircle, PlayCircle, Edit3, Trash2, ShieldAlert, Check } from 'lucide-react';
+import './DonationChoice.css'; // Reuse form styles
+
+interface MockRecurrence {
+  id: string;
+  communityName: string;
+  amount: number;
+  periodicity: 'semanal' | 'mensal';
+  status: 'active' | 'paused';
+  nextBillingDate: string;
+}
+
+const INITIAL_RECURRENCES: MockRecurrence[] = [
+  { id: 'rec-1', communityName: 'Heliópolis', amount: 80, periodicity: 'mensal', status: 'active', nextBillingDate: '10/07/2026' },
+  { id: 'rec-2', communityName: 'Cidade Tiradentes', amount: 40, periodicity: 'semanal', status: 'active', nextBillingDate: '20/06/2026' },
+  { id: 'rec-3', communityName: 'Paraisópolis', amount: 150, periodicity: 'mensal', status: 'paused', nextBillingDate: '01/07/2026' },
+];
 
 const RecurrenceManager: React.FC = () => {
   const navigate = useNavigate();
-  const { user, selectedCommunity } = useAppContext();
-
-  const [recurrence, setRecurrence] = useState<Recurrence | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
   
-  const [editMode, setEditMode] = useState(false);
-  const [targetAmount, setTargetAmount] = useState<number>(40);
-  const [period, setPeriod] = useState<'weekly' | 'monthly'>('monthly');
-  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
+  const [recurrences, setRecurrences] = useState<MockRecurrence[]>(INITIAL_RECURRENCES);
+  
+  // Dialog Actions State
+  const [activeBottomSheet, setActiveBottomSheet] = useState<'pause' | 'edit' | 'cancel' | null>(null);
+  const [selectedRec, setSelectedRec] = useState<MockRecurrence | null>(null);
+  
+  // Editing Temp State
+  const [editAmount, setEditAmount] = useState<number>(40);
+  const [editPeriod, setEditPeriod] = useState<'semanal' | 'mensal'>('mensal');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      recurrenceService.getUserRecurrence(user.id).then(res => {
-        if (res) {
-          setRecurrence(res);
-          setTargetAmount(res.amount);
-          setPeriod(res.periodicity as 'weekly'|'monthly');
-        } else {
-          setEditMode(true); // Se não assina, entra automaticamente no modo curador
-        }
-        setLoading(false);
-      });
+  const openAction = (action: 'pause' | 'edit' | 'cancel', rec: MockRecurrence) => {
+    setSelectedRec(rec);
+    if (action === 'edit') {
+      setEditAmount(rec.amount);
+      setEditPeriod(rec.periodicity);
     }
-  }, [user]);
+    setActiveBottomSheet(action);
+  };
 
-  const handleSave = async () => {
-    if (!user || !targetAmount) return;
+  const closeAction = () => {
+    setActiveBottomSheet(null);
+    setSelectedRec(null);
+  };
+
+  const handleTogglePause = () => {
+    if (!selectedRec) return;
     setIsProcessing(true);
-    try {
-      const saved = await recurrenceService.createOrUpdateRecurrence({
-        userId: user.id,
-        communityId: selectedCommunity?.id || 'all',
-        amount: targetAmount,
-        periodicity: period,
-        status: 'active'
-      });
-      setRecurrence(saved);
-      setEditMode(false);
-    } catch (e) {
-      console.error(e);
-    } finally {
+    setTimeout(() => {
+      const isPausing = selectedRec.status === 'active';
+      setRecurrences(prev => prev.map(item => 
+        item.id === selectedRec.id 
+          ? { ...item, status: isPausing ? 'paused' : 'active' }
+          : item
+      ));
+      showToast(
+        isPausing 
+          ? `Apoio para ${selectedRec.communityName} pausado com sucesso.`
+          : `Apoio para ${selectedRec.communityName} reativado com sucesso.`,
+        'success'
+      );
       setIsProcessing(false);
-    }
+      closeAction();
+    }, 1000);
   };
 
-  const handlePause = async () => {
-    if (!recurrence) return;
+  const handleEditSave = () => {
+    if (!selectedRec) return;
     setIsProcessing(true);
-    await recurrenceService.pauseRecurrence(recurrence.id);
-    setRecurrence({ ...recurrence, status: 'paused' });
-    setIsProcessing(false);
+    setTimeout(() => {
+      setRecurrences(prev => prev.map(item => 
+        item.id === selectedRec.id 
+          ? { ...item, amount: editAmount, periodicity: editPeriod }
+          : item
+      ));
+      showToast(`Apoio para ${selectedRec.communityName} atualizado para R$ ${editAmount} / ${editPeriod}.`, 'success');
+      setIsProcessing(false);
+      closeAction();
+    }, 1000);
   };
 
-  if (loading) return <div className="p-4 mt-8 flex justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>;
+  const handleCancelConfirm = () => {
+    if (!selectedRec) return;
+    setIsProcessing(true);
+    setTimeout(() => {
+      setRecurrences(prev => prev.filter(item => item.id !== selectedRec.id));
+      showToast(`Apoio recorrente para ${selectedRec.communityName} foi cancelado.`, 'success');
+      setIsProcessing(false);
+      closeAction();
+    }, 1000);
+  };
 
   return (
     <div className="donation-choice-page">
-      <AppHeader title="Gerenciar Assinatura" showBack onBack={() => navigate(-1)} />
+      <AppHeader title="Apoio Recorrente" showBack onBack={() => navigate(-1)} />
       
       <main className="content p-4">
-        <h1 className="page-title text-primary mb-2">O Poder da Recorrência</h1>
-        <p className="page-subtitle mb-6">Mantenha a roda solidária girando. Agende distribuições garantidas e mude vidas sem sair do sofá.</p>
+        <h1 className="page-title text-primary mb-2">Seus Apoios Ativos</h1>
+        <p className="page-subtitle text-xs text-outline mb-6">
+          Gerencie suas assinaturas de alimentação programadas para manter a mesa cheia daquelas crianças.
+        </p>
 
-        {(!editMode && recurrence) && (
-          <div className="bg-surface-highest p-4 rounded-md mb-6 border border-primary">
-            <div className="flex justify-between items-center mb-4">
-              <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${recurrence.status === 'active' ? 'bg-[#e8f5e9] text-success' : 'bg-[#fff3e0] text-warning'}`}>
-                {recurrence.status === 'active' ? 'Ativa' : 'Pausada'}
-              </span>
-              <span className="text-secondary font-bold" style={{ fontSize: '1.25rem' }}>R$ {recurrence.amount} {recurrence.periodicity === 'monthly' ? '/mês' : '/sem'}</span>
+        <div className="recurrences-list flex flex-col gap-4">
+          {recurrences.length === 0 ? (
+            <div className="text-center p-8 bg-surface rounded-md border border-outline/10 my-4">
+              <p className="text-sm text-outline italic">Você não possui assinaturas de apoio ativo no momento.</p>
+              <Button variant="primary" className="mt-4" onClick={() => navigate('/donate')}>Começar um Apoio</Button>
             </div>
-            
-            <div className="flex-col gap-2 text-sm">
-               <div className="flex justify-between"><span className="text-outline">Próxima Fatura:</span> <strong>{new Date(recurrence.nextBillingDate).toLocaleDateString('pt-BR')}</strong></div>
-               <div className="flex justify-between"><span className="text-outline">Região Foco:</span> <strong>{selectedCommunity?.name || 'Todas'}</strong></div>
-            </div>
-            
-            <div className="flex gap-2 mt-4">
-              <Button fullWidth size="small" variant="outline" onClick={() => setEditMode(true)}>Alterar</Button>
-              {recurrence.status === 'active' ? (
-                <Button fullWidth size="small" variant="outline" onClick={handlePause} icon={<PauseCircle size={16}/>}>Pausar</Button>
-              ) : (
-                <Button fullWidth size="small" className="bg-success border-success" onClick={() => setEditMode(true)} icon={<CheckCircle2 size={16}/>}>Reativar</Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {(editMode) && (
-          <div className="settings-builder">
-            <section className="region-selector mb-6">
-              <div className="region-card">
-                <div className="region-icon"><MapPin size={20} className="text-secondary" /></div>
-                <div className="region-info">
-                  <span className="region-label">Comunidade Padrão</span>
-                  <span className="region-value">{selectedCommunity?.name}</span>
-                </div>
-                <button className="change-region-btn text-primary" onClick={() => setIsCommunityModalOpen(true)}>Alterar</button>
-              </div>
-            </section>
-
-            <section className="amounts-section mb-6">
-              <h3 className="section-subtitle mb-2 flex items-center gap-2"><Calendar size={18} /> Ciclo de Doação</h3>
-              <div className="recurrence-toggle mb-4">
-                <button className={`toggle-btn ${period === 'weekly' ? 'active' : ''}`} onClick={() => setPeriod('weekly')}>Semanal</button>
-                <button className={`toggle-btn ${period === 'monthly' ? 'active' : ''}`} onClick={() => setPeriod('monthly')}>Mensal</button>
-              </div>
-            </section>
-            
-            <section className="amounts-section mb-6">
-              <h3 className="section-subtitle mb-2">Valor Base</h3>
-              <div className="amount-cards-grid">
-                {[40, 80, 150].map((val) => (
-                  <div key={val} className={`amount-card ${targetAmount === val ? 'selected' : ''}`} onClick={() => setTargetAmount(val)}>
-                    <div className="amount-value">R$ {val}</div>
+          ) : (
+            recurrences.map(rec => (
+              <div 
+                key={rec.id} 
+                className={`p-4 rounded-md border transition-all ${
+                  rec.status === 'active' 
+                    ? 'border-primary bg-white shadow-sm' 
+                    : 'border-outline/10 bg-surface-highest/40 opacity-80'
+                }`}
+              >
+                {/* Header Row */}
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} className="text-primary" />
+                    <span className="font-extrabold text-primary text-sm">{rec.communityName}</span>
                   </div>
-                ))}
+                  <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${
+                    rec.status === 'active' ? 'bg-success/10 text-success' : 'bg-warning/20 text-warning'
+                  }`}>
+                    {rec.status === 'active' ? 'Ativo' : 'Pausado'}
+                  </span>
+                </div>
+
+                {/* Sub details */}
+                <div className="flex justify-between items-end border-b border-outline/5 pb-3 mb-3">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-outline">Próxima renovação</span>
+                    <span className="text-xs text-text-main font-semibold flex items-center gap-1">
+                      <Calendar size={12} /> {rec.nextBillingDate}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-outline block">Valor Programado</span>
+                    <span className="text-lg font-black text-secondary">
+                      R$ {rec.amount} <span className="text-xs font-normal text-outline">/{rec.periodicity === 'mensal' ? 'mês' : 'sem'}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions row */}
+                <div className="flex gap-2 justify-end">
+                  <button 
+                    className="p-2 border border-outline/10 hover:border-primary rounded text-primary flex items-center gap-1 text-xs font-bold bg-white"
+                    onClick={() => openAction('edit', rec)}
+                  >
+                    <Edit3 size={14} /> Editar
+                  </button>
+                  
+                  <button 
+                    className="p-2 border border-outline/10 hover:border-warning rounded text-outline flex items-center gap-1 text-xs font-bold bg-white"
+                    onClick={() => openAction('pause', rec)}
+                  >
+                    {rec.status === 'active' ? (
+                      <><PauseCircle size={14} /> Pausar</>
+                    ) : (
+                      <><PlayCircle size={14} className="text-success" /> Reativar</>
+                    )}
+                  </button>
+
+                  <button 
+                    className="p-2 border border-outline/10 hover:border-error rounded text-error flex items-center gap-1 text-xs font-bold bg-white"
+                    onClick={() => openAction('cancel', rec)}
+                  >
+                    <Trash2 size={14} /> Cancelar
+                  </button>
+                </div>
               </div>
-            </section>
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </main>
 
-      {editMode && (
-        <div className="fixed-bottom-action">
-          <Button size="large" fullWidth onClick={handleSave} disabled={isProcessing} className="shadow-glow" icon={isProcessing?<Loader2 className="animate-spin" />:undefined}>
-            Salvar Preferências
-          </Button>
-        </div>
-      )}
+      {/* ── Confirm Pause/Reactivate BottomSheet ── */}
+      <BottomSheet 
+        isOpen={activeBottomSheet === 'pause'} 
+        onClose={closeAction}
+        title={selectedRec?.status === 'active' ? 'Pausar Apoio Programado' : 'Reativar Apoio Programado'}
+      >
+        {selectedRec && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-outline leading-relaxed">
+              {selectedRec.status === 'active' 
+                ? `Ao pausar seu apoio recorrente a ${selectedRec.communityName}, as doações automáticas serão suspensas até que você decida reativá-lo.`
+                : `Você deseja reativar o seu apoio recorrente de R$ ${selectedRec.amount} por semana/mês para a comunidade de ${selectedRec.communityName}?`}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" fullWidth onClick={closeAction} disabled={isProcessing}>Cancelar</Button>
+              <Button 
+                variant="primary" 
+                fullWidth 
+                loading={isProcessing} 
+                onClick={handleTogglePause}
+                className={selectedRec.status === 'active' ? 'bg-warning border-warning' : 'bg-success border-success'}
+              >
+                {selectedRec.status === 'active' ? 'Pausar Apoio' : 'Reativar Apoio'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
 
-      <CommunitySelectorModal isOpen={isCommunityModalOpen} onClose={() => setIsCommunityModalOpen(false)} />
+      {/* ── Edit Support Value & Cycle BottomSheet ── */}
+      <BottomSheet 
+        isOpen={activeBottomSheet === 'edit'} 
+        onClose={closeAction}
+        title="Editar Ajustes do Apoio"
+      >
+        {selectedRec && (
+          <div className="flex flex-col gap-4">
+            <div className="form-group">
+              <h3 className="section-subtitle mb-2 text-xs font-bold uppercase tracking-wider text-outline">Intervalo</h3>
+              <div className="recurrence-toggle flex bg-surface-highest p-1 rounded-md">
+                <button 
+                  className={`toggle-btn ${editPeriod === 'semanal' ? 'active' : ''}`}
+                  onClick={() => setEditPeriod('semanal')}
+                >
+                  Semanal
+                </button>
+                <button 
+                  className={`toggle-btn ${editPeriod === 'mensal' ? 'active' : ''}`}
+                  onClick={() => setEditPeriod('mensal')}
+                >
+                  Mensal
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <h3 className="section-subtitle mb-2 text-xs font-bold uppercase tracking-wider text-outline">Valor do Apoio</h3>
+              <div className="amount-cards-grid grid grid-cols-3 gap-2">
+                {[40, 80, 150].map((val) => (
+                  <button 
+                    key={val} 
+                    type="button"
+                    className={`amount-card p-3 rounded-md border text-center font-bold ${
+                      editAmount === val ? 'border-primary bg-primary/5 text-primary' : 'border-outline/10 bg-white'
+                    }`} 
+                    onClick={() => setEditAmount(val)}
+                  >
+                    R$ {val}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" fullWidth onClick={closeAction} disabled={isProcessing}>Cancelar</Button>
+              <Button 
+                variant="primary" 
+                fullWidth 
+                loading={isProcessing} 
+                onClick={handleEditSave}
+              >
+                Salvar Alterações
+              </Button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
+
+      {/* ── Confirm Cancel BottomSheet ── */}
+      <BottomSheet 
+        isOpen={activeBottomSheet === 'cancel'} 
+        onClose={closeAction}
+        title="Cancelar Apoio Definitivamente"
+      >
+        {selectedRec && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 p-3 bg-error/5 border border-error/20 rounded-md">
+              <ShieldAlert size={24} className="text-error" />
+              <p className="text-xs text-error font-semibold">Atenção: A ausência de apoio programado pode deixar crianças da região desamparadas.</p>
+            </div>
+            <p className="text-sm text-outline leading-relaxed">
+              Tem certeza absoluta de que deseja cancelar o apoio de R$ {selectedRec.amount}/{selectedRec.periodicity} para {selectedRec.communityName}? Essa ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" fullWidth onClick={closeAction} disabled={isProcessing}>Manter Apoio</Button>
+              <Button 
+                variant="primary" 
+                fullWidth 
+                loading={isProcessing} 
+                onClick={handleCancelConfirm}
+                className="bg-error border-error text-inverted"
+              >
+                Sim, Cancelar Apoio
+              </Button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 };

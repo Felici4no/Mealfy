@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
-import CommunitySelectorModal from '../components/modals/CommunitySelectorModal';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { donationService } from '../backend/services/donationService';
-import { MapPin, Info, Loader2 } from 'lucide-react';
+import { MapPin, Info, Loader2, Users, Layers, Award, Sparkles, Check, ChevronRight } from 'lucide-react';
 import './DonationChoice.css';
 
 const DonationChoice: React.FC = () => {
@@ -15,152 +14,344 @@ const DonationChoice: React.FC = () => {
   const { selectedCommunity, user } = useAppContext();
   const { showToast } = useToast();
   
+  // Navigation states
   const targetFamily = location.state?.targetFamily as any; 
   const selectedFamilyIds = location.state?.selectedFamilyIds as string[] | undefined;
   
   const isBatch = !!selectedFamilyIds && selectedFamilyIds.length > 0;
-  const count = isBatch ? selectedFamilyIds!.length : 1;
+  const initialFamilyCount = isBatch ? selectedFamilyIds!.length : (targetFamily ? 1 : 1);
 
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(
-    count === 1 ? 30 : (count === 2 ? 40 : 50)
-  );
+  // Wizard Steps
+  // Steps: 'families' -> 'children' -> 'summary'
+  const [wizardStep, setWizardStep] = useState<'families' | 'children' | 'summary'>('families');
+  
+  // Selection States
+  const [familiesCount, setFamiliesCount] = useState<number>(initialFamilyCount);
+  const [childrenTier, setChildrenTier] = useState<'1' | '2' | '3' | 'todos'>('todos');
   const [isRecurrent, setIsRecurrent] = useState(false);
-  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // If no community is selected yet (e.g., accessed direct by URL before initialization finishes), fallback safely
-  if (!selectedCommunity) return null;
+  // If a target family is passed, lock the children tier automatically
+  useEffect(() => {
+    if (targetFamily) {
+      const cnt = targetFamily.childrenCount;
+      if (cnt === 1) setChildrenTier('1');
+      else if (cnt === 2) setChildrenTier('2');
+      else setChildrenTier('3');
+      
+      setWizardStep('summary'); // Skip setup steps for direct family support
+    } else if (isBatch) {
+      setWizardStep('children'); // Skip family count stepper since we have batch selection
+    }
+  }, [targetFamily, isBatch]);
 
-  const amounts = [
-    { value: 30, impact: 'Garante alimento para 1 criança por 24h', min: 1 },
-    { value: 40, impact: 'Garante alimento para 2 crianças por 24h', min: 2 },
-    { value: 50, impact: 'Garante alimento para 3 ou mais crianças por 24h', min: 3 },
-  ];
+  // Calculate pricing
+  const getTierPrice = (tier: typeof childrenTier) => {
+    switch (tier) {
+      case '1': return 25;
+      case '2': return 40;
+      case '3': return 50;
+      case 'todos':
+      default: return 35;
+    }
+  };
+
+  const getTierDescription = (tier: typeof childrenTier) => {
+    switch (tier) {
+      case '1': return '1 filho por família (R$ 25)';
+      case '2': return '2 filhos por família (R$ 40)';
+      case '3': return '3+ filhos por família (R$ 50)';
+      case 'todos':
+      default: return 'Distribuição mista (média R$ 35)';
+    }
+  };
+
+  const pricePerFamily = getTierPrice(childrenTier);
+  const totalAmount = familiesCount * pricePerFamily;
 
   const handleContinue = async () => {
-    if (!selectedAmount) return; 
-    
     setIsProcessing(true);
     try {
-      let result;
-      if (isBatch) {
-        const batchResult = await donationService.createBatchDonation({
-          familyIds: selectedFamilyIds!,
-          amountPerFamily: Math.floor(selectedAmount / count),
-          donorId: user?.id || `anon-${Date.now()}`,
-          communityId: selectedCommunity.id
-        });
-        // For success screen, we adapt the result format
-        result = { 
-          donation: batchResult.donations[0], 
-          giftCard: batchResult.giftCards[0], 
-          familyAssigned: { representativeName: `${count} Famílias` } 
-        };
-      } else {
-        result = await donationService.createDonation({
-          amount: selectedAmount,
-          communityId: selectedCommunity.id,
-          donorId: user?.id,
-          familyId: targetFamily?.id
-        });
-      }
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Build mock result structure
+      const mockResult = {
+        donation: {
+          id: `don-${Date.now()}`,
+          amount: totalAmount,
+          createdAt: new Date().toISOString(),
+        },
+        giftCard: {
+          label: targetFamily 
+            ? `Vale Alimentar - ${targetFamily.representativeName}`
+            : `Apoio Coletivo - ${familiesCount} Famílias`,
+          code: 'GC-ALIM-2026',
+          provider: 'Mercado Parceiro / iFood'
+        },
+        familyAssigned: {
+          representativeName: targetFamily ? targetFamily.representativeName : `${familiesCount} Famílias`,
+          childrenCount: targetFamily ? targetFamily.childrenCount : 2
+        }
+      };
 
-      navigate('/success', { state: { donationResult: result, isBatch, count } });
+      navigate('/success', { 
+        state: { 
+          donationResult: mockResult, 
+          isBatch: isBatch || familiesCount > 1, 
+          count: familiesCount,
+          totalAmount
+        } 
+      });
     } catch (err: any) {
-      console.error(err);
-      showToast(err.message || 'Erro ao processar doação.', 'error');
+      showToast('Erro ao processar o suporte alimentar.', 'error');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // Safe checks
+  const communityName = selectedCommunity?.name || 'Região Selecionada';
+
   return (
     <div className="donation-choice-page">
-      <AppHeader title="Doação" showBack onBack={() => navigate(-1)} />
+      <AppHeader title="Combater a Fome" showBack onBack={() => navigate(-1)} />
       
       <main className="content p-4">
-        <h1 className="page-title text-primary mb-2">Escolha como deseja ajudar</h1>
-        <p className="page-subtitle mb-6">Sua generosidade se transforma em esperança na mesa de quem precisa.</p>
-        
-        <section className="region-selector mb-6">
-          <div className="region-card">
-            <div className="region-icon">
-              <MapPin size={20} className="text-secondary" />
-            </div>
-            <div className="region-info">
-              <span className="region-label">Comunidade selecionada</span>
-              <span className="region-value">{targetFamily ? `${selectedCommunity.name} (Destino Travado)` : selectedCommunity.name}</span>
-            </div>
-            {!targetFamily && (
-              <button 
-                className="change-region-btn text-primary"
-                onClick={() => setIsCommunityModalOpen(true)}
-                disabled={isProcessing}
-              >
-                Alterar
-              </button>
-            )}
-          </div>
-        </section>
+        {/* Progress header */}
+        <div className="wizard-progress mb-6 flex justify-between items-center bg-surface-highest/40 p-3 rounded-md border border-outline/5">
+          <span className={`progress-step-label text-xs font-bold ${wizardStep === 'families' ? 'text-primary' : 'text-outline/50'}`}>
+            1. Famílias
+          </span>
+          <ChevronRight size={14} className="text-outline/30" />
+          <span className={`progress-step-label text-xs font-bold ${wizardStep === 'children' ? 'text-primary' : 'text-outline/50'}`}>
+            2. Crianças
+          </span>
+          <ChevronRight size={14} className="text-outline/30" />
+          <span className={`progress-step-label text-xs font-bold ${wizardStep === 'summary' ? 'text-primary' : 'text-outline/50'}`}>
+            3. Resumo
+          </span>
+        </div>
 
-        <section className="amounts-section mb-6">
-          <div className="amount-cards-grid">
-            {amounts.map((item) => (
-              <div 
-                key={item.value}
-                className={`amount-card ${selectedAmount === item.value ? 'selected' : ''} ${isProcessing ? 'disabled' : ''}`}
-                onClick={() => { if(!isProcessing) setSelectedAmount(item.value) }}
-              >
-                <div className="amount-value">R$ {item.value}</div>
-                <div className="amount-impact">{item.impact}</div>
-              </div>
-            ))}
+        {/* ── STEP 1: Families Count Stepper ── */}
+        {wizardStep === 'families' && (
+          <div className="wizard-step-content fade-in">
+            <h2 className="step-title text-primary font-bold text-lg mb-2">Quantas famílias você quer ajudar?</h2>
+            <p className="step-subtitle text-xs text-outline mb-6">Cada família selecionada receberá um vale alimentação direto.</p>
             
-          </div>
-        </section>
-
-        <section className="recurrence-section mb-6">
-          <h3 className="section-subtitle">Tipo de doação</h3>
-          <div className="recurrence-toggle">
-            <button 
-              className={`toggle-btn ${!isRecurrent ? 'active' : ''}`}
-              onClick={() => { if(!isProcessing) setIsRecurrent(false) }}
-            >
-              Única
-            </button>
-            <button 
-              className={`toggle-btn ${isRecurrent ? 'active' : ''}`}
-              onClick={() => { if(!isProcessing) setIsRecurrent(true) }}
-            >
-              Mensal
-            </button>
-          </div>
-          {isRecurrent && (
-            <div className="recurrence-info mt-4 flex items-center gap-2 text-outline">
-              <Info size={16} />
-              <span style={{ fontSize: '0.8rem' }}>A doação mensal ajuda a manter o apoio constante às famílias.</span>
+            <div className="stepper-container flex items-center justify-center gap-6 py-8 bg-surface rounded-md border border-outline/10 mb-8">
+              <button 
+                type="button"
+                className="stepper-btn"
+                disabled={familiesCount <= 1}
+                onClick={() => setFamiliesCount(prev => Math.max(1, prev - 1))}
+              >
+                -
+              </button>
+              <div className="stepper-value flex flex-col items-center">
+                <span className="value-number font-black text-primary text-4xl">{familiesCount}</span>
+                <span className="value-label text-[10px] uppercase font-bold text-outline">Famílias</span>
+              </div>
+              <button 
+                type="button"
+                className="stepper-btn"
+                onClick={() => setFamiliesCount(prev => prev + 1)}
+              >
+                +
+              </button>
             </div>
-          )}
-        </section>
+
+            <Button 
+              variant="primary" 
+              fullWidth 
+              size="large"
+              onClick={() => setWizardStep('children')}
+              className="mt-4"
+            >
+              Definir Perfil Familiar
+            </Button>
+          </div>
+        )}
+
+        {/* ── STEP 2: Children Count Options ── */}
+        {wizardStep === 'children' && (
+          <div className="wizard-step-content fade-in">
+            <h2 className="step-title text-primary font-bold text-lg mb-2">Quantos filhos por família?</h2>
+            <p className="step-subtitle text-xs text-outline mb-6">Ajuste o apoio financeiro baseado no tamanho da família.</p>
+            
+            <div className="tier-options-list flex flex-col gap-3 mb-8">
+              <button 
+                type="button"
+                className={`tier-option-card text-left p-4 rounded-md border transition-all flex justify-between items-center ${
+                  childrenTier === '1' ? 'border-primary bg-primary/5' : 'border-outline/10 bg-white'
+                }`}
+                onClick={() => setChildrenTier('1')}
+              >
+                <div>
+                  <h4 className="font-bold text-primary text-sm">1 Filho</h4>
+                  <span className="text-xs text-outline">Destina R$ 25 por família alimentada</span>
+                </div>
+                {childrenTier === '1' && <Check size={18} className="text-primary" />}
+              </button>
+
+              <button 
+                type="button"
+                className={`tier-option-card text-left p-4 rounded-md border transition-all flex justify-between items-center ${
+                  childrenTier === '2' ? 'border-primary bg-primary/5' : 'border-outline/10 bg-white'
+                }`}
+                onClick={() => setChildrenTier('2')}
+              >
+                <div>
+                  <h4 className="font-bold text-primary text-sm">2 Filhos</h4>
+                  <span className="text-xs text-outline">Destina R$ 40 por família alimentada</span>
+                </div>
+                {childrenTier === '2' && <Check size={18} className="text-primary" />}
+              </button>
+
+              <button 
+                type="button"
+                className={`tier-option-card text-left p-4 rounded-md border transition-all flex justify-between items-center ${
+                  childrenTier === '3' ? 'border-primary bg-primary/5' : 'border-outline/10 bg-white'
+                }`}
+                onClick={() => setChildrenTier('3')}
+              >
+                <div>
+                  <h4 className="font-bold text-primary text-sm">3+ Filhos</h4>
+                  <span className="text-xs text-outline">Destina R$ 50 por família alimentada</span>
+                </div>
+                {childrenTier === '3' && <Check size={18} className="text-primary" />}
+              </button>
+
+              <button 
+                type="button"
+                className={`tier-option-card text-left p-4 rounded-md border transition-all flex justify-between items-center ${
+                  childrenTier === 'todos' ? 'border-primary bg-primary/5' : 'border-outline/10 bg-white'
+                }`}
+                onClick={() => setChildrenTier('todos')}
+              >
+                <div>
+                  <h4 className="font-bold text-primary text-sm">Qualquer perfil (Recomendado)</h4>
+                  <span className="text-xs text-outline">Destina uma média de R$ 35 por família</span>
+                </div>
+                {childrenTier === 'todos' && <Check size={18} className="text-primary" />}
+              </button>
+            </div>
+
+            <div className="flex gap-3">
+              {!isBatch && (
+                <Button 
+                  variant="outline" 
+                  fullWidth 
+                  onClick={() => setWizardStep('families')}
+                >
+                  Voltar
+                </Button>
+              )}
+              <Button 
+                variant="primary" 
+                fullWidth 
+                onClick={() => setWizardStep('summary')}
+              >
+                Ver Resumo
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 3: Summary Screen ── */}
+        {wizardStep === 'summary' && (
+          <div className="wizard-step-content fade-in">
+            <h2 className="step-title text-primary font-bold text-lg mb-2">Resumo da sua Ação</h2>
+            <p className="step-subtitle text-xs text-outline mb-6">Revise as informações antes de confirmar o apoio alimentar.</p>
+            
+            {/* Target Card details */}
+            <div className="summary-details-card bg-surface p-4 rounded-md border border-outline/10 mb-6 flex flex-col gap-3">
+              {targetFamily ? (
+                <div className="flex items-center gap-3 bg-white p-3 rounded border border-outline/5">
+                  <div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center text-primary font-bold">
+                    {targetFamily.representativeName.charAt(0)}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-secondary uppercase block">Família Direta</span>
+                    <span className="font-bold text-primary text-sm">{targetFamily.representativeName}</span>
+                    <span className="text-[10px] text-outline block">{targetFamily.neighborhood} • {targetFamily.childrenCount} filhos</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 bg-white p-3 rounded border border-outline/5">
+                  <div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center text-primary">
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-secondary uppercase block">Apoio Coletivo</span>
+                    <span className="font-bold text-primary text-sm">{familiesCount} {familiesCount === 1 ? 'Família' : 'Famílias'}</span>
+                    <span className="text-[10px] text-outline block">Região: {communityName}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="w-full border-t border-outline/10 my-1"></div>
+
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-outline">Preço por família:</span>
+                <span className="font-bold text-text-main">R$ {pricePerFamily.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-outline">Perfil de crianças:</span>
+                <span className="font-bold text-text-main">{getTierDescription(childrenTier)}</span>
+              </div>
+
+              <div className="w-full border-t border-outline/10 my-1"></div>
+
+              {/* Total Display */}
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm font-extrabold text-primary">VALOR TOTAL:</span>
+                <span className="text-2xl font-black text-secondary">R$ {totalAmount.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Recurrent option */}
+            <div className="bg-surface-highest/60 p-4 rounded-md border border-outline/5 mb-6 flex flex-col gap-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={isRecurrent} 
+                  onChange={(e) => setIsRecurrent(e.target.checked)} 
+                  disabled={isProcessing}
+                />
+                <span className="text-sm font-bold text-primary">Tornar este apoio recorrente (mensal)</span>
+              </label>
+              <p className="text-[10px] text-outline pl-6 leading-relaxed">
+                Ao selecionar apoio mensal, a Mealfy debitará este valor automaticamente a cada 30 dias para manter a estabilidade alimentar dessas crianças.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              {!targetFamily && (
+                <Button 
+                  variant="outline" 
+                  fullWidth 
+                  disabled={isProcessing}
+                  onClick={() => setWizardStep('children')}
+                >
+                  Voltar
+                </Button>
+              )}
+              <Button 
+                variant="primary" 
+                fullWidth 
+                size="large"
+                className="bg-secondary text-primary font-black"
+                loading={isProcessing}
+                onClick={handleContinue}
+              >
+                Confirmar e Alimentar
+              </Button>
+            </div>
+          </div>
+        )}
       </main>
-
-      <div className="fixed-bottom-action">
-        <Button 
-          size="large" 
-          fullWidth 
-          onClick={handleContinue}
-          className="shadow-glow"
-          disabled={!selectedAmount || isProcessing}
-          icon={isProcessing ? <Loader2 className="animate-spin" size={20} /> : undefined}
-        >
-          {isProcessing ? 'Processando doação...' : (selectedAmount ? `Continuar com R$ ${selectedAmount}` : 'Continuar')}
-        </Button>
-      </div>
-
-      <CommunitySelectorModal 
-        isOpen={isCommunityModalOpen} 
-        onClose={() => setIsCommunityModalOpen(false)} 
-      />
     </div>
   );
 };

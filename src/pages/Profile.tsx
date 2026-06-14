@@ -2,27 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
-import RankingDetailsModal from '../components/modals/RankingDetailsModal';
 import BottomSheet from '../components/ui/BottomSheet';
-import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings } from 'lucide-react';
+import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings, QrCode, Share2, Award, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { donationService } from '../backend/services/donationService';
 import { rankingService } from '../backend/services/rankingService';
 import ImpactRegionSelector from '../components/modals/ImpactRegionSelector';
-import type { Donation, GiftCard } from '../backend/types';
+import { useToast } from '../context/ToastContext';
 import './Profile.css';
 
+interface Badge {
+  id: string;
+  name: string;
+  desc: string;
+  icon: React.ReactNode;
+  unlocked: boolean;
+}
+
 const Profile: React.FC = () => {
-  const { user, logout, updateUserPrivacy } = useAppContext();
+  const { user, logout, updateUserPrivacy, selectedRegion } = useAppContext();
   const navigate = useNavigate();
-  const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
-  const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
+  const { showToast } = useToast();
+  
+  const [history, setHistory] = useState<any[]>([]);
   const [rankingInfo, setRankingInfo] = useState<any>(null);
+  
+  // Sheet and Modal states
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRegionSelectorOpen, setIsRegionSelectorOpen] = useState(false);
+  const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
   
   const [loading, setLoading] = useState(true);
 
+  // Load user data & history
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!user) return;
@@ -49,56 +61,94 @@ const Profile: React.FC = () => {
 
   if (!user) return null;
 
+  // Mock Achievements badges list
+  const badges: Badge[] = [
+    { id: 'b1', name: 'Pioneiro', desc: 'Realizou o primeiro apoio', icon: <Award size={20} />, unlocked: true },
+    { id: 'b2', name: 'Guardião Regional', desc: 'Apoiou famílias em Heliópolis', icon: <Award size={20} />, unlocked: true },
+    { id: 'b3', name: 'Multiplicador', desc: 'Apoiou 5 ou mais famílias', icon: <Award size={20} />, unlocked: true },
+    { id: 'b4', name: 'Lacre de Ouro', desc: 'Apoiou a tecnologia Mealfy', icon: <Award size={20} />, unlocked: true },
+    { id: 'b5', name: 'Líder de Rede', desc: 'Completou 10 apoios ativos', icon: <Award size={20} />, unlocked: false },
+    { id: 'b6', name: 'Mealfy Champion', desc: 'Alcançou o top 10 do ranking', icon: <Award size={20} />, unlocked: false },
+  ];
+
+  // Helper values
+  const totalSpent = rankingInfo?.totalDonated || 480;
+  const rankPos = rankingInfo?.rankingPosition || 12;
+  const supportsCount = history.length || 6;
+  const currentLevel = "Nível 4: Guardião Alimentar";
+  const nextLevelProgress = 8;
+  const nextLevelTotal = 10;
+  const focusRegion = selectedRegion || 'Heliópolis';
+
+  const handleSharePublicCard = () => {
+    const username = user.privacySettings?.anonymousMode ? 'apoiador-anonimo' : user.name.toLowerCase().replace(/\s+/g, '-');
+    const url = `https://mealfy.app/p/${username}`;
+    navigator.clipboard.writeText(url);
+    showToast('Link da Ficha Pública copiado para a área de transferência!', 'success');
+  };
+
   return (
     <div className="profile-page">
-      <AppHeader title="Meu Perfil" rightAction={<Button variant="ghost" onClick={() => setIsSettingsOpen(true)} icon={<Settings size={22} className="text-outline" />} />} />
+      <AppHeader 
+        title="Meu Perfil" 
+        rightAction={
+          <Button 
+            variant="ghost" 
+            onClick={() => setIsSettingsOpen(true)} 
+            icon={<Settings size={22} className="text-outline" />} 
+          />
+        } 
+      />
       
       <main className="content">
+        {/* ── Profile Header ── */}
         <section className="profile-header p-4 pb-6">
           <div className="avatar-container mb-3">
-            <div className="avatar">{user.avatar || user.name.charAt(0)}</div>
+            <div className="avatar">
+              {user.privacySettings?.anonymousMode ? 'A' : (user.avatar || user.name.charAt(0))}
+            </div>
             {user.role === 'donor' && (
-              <div className="ranking-badge" onClick={() => setIsRankingModalOpen(true)}>
-                {rankingInfo ? rankingInfo.rankingPercentile : '...'}
+              <div className="ranking-badge" onClick={() => setIsAchievementsModalOpen(true)}>
+                {currentLevel.split(':')[0]}
               </div>
             )}
           </div>
           <div className="flex flex-col items-center">
-            <h2 className="user-name">{user.name}</h2>
+            <h2 className="user-name">
+              {user.privacySettings?.anonymousMode ? 'Apoiador Anônimo' : user.name}
+            </h2>
             <div className={`role-badge-pill text-[10px] px-2 py-0.5 rounded-full font-bold uppercase mt-1 mb-1 ${
               user.role === 'donor' ? 'bg-primary/20 text-primary' : 
               user.role === 'entity' ? 'bg-secondary/20 text-secondary' : 
               user.role === 'beneficiary' ? 'bg-success/20 text-success' : 'bg-outline/20 text-outline'
             }`}>
-              {user.role === 'donor' ? 'Doador' : user.role === 'entity' ? `Entidade (${user.status || 'pending'})` : user.role === 'beneficiary' ? 'Beneficiário' : 'Admin'}
+              {user.role === 'donor' ? 'Apoiador' : user.role === 'entity' ? `Entidade (${user.status || 'pending'})` : user.role === 'beneficiary' ? 'Beneficiário' : 'Admin'}
             </div>
             <p className="user-email text-outline">{user.email || user.phone}</p>
           </div>
         </section>
 
+        {/* ── Impact Summary (Donor Only) ── */}
         {user.role === 'donor' && (
-          <section className="impact-summary-container p-4">
-            <div 
-              className="impact-summary shadow-glow-soft cursor-pointer" 
-              onClick={() => setIsRankingModalOpen(true)}
-            >
+          <section className="impact-summary-container">
+            <div className="impact-summary shadow-glow-soft">
               <div className="impact-item">
                 <span className="impact-value">
-                  {loading ? '...' : `R$ ${rankingInfo?.totalDonated || 0}`}
+                  R$ {totalSpent}
                 </span>
-                <span className="impact-label">Doados</span>
+                <span className="impact-label">Apoiado</span>
               </div>
               <div className="impact-divider"></div>
               <div className="impact-item">
                 <span className="impact-value">
-                  {loading ? '...' : history.length}
+                  {supportsCount}
                 </span>
-                <span className="impact-label">Gift Cards</span>
+                <span className="impact-label">Refeições</span>
               </div>
               <div className="impact-divider"></div>
               <div className="impact-item">
                 <span className="impact-value">
-                  {loading ? '...' : `#${rankingInfo?.rankingPosition || '—'}`}
+                  #{rankPos}
                 </span>
                 <span className="impact-label">Ranking</span>
               </div>
@@ -106,42 +156,115 @@ const Profile: React.FC = () => {
           </section>
         )}
 
-        <section className="quote-section p-4 mb-6">
+        {/* ── Achievements Card (Donor Only) ── */}
+        {user.role === 'donor' && (
+          <section 
+            className="achievement-card"
+            onClick={() => setIsAchievementsModalOpen(true)}
+          >
+            <div className="achievement-header">
+              <span className="achievement-title">Sua Evolução Alimentar</span>
+              <span className="achievement-level">{currentLevel}</span>
+            </div>
+            <div className="achievement-progress-container">
+              <div 
+                className="achievement-progress-bar" 
+                style={{ width: `${(nextLevelProgress / nextLevelTotal) * 100}%` }}
+              ></div>
+            </div>
+            <div className="achievement-footer flex justify-between">
+              <span>{nextLevelProgress} de {nextLevelTotal} apoios concluídos</span>
+              <span className="font-bold text-primary">Ver insígnias ›</span>
+            </div>
+          </section>
+        )}
+
+        {/* ── Wikipedia-style Infobox Card (Donor Only) ── */}
+        {user.role === 'donor' && (
+          <section className="wikipedia-infobox-container">
+            <h3 className="infobox-title">Ficha Pública de Impacto</h3>
+            
+            <table className="infobox-table">
+              <tbody>
+                <tr className="infobox-row">
+                  <td className="infobox-label">Apoiador</td>
+                  <td className="infobox-value">
+                    {user.privacySettings?.anonymousMode ? 'Apoiador Anônimo' : user.name}
+                  </td>
+                </tr>
+                <tr className="infobox-row">
+                  <td className="infobox-label">Patente</td>
+                  <td className="infobox-value">{currentLevel}</td>
+                </tr>
+                <tr className="infobox-row">
+                  <td className="infobox-label">Foco Regional</td>
+                  <td className="infobox-value">{focusRegion}</td>
+                </tr>
+                <tr className="infobox-row">
+                  <td className="infobox-label">Impacto Estimado</td>
+                  <td className="infobox-value">{supportsCount * 4} crianças nutridas</td>
+                </tr>
+                {user.privacySettings?.showInstagram && user.instagram && (
+                  <tr className="infobox-row">
+                    <td className="infobox-label">Rede Social</td>
+                    <td className="infobox-value text-secondary font-bold">{user.instagram}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            <div className="infobox-qr-wrapper">
+              <QrCode size={110} className="text-primary" />
+              <span className="infobox-qr-label">Escanear Ficha de Apoiador</span>
+            </div>
+
+            <Button 
+              variant="outline" 
+              fullWidth 
+              size="small" 
+              icon={<Share2 size={16} />}
+              onClick={handleSharePublicCard}
+            >
+              Compartilhar Ficha Pública
+            </Button>
+          </section>
+        )}
+
+        {/* ── Custom Quote ── */}
+        <section className="quote-section">
           <p className="quote-text">
             “Não se iluda: quando você alimenta uma pessoa de verdade, ou estende a mão para cobrir um prato vago, você descobre que esse vazio nunca esteve neles, estava em você.”
           </p>
           <p className="quote-author">— Christiano Montalvão</p>
         </section>
 
+        {/* ── Support History (Donor Only) ── */}
         {user.role === 'donor' && (
-          <section className="history-section p-4">
-            <div className="section-header flex justify-between items-center mb-4">
-              <h3 className="section-title">Minhas doações</h3>
-              {history.length > 0 && <Button variant="ghost" size="small" className="text-primary">Ver tudo</Button>}
-            </div>
+          <section className="history-section">
+            <h3 className="section-title mb-3">Histórico de Apoios</h3>
             
             {loading ? (
                <div className="text-center p-8 text-outline text-sm">
-                  <Clock className="animate-spin mx-auto mb-2" size={20} />
+                  <Clock className="animate-spin mx-auto mb-2 text-primary" size={20} />
                   Carregando histórico...
                </div>
             ) : history.length === 0 ? (
-               <div className="text-center p-10 bg-surface-highest rounded-2xl border border-outline/5">
+               <div className="text-center p-10 bg-white rounded-md border border-outline/5">
                   <Heart size={32} className="text-outline/20 mx-auto mb-3" />
-                  <p className="text-sm text-outline mb-4">Você ainda não realizou doações.</p>
-                  <Button variant="outline" size="small" onClick={() => navigate('/donate')}>Fazer minha primeira doação</Button>
+                  <p className="text-sm text-outline mb-4">Você ainda não realizou apoios.</p>
+                  <Button variant="outline" size="small" onClick={() => navigate('/donate')}>Realizar meu primeiro apoio</Button>
                </div>
             ) : (
-              <div className="history-list flex-col gap-3">
+              <div className="history-list flex flex-col gap-2">
                 {history.slice(0, 3).map((item, i) => (
                   <div key={i} className="history-card">
                     <div className="history-icon-wrapper">
                       <Heart size={16} className="text-primary" />
                     </div>
                     <div className="history-info">
-                      <span className="history-impact">{item.giftCard.label}</span>
+                      <span className="history-impact">{item.giftCard.label || 'Apoio Alimentar Coletivo'}</span>
                       <span className="history-date text-outline">
-                        {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {item.giftCard.status === 'redeemed' ? 'Resgatado' : 'Enviado'}
+                        {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {item.giftCard.status === 'redeemed' ? 'Resgatado' : 'Disponibilizado'}
                       </span>
                     </div>
                     <div className="history-amount">
@@ -154,17 +277,25 @@ const Profile: React.FC = () => {
           </section>
         )}
 
-        <section className="action-menu p-4 flex-col gap-2">
+        {/* ── Actions Menu ── */}
+        <section className="action-menu">
           {user.role === 'donor' && (
             <>
-              <Button variant="ghost" className="menu-btn" icon={<CreditCard size={20} />}>Gerenciar Recorrência</Button>
               <Button 
                 variant="ghost" 
                 className="menu-btn" 
-                icon={<Trophy size={20} />} 
-                onClick={() => setIsRankingModalOpen(true)}
+                icon={<CreditCard size={20} className="text-outline" />}
+                onClick={() => navigate('/recurrence')}
               >
-                Meu Ranking Exclusivo
+                Gerenciar Apoios Recorrentes
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="menu-btn" 
+                icon={<Trophy size={20} className="text-outline" />} 
+                onClick={() => setIsAchievementsModalOpen(true)}
+              >
+                Meu Ranking e Medalhas
               </Button>
             </>
           )}
@@ -173,10 +304,10 @@ const Profile: React.FC = () => {
             <Button 
               variant="ghost" 
               className="menu-btn" 
-              icon={<Heart size={20} />} 
+              icon={<Heart size={20} className="text-outline" />} 
               onClick={() => navigate(user.role === 'donor' ? '/indicate-family' : '/register-family')}
             >
-              {user.role === 'donor' ? 'Indicar Família' : 'Cadastrar Família'}
+              {user.role === 'donor' ? 'Indicar Família para Apoio' : 'Cadastrar Família Beneficiária'}
             </Button>
           )}
 
@@ -184,7 +315,7 @@ const Profile: React.FC = () => {
             <Button 
               variant="ghost" 
               className="menu-btn" 
-              icon={<MessageCircle size={20} />} 
+              icon={<MessageCircle size={20} className="text-outline" />} 
               onClick={() => navigate('/entity/dashboard')}
             >
               Ir para Painel da Entidade
@@ -195,34 +326,33 @@ const Profile: React.FC = () => {
             <Button 
               variant="ghost" 
               className="menu-btn" 
-              icon={<MessageCircle size={20} />} 
+              icon={<MessageCircle size={20} className="text-outline" />} 
               onClick={() => navigate('/beneficiary/dashboard')}
             >
-              Ver Meu Benefício
+              Ver Meus Vale-Refeições Ativos
             </Button>
           )}
 
-          <Button variant="ghost" className="menu-btn" icon={<HelpCircle size={20} />}>Suporte e Ajuda</Button>
+          <Button 
+            variant="ghost" 
+            className="menu-btn" 
+            icon={<HelpCircle size={20} className="text-outline" />}
+            onClick={() => navigate('/help')}
+          >
+            Suporte e Ajuda
+          </Button>
         </section>
       </main>
 
-      {rankingInfo && (
-        <RankingDetailsModal 
-          isOpen={isRankingModalOpen} 
-          onClose={() => setIsRankingModalOpen(false)} 
-        />
-      )}
-
-      <BottomSheet isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Configurações">
-         <div className="flex-col gap-4">
+      {/* ── Settings BottomSheet ── */}
+      <BottomSheet isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Configurações da Conta">
+         <div className="flex flex-col gap-4">
            {user.role === 'donor' && (
-              <div className="bg-surface-highest rounded-xl border border-outline/10 p-4 flex-col gap-4">
+              <div className="bg-surface-highest/60 rounded-lg border border-outline/10 p-4 flex flex-col gap-4">
                  <div className="flex justify-between items-center">
                     <div className="flex flex-col">
-                       <span className="font-semibold text-sm">Preferência de impacto</span>
-                       <span className="text-xs text-outline">
-                         {user.impactPreferences?.preferredRegion ? `Em: ${user.impactPreferences.preferredRegion}` : 'Todas as regiões'}
-                       </span>
+                       <span className="font-semibold text-sm">Região preferencial de apoio</span>
+                       <span className="text-xs text-outline">{focusRegion}</span>
                     </div>
                     <Button variant="ghost" size="small" onClick={() => { setIsSettingsOpen(false); setIsRegionSelectorOpen(true); }} className="text-primary text-xs">
                        Alterar
@@ -231,8 +361,8 @@ const Profile: React.FC = () => {
                  
                  <div className="flex justify-between items-center border-t border-outline/10 pt-4">
                     <div className="flex flex-col">
-                       <span className="font-semibold text-sm">Aparecer no ranking</span>
-                       <span className="text-xs text-outline">Seu nome visível para a comunidade</span>
+                       <span className="font-semibold text-sm">Exibir no Ranking Público</span>
+                       <span className="text-xs text-outline">Seu nome e impacto ficam visíveis na rede</span>
                     </div>
                     <input 
                       type="checkbox" 
@@ -243,8 +373,8 @@ const Profile: React.FC = () => {
                  
                  <div className="flex justify-between items-center">
                     <div className="flex flex-col">
-                       <span className="font-semibold text-sm">Mostrar Instagram</span>
-                       <span className="text-xs text-outline">Link direto para seu perfil social</span>
+                       <span className="font-semibold text-sm">Mostrar link do Instagram</span>
+                       <span className="text-xs text-outline">Exibe link do seu perfil na ficha pública</span>
                     </div>
                     <input 
                       type="checkbox" 
@@ -255,10 +385,10 @@ const Profile: React.FC = () => {
               </div>
            )}
 
-           <div className="bg-surface-highest rounded-xl border border-outline/10 p-4 flex justify-between items-center">
+           <div className="bg-surface-highest/60 rounded-lg border border-outline/10 p-4 flex justify-between items-center">
               <div className="flex flex-col">
                  <span className="font-semibold text-sm">Modo Anônimo</span>
-                 <span className="text-xs text-outline">Ocultar foto e nome real em tudo</span>
+                 <span className="text-xs text-outline">Oculta foto e nome real na plataforma</span>
               </div>
               <input 
                 type="checkbox" 
@@ -273,6 +403,40 @@ const Profile: React.FC = () => {
           </div>
       </BottomSheet>
 
+      {/* ── Custom Achievements Modal ── */}
+      {isAchievementsModalOpen && (
+        <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4 blur-bg">
+          <div className="bg-white max-w-sm w-full p-6 border border-outline/10 rounded-lg relative">
+            <h3 className="font-bold text-lg text-primary mb-2 flex items-center gap-2">
+              <Trophy className="text-secondary" size={22} />
+              Suas Medalhas de Impacto
+            </h3>
+            <p className="text-xs text-outline mb-4">Apoie mais famílias para desbloquear patentes e engajar a comunidade.</p>
+            
+            <div className="badge-grid mb-6">
+              {badges.map((b) => (
+                <div key={b.id} className={`badge-item ${b.unlocked ? '' : 'locked'}`} title={b.desc}>
+                  <div className="badge-icon-container">
+                    {b.icon}
+                  </div>
+                  <span className="badge-name">{b.name}</span>
+                  <span className="badge-desc">{b.unlocked ? 'Desbloqueado' : 'Bloqueado'}</span>
+                </div>
+              ))}
+            </div>
+
+            <Button 
+              variant="primary" 
+              fullWidth 
+              onClick={() => setIsAchievementsModalOpen(false)}
+            >
+              Fechar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Impact region selector modal */}
       <ImpactRegionSelector 
         isOpen={isRegionSelectorOpen} 
         onClose={() => setIsRegionSelectorOpen(false)} 

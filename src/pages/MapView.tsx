@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { familyService } from '../backend/services/familyService';
 import type { Family } from '../backend/types';
 import Button from '../components/ui/Button';
-import { LocateFixed, Filter, MapPin } from 'lucide-react';
+import { LocateFixed, Filter, MapPin, Layers, Heart, ShieldAlert, Check } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import ImpactRegionSelector from '../components/modals/ImpactRegionSelector';
+import BottomSheet from '../components/ui/BottomSheet';
 import './MapView.css';
 
-// Fix missing leafet icon paths conceptually
+// Fix Leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -18,70 +17,220 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Custom Icons
-const brokenHeartIcon = L.divIcon({
-  html: "💔",
-  className: "custom-marker broken",
-  iconSize: [30, 30]
-});
+// Mock families data representing the four neighborhoods with coordinates
+const MOCK_MAP_FAMILIES: Family[] = [
+  {
+    id: 'f1',
+    communityId: 'c1',
+    representativeName: 'Maria Silva',
+    neighborhood: 'Heliópolis',
+    city: 'São Paulo',
+    state: 'SP',
+    shortAddress: 'Viela 3, Setor B',
+    description: 'Mãe solo, desempregada temporariamente com 2 filhos em idade de creche.',
+    childrenCount: 2,
+    children: [
+      { id: 'ch1', name: 'Lucas', age: 7, school: 'EMEF Campos' },
+      { id: 'ch2', name: 'Ana', age: 4, school: 'Creche Local' }
+    ],
+    mainNeed: 'Alimentação infantil e fraldas',
+    supportStatus: 'needs_help',
+    distanceToUser: '1.2 km',
+    priorityLevel: 5, // Urgent
+    latitude: -23.6151,
+    longitude: -46.5912,
+    sourceEntityName: 'Coletivo Heliópolis Solidário'
+  },
+  {
+    id: 'f2',
+    communityId: 'c1',
+    representativeName: 'Dona Cida',
+    neighborhood: 'Heliópolis',
+    city: 'São Paulo',
+    state: 'SP',
+    shortAddress: 'Rua do Sol, 45',
+    description: 'Aposentada que cuida sozinha de 3 netos após o falecimento da filha.',
+    childrenCount: 3,
+    children: [
+      { id: 'ch3', name: 'Pedro', age: 10, school: 'EMEF Campos' },
+      { id: 'ch4', name: 'Carla', age: 8, school: 'EMEF Campos' },
+      { id: 'ch5', name: 'Júlia', age: 5, school: 'Creche Local' }
+    ],
+    mainNeed: 'Cesta de alimentos frescos',
+    supportStatus: 'needs_help',
+    distanceToUser: '1.4 km',
+    priorityLevel: 4,
+    latitude: -23.6180,
+    longitude: -46.5940,
+    sourceEntityName: 'Coletivo Heliópolis Solidário'
+  },
+  {
+    id: 'f3',
+    communityId: 'c3',
+    representativeName: 'Roberto e Sônia',
+    neighborhood: 'Cidade Tiradentes',
+    city: 'São Paulo',
+    state: 'SP',
+    shortAddress: 'Setor G, Prédio 3',
+    description: 'Casal com 3 filhos. Ambos faziam bicos mas perderam renda nas últimas semanas.',
+    childrenCount: 3,
+    children: [
+      { id: 'ch6', name: 'Tiago', age: 12, school: 'EE Tiradentes' },
+      { id: 'ch7', name: 'Mateus', age: 9, school: 'EE Tiradentes' },
+      { id: 'ch8', name: 'Lia', age: 6, school: 'EMEF Local' }
+    ],
+    mainNeed: 'Suplementação alimentar para crianças',
+    supportStatus: 'needs_help',
+    distanceToUser: '8.1 km',
+    priorityLevel: 4,
+    latitude: -23.5855,
+    longitude: -46.4011,
+    sourceEntityName: 'Associação Tiradentes Viva'
+  },
+  {
+    id: 'f4',
+    communityId: 'c2',
+    representativeName: 'Joana Prado',
+    neighborhood: 'Paraisópolis',
+    city: 'São Paulo',
+    state: 'SP',
+    shortAddress: 'Beco da Esperança, 12',
+    description: 'Atualmente trabalha em faxinas mas o salário não cobre alimentação e aluguel.',
+    childrenCount: 1,
+    children: [
+      { id: 'ch9', name: 'Miguel', age: 2, school: 'Creche Municipal' }
+    ],
+    mainNeed: 'Leite especial e papinhas',
+    supportStatus: 'fed', // Supported / Fed
+    distanceToUser: '3.6 km',
+    priorityLevel: 2,
+    latitude: -23.6145,
+    longitude: -46.7289,
+    sourceEntityName: 'União Paraisópolis'
+  },
+  {
+    id: 'f5',
+    communityId: 'c2',
+    representativeName: 'Alice Rocha',
+    neighborhood: 'Paraisópolis',
+    city: 'São Paulo',
+    state: 'SP',
+    shortAddress: 'Rua Central, 88',
+    description: 'Família em extrema vulnerabilidade com 4 filhos pequenos.',
+    childrenCount: 4,
+    children: [
+      { id: 'ch10', name: 'Guilherme', age: 9, school: 'EMEF Paraisópolis' },
+      { id: 'ch11', name: 'Bruno', age: 7, school: 'EMEF Paraisópolis' },
+      { id: 'ch12', name: 'Yasmin', age: 5, school: 'Creche' },
+      { id: 'ch13', name: 'Alice', age: 3, school: 'Creche' }
+    ],
+    mainNeed: 'Alimentação infantil diária',
+    supportStatus: 'needs_help',
+    distanceToUser: '3.3 km',
+    priorityLevel: 5, // Urgent
+    latitude: -23.6110,
+    longitude: -46.7260,
+    sourceEntityName: 'União Paraisópolis'
+  },
+  {
+    id: 'f6',
+    communityId: 'c4',
+    representativeName: 'Regina Santos',
+    neighborhood: 'Brasilândia',
+    city: 'São Paulo',
+    state: 'SP',
+    shortAddress: 'Rua do Morro, 102',
+    description: 'Mãe solo, diarista desempregada cuidando de 3 crianças.',
+    childrenCount: 3,
+    children: [
+      { id: 'ch14', name: 'Enzo', age: 8, school: 'EMEF Brasilândia' },
+      { id: 'ch15', name: 'Valentina', age: 6, school: 'Creche' },
+      { id: 'ch16', name: 'Gabriel', age: 2, school: 'Creche' }
+    ],
+    mainNeed: 'Alimento básico e leite',
+    supportStatus: 'needs_help',
+    distanceToUser: '12.4 km',
+    priorityLevel: 5, // Urgent
+    latitude: -23.4688,
+    longitude: -46.6997,
+    sourceEntityName: 'Brasilândia Unida'
+  },
+  {
+    id: 'f7',
+    communityId: 'c4',
+    representativeName: 'Francisca Lima',
+    neighborhood: 'Brasilândia',
+    city: 'São Paulo',
+    state: 'SP',
+    shortAddress: 'Viela da Paz, 9',
+    description: 'Família numerosa, apoiada ativamente pela cozinha comunitária local.',
+    childrenCount: 5,
+    children: [
+      { id: 'ch17', name: 'Mariana', age: 14, school: 'EE Brasilândia' },
+      { id: 'ch18', name: 'Samuel', age: 12, school: 'EE Brasilândia' },
+      { id: 'ch19', name: 'Ester', age: 9, school: 'EMEF Brasilândia' },
+      { id: 'ch20', name: 'Rafaela', age: 7, school: 'EMEF Brasilândia' },
+      { id: 'ch21', name: 'Daví', age: 4, school: 'Creche' }
+    ],
+    mainNeed: 'Cesta básica completa',
+    supportStatus: 'fed', // Fed / Supported
+    distanceToUser: '12.8 km',
+    priorityLevel: 1,
+    latitude: -23.4710,
+    longitude: -46.7020,
+    sourceEntityName: 'Brasilândia Unida'
+  }
+];
 
-const fullHeartIcon = L.divIcon({
-  html: "❤️",
-  className: "custom-marker",
-  iconSize: [30, 30]
-});
-
-// Helper component to recenter map
-const RecenterControls = ({ center }: { center: [number, number] }) => {
+// Recenter Map Helper
+const MapRecenter = ({ center }: { center: [number, number] }) => {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, map.getZoom());
+    map.setView(center, 12);
   }, [center, map]);
   return null;
 };
 
-import { isBeneficiaryEligible } from '../backend/utils/timeUtils';
-import { isPubliclyVisibleFamily } from '../backend/utils/familyUtils';
-
 const MapView: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedRegion } = useAppContext();
-  const [families, setFamilies] = useState<Family[]>([]);
-  const [showOnlyNeedsHelp, setShowOnlyNeedsHelp] = useState(true);
+  const { selectedRegion, setSelectedRegion } = useAppContext();
+  
+  // Filter States
+  const [bairroFilter, setBairroFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [urgencyFilter, setUrgencyFilter] = useState<string>('all');
+  const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
+  
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5505, -46.6333]);
-  const [isRegionSelectorOpen, setIsRegionSelectorOpen] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5900, -46.6200]); // SP Center roughly
+  const [selectedFamilyPreview, setSelectedFamilyPreview] = useState<Family | null>(null);
 
+  // Sync Bairro filter with Context Selected Region
   useEffect(() => {
-    const filters = selectedRegion ? { region: selectedRegion } : undefined;
-    familyService.getFamilies(filters).then(fams => {
-      setFamilies(fams);
-      
-      if (fams.length > 0) {
-        // Recenter to first family if region is selected
-        const valid = fams.find(f => f.latitude && f.longitude);
-        if (valid) {
-          setMapCenter([valid.latitude, valid.longitude]);
-        }
-      }
-    });
+    if (selectedRegion) {
+      setBairroFilter(selectedRegion);
+    }
   }, [selectedRegion]);
 
-  const displayedFamilies = families.filter(f => {
-    if (!isPubliclyVisibleFamily(f)) return false;
-    
-    const eligible = isBeneficiaryEligible(f);
-    if (showOnlyNeedsHelp) return eligible;
-    return true; // Show all if filter is off
-  });
-
-  const validFamilies = displayedFamilies.filter(f => {
-    const isValid = f.latitude !== undefined && f.latitude !== null && !isNaN(f.latitude) &&
-                    f.longitude !== undefined && f.longitude !== null && !isNaN(f.longitude);
-    if (!isValid) {
-      console.warn(`Família inválida ignorada na renderização do mapa: ${f.id} - ${f.representativeName}`, f);
+  // Recenter map when bairro filter changes
+  useEffect(() => {
+    if (bairroFilter === 'all') {
+      setMapCenter([-23.5900, -46.6200]);
+    } else {
+      const firstFam = MOCK_MAP_FAMILIES.find(f => f.neighborhood.toLowerCase() === bairroFilter.toLowerCase());
+      if (firstFam) {
+        setMapCenter([firstFam.latitude, firstFam.longitude]);
+      }
     }
-    return isValid;
+  }, [bairroFilter]);
+
+  // Filter Logic
+  const filteredFamilies = MOCK_MAP_FAMILIES.filter(fam => {
+    if (bairroFilter !== 'all' && fam.neighborhood.toLowerCase() !== bairroFilter.toLowerCase()) return false;
+    if (statusFilter === 'needs_help' && fam.supportStatus !== 'needs_help') return false;
+    if (statusFilter === 'fed' && fam.supportStatus !== 'fed') return false;
+    if (urgencyFilter === 'high' && fam.priorityLevel < 4) return false;
+    return true;
   });
 
   const toggleSelection = (id: string) => {
@@ -90,170 +239,234 @@ const MapView: React.FC = () => {
     );
   };
 
-  const handleRecenter = () => {
-    // In a real app we'd get device coordinates. Here we recenter to SP Base.
-    setMapCenter([-23.5505, -46.6333]);
+  const handleMarkerClick = (fam: Family) => {
+    if (isSelectionMode) {
+      if (fam.supportStatus === 'needs_help') {
+        toggleSelection(fam.id);
+      }
+    } else {
+      setSelectedFamilyPreview(fam);
+    }
+  };
+
+  // Custom DivIcons with Glowing Shadows
+  const createMarkerIcon = (fam: Family) => {
+    const isSelected = selectedIds.includes(fam.id);
+    const isUrgent = fam.priorityLevel >= 4 && fam.supportStatus === 'needs_help';
+    const isFed = fam.supportStatus === 'fed';
+    
+    let markerClass = 'marker-pin';
+    let iconEmoji = '💔';
+    
+    if (isFed) {
+      markerClass += ' stable-glow';
+      iconEmoji = '❤️';
+    } else if (isUrgent) {
+      markerClass += ' urgent-glow';
+    } else {
+      markerClass += ' warning-glow';
+    }
+
+    if (isSelected) {
+      markerClass += ' selected-glow';
+      iconEmoji = '✅';
+    }
+
+    return L.divIcon({
+      html: `<div class="${markerClass}">${iconEmoji}</div>`,
+      className: 'custom-marker-wrapper',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
   };
 
   return (
     <div className="map-view-page">
+      {/* ── Geometric & Glassmorphic Filter Bar ── */}
+      <div className="map-top-bar glassmorphism">
+        <div className="filters-row flex gap-2 overflow-x-auto py-2 px-3">
+          {/* Bairro Selector */}
+          <select 
+            className="filter-select text-xs font-semibold text-primary" 
+            value={bairroFilter}
+            onChange={(e) => {
+              setBairroFilter(e.target.value);
+              setSelectedRegion(e.target.value === 'all' ? null : e.target.value);
+            }}
+          >
+            <option value="all">Todas as Regiões</option>
+            <option value="Heliópolis">Heliópolis</option>
+            <option value="Paraisópolis">Paraisópolis</option>
+            <option value="Cidade Tiradentes">Cidade Tiradentes</option>
+            <option value="Brasilândia">Brasilândia</option>
+          </select>
+
+          {/* Status Filter */}
+          <select 
+            className="filter-select text-xs font-semibold text-primary"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">Todos os Status</option>
+            <option value="needs_help">Aguardando Refeição</option>
+            <option value="fed">Alimentadas Hoje</option>
+          </select>
+
+          {/* Urgency Filter */}
+          <select 
+            className="filter-select text-xs font-semibold text-primary"
+            value={urgencyFilter}
+            onChange={(e) => setUrgencyFilter(e.target.value)}
+          >
+            <option value="all">Todas as Urgências</option>
+            <option value="high">Alta Prioridade (Urgente)</option>
+          </select>
+
+          {/* Mass Selection Toggle */}
+          <button 
+            className={`filter-btn flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-sm border ${
+              isSelectionMode 
+                ? 'bg-secondary text-primary border-secondary' 
+                : 'bg-white/80 text-outline border-outline/10'
+            }`}
+            onClick={() => {
+              setIsSelectionMode(!isSelectionMode);
+              setSelectedIds([]);
+            }}
+          >
+            <Layers size={12} />
+            {isSelectionMode ? 'Apoio Coletivo: Sim' : 'Apoio Coletivo'}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Leaflet Map Container ── */}
       <div className="map-container-wrapper">
         <MapContainer
           center={mapCenter}
-          zoom={11}
-          scrollWheelZoom={false}
+          zoom={12}
+          scrollWheelZoom={true}
           zoomControl={false}
         >
-          <RecenterControls center={mapCenter} />
+          <MapRecenter center={mapCenter} />
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; OpenStreetMap contributors &copy; CARTO'
           />
 
-          {validFamilies.length === 0 && !showOnlyNeedsHelp && families.length > 0 && (
-             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000, background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-                <h3 className="text-secondary font-bold mb-2">Nenhuma família plotada</h3>
-                <p className="text-sm text-outline">As famílias desta região não possuem coordenadas disponíveis no momento.</p>
-             </div>
-          )}
-
-          {validFamilies.map((fam) => {
-            const isSelected = selectedIds.includes(fam.id);
-            const isEligible = isBeneficiaryEligible(fam);
-            
-            return (
-              <Marker 
-                key={fam.id} 
-                position={[fam.latitude, fam.longitude]}
-                icon={isSelected ? fullHeartIcon : (isEligible ? brokenHeartIcon : fullHeartIcon)}
-              >
-                <Popup>
-                  <div className="popup-header">
-                    <h4 style={{ margin: 0, fontSize: '1rem' }}>{fam.representativeName}</h4>
-                    <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>{fam.childrenCount} filhos</span>
-                  </div>
-                  <div className="popup-body">
-                    <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#666' }}>
-                      <strong>{fam.neighborhood}</strong><br/>
-                      {fam.description}
-                    </p>
-                    {isEligible ? (
-                      <div style={{ color: 'var(--color-error)', fontWeight: 600, fontSize: '0.8rem', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                        💔 Precisa de apoio Nível {fam.priorityLevel}
-                      </div>
-                    ) : (
-                      <div style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '0.8rem', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                        ❤️ Família Alimentada
-                      </div>
-                    )}
-                    <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee', fontSize: '0.75rem', color: '#888' }}>
-                      Fonte: {fam.sourceEntityName || 'Parceiro Oficial'}
-                    </div>
-                  </div>
-                  
-                  <div className="popup-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <Button 
-                      variant="outline" 
-                      size="small" 
-                      fullWidth 
-                      onClick={(e) => {
-                         e.stopPropagation();
-                         navigate(`/family/${fam.id}`);
-                      }}
-                    >
-                      Detalhes
-                    </Button>
-                    
-                    {isEligible && (
-                      <Button 
-                        size="small" 
-                        fullWidth 
-                        variant={isSelected ? 'outline' : 'primary'}
-                        className={isSelected ? 'border-primary text-primary' : 'bg-error border-error text-inverted'}
-                        onClick={(e) => {
-                           e.stopPropagation();
-                           toggleSelection(fam.id);
-                        }}
-                      >
-                        {isSelected ? 'Remover' : 'Selecionar'}
-                      </Button>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+          {filteredFamilies.map((fam) => (
+            <Marker 
+              key={fam.id} 
+              position={[fam.latitude, fam.longitude]}
+              icon={createMarkerIcon(fam)}
+              eventHandlers={{
+                click: () => handleMarkerClick(fam)
+              }}
+            />
+          ))}
         </MapContainer>
       </div>
 
-      <div className="map-overlays">
-        <div className="map-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
-           <div className="flex justify-between items-center bg-surface p-2 rounded-xl shadow-sm">
-             <div className="flex items-center gap-2">
-               <MapPin size={16} className="text-primary" />
-               <span className="text-sm font-bold text-outline">
-                 {selectedRegion ? `Região: ${selectedRegion}` : 'Todas as Regiões'}
-               </span>
-             </div>
-             <Button variant="ghost" size="small" onClick={() => setIsRegionSelectorOpen(true)} className="text-primary px-2 py-1 h-auto text-xs">
-               Alterar
-             </Button>
-           </div>
-           
-           <div className="flex justify-between items-center">
-             <div className="legend-card" style={{ padding: '8px 12px', minWidth: 'auto' }}>
-                <div className="legend-item"><span style={{fontSize: '1rem'}}>💔</span> Aguardando</div>
-                <div className="legend-item"><span style={{fontSize: '1rem'}}>❤️</span> Seguro</div>
-             </div>
-             
-             <div className="filter-card" style={{ padding: '8px 12px', minWidth: 'auto' }}>
-              <button 
-                className="flex items-center gap-2 font-semibold text-sm text-primary"
-                onClick={() => setShowOnlyNeedsHelp(!showOnlyNeedsHelp)}
-              >
-                <Filter size={16} />
-                {showOnlyNeedsHelp ? 'Urgências' : 'Todas'}
-              </button>
-             </div>
-           </div>
-        </div>
-
-        {selectedIds.length > 0 && (
-          <div className="batch-donation-overlay" style={{
-            position: 'absolute',
-            bottom: '100px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            width: '90%',
-            maxWidth: '400px'
-          }}>
-            <Button 
-              size="large" 
-              fullWidth 
-              className="shadow-glow bg-secondary border-secondary text-inverted"
-              onClick={() => navigate('/donate', { state: { selectedFamilyIds: selectedIds } })}
-            >
-              Ajudar {selectedIds.length} {selectedIds.length === 1 ? 'família' : 'famílias'}
-            </Button>
-          </div>
-        )}
-
-        <div className="map-controls">
-           <button 
-             onClick={handleRecenter}
-             className="bg-primary text-inverted p-3 rounded-full shadow-lg flex items-center justify-center cursor-pointer"
-             aria-label="Centralizar na minha região"
-           >
-             <LocateFixed size={24} />
-           </button>
+      {/* ── Legend Card (Left Bottom) ── */}
+      <div className="map-legend-overlay">
+        <div className="legend-card glassmorphism p-3">
+          <div className="legend-item text-xs font-bold text-primary mb-1">LEGENDA</div>
+          <div className="legend-item text-xs"><span className="bullet urgent"></span> Urgência Crítica (💔)</div>
+          <div className="legend-item text-xs"><span className="bullet warning"></span> Aguardando (💔)</div>
+          <div className="legend-item text-xs"><span className="bullet stable"></span> Alimentada (❤️)</div>
         </div>
       </div>
 
-      <ImpactRegionSelector 
-        isOpen={isRegionSelectorOpen} 
-        onClose={() => setIsRegionSelectorOpen(false)} 
-      />
+      {/* ── Mass Support Button (Bottom) ── */}
+      {isSelectionMode && selectedIds.length > 0 && (
+        <div className="mass-action-overlay p-4">
+          <Button 
+            variant="secondary" 
+            size="large" 
+            fullWidth 
+            className="shadow-glow"
+            onClick={() => navigate('/donate', { state: { selectedFamilyIds: selectedIds } })}
+          >
+            Alimentar {selectedIds.length} {selectedIds.length === 1 ? 'família' : 'famílias'} selecionadas
+          </Button>
+        </div>
+      )}
+
+      {/* ── Recenter Controls (Right Bottom) ── */}
+      <div className="map-controls-overlay">
+        <button 
+          onClick={() => setMapCenter([-23.5900, -46.6200])}
+          className="map-control-btn glassmorphism"
+          aria-label="Recentrar Mapa"
+        >
+          <LocateFixed size={20} className="text-primary" />
+        </button>
+      </div>
+
+      {/* ── Slide-up BottomSheet for Family Preview ── */}
+      <BottomSheet 
+        isOpen={selectedFamilyPreview !== null} 
+        onClose={() => setSelectedFamilyPreview(null)}
+        title="Ficha do Beneficiário"
+      >
+        {selectedFamilyPreview && (
+          <div className="family-preview-card p-2 flex flex-col gap-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-extrabold text-primary text-lg">{selectedFamilyPreview.representativeName}</h3>
+                <span className="text-xs text-outline">{selectedFamilyPreview.neighborhood} • {selectedFamilyPreview.distanceToUser}</span>
+              </div>
+              <span className={`urgency-badge text-xs font-bold px-2 py-1 rounded-sm ${
+                selectedFamilyPreview.priorityLevel >= 4 ? 'bg-error/10 text-error' : 'bg-success/10 text-success'
+              }`}>
+                Prioridade {selectedFamilyPreview.priorityLevel}/5
+              </span>
+            </div>
+
+            <p className="text-sm text-text-main italic">"{selectedFamilyPreview.description}"</p>
+
+            <div className="bg-surface-highest/60 p-3 rounded-md border border-outline/5">
+              <span className="text-[10px] uppercase font-bold text-outline block mb-1">Necessidade Principal</span>
+              <p className="text-sm font-semibold">{selectedFamilyPreview.mainNeed}</p>
+              <div className="mt-2 text-xs text-outline flex items-center gap-1">
+                <ShieldAlert size={14} className="text-secondary" />
+                <span>Validado por: <strong>{selectedFamilyPreview.sourceEntityName || 'Parceiro Oficial'}</strong></span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-sm font-medium border-t border-outline/10 pt-3">
+              <span>Filhos: <strong>{selectedFamilyPreview.childrenCount}</strong></span>
+              {selectedFamilyPreview.supportStatus === 'fed' ? (
+                <span className="text-success flex items-center gap-1">
+                  <Check size={16} /> Alimentado hoje
+                </span>
+              ) : (
+                <span className="text-error">Precisa de Refeição</span>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-2">
+              <Button 
+                variant="outline" 
+                fullWidth
+                onClick={() => navigate(`/family/${selectedFamilyPreview.id}`)}
+              >
+                Ver Ficha Completa
+              </Button>
+              {selectedFamilyPreview.supportStatus === 'needs_help' && (
+                <Button 
+                  variant="primary" 
+                  fullWidth
+                  className="bg-secondary text-primary"
+                  onClick={() => navigate('/donate', { state: { targetFamily: selectedFamilyPreview } })}
+                >
+                  Alimentar Família
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 };

@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import AppHeader from '../components/layout/AppHeader';
+import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
 import { donationService } from '../backend/services/donationService';
-import { Gift, Calendar, Heart, Clock } from 'lucide-react';
+import { Gift, Calendar, Heart, Clock, AlertTriangle, CheckCircle2, QrCode, Copy, ShieldAlert, Phone } from 'lucide-react';
 import type { Family, GiftCard, Donation } from '../backend/types';
 import './BeneficiaryDashboard.css';
 
 const BeneficiaryDashboard: React.FC = () => {
   const { user } = useAppContext();
+  const { showToast } = useToast();
+  
   const [family, setFamily] = useState<Family | null>(null);
   const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Simulated status switcher for testing in DEV mode
+  const [simulatedStatus, setSimulatedStatus] = useState<'approved' | 'pending' | 'rejected'>('approved');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,12 +32,25 @@ const BeneficiaryDashboard: React.FC = () => {
          donationService.getDonationHistoryByUser(user.id)
       ]);
 
-      setFamily(fam || null);
+      if (fam) {
+        setFamily(fam);
+        // Default simulatedStatus to family actual status
+        setSimulatedStatus((fam.status as any) || 'approved');
+      }
       setHistory(hist || []);
       setLoading(false);
     };
     fetchData();
   }, [user]);
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    showToast('Código do vale-refeição copiado!', 'success');
+  };
+
+  const handleRequestReview = () => {
+    showToast('Pedido de re-análise enviado à entidade Heliópolis Solidária!', 'success');
+  };
 
   if (loading) {
     return (
@@ -42,71 +62,187 @@ const BeneficiaryDashboard: React.FC = () => {
 
   return (
     <div className="beneficiary-dashboard-page">
-      <AppHeader title="Meu Benefício" />
+      <AppHeader title="Meu Painel" />
+
+      {/* ── DEV Mode State Switcher ── */}
+      {import.meta.env.DEV && (
+        <div className="dev-state-switcher p-3 bg-primary/10 border-b border-primary/20 flex items-center justify-between">
+          <span className="text-[10px] uppercase font-bold text-primary flex items-center gap-1">
+            <Clock size={12} /> Testar Estados (Apenas DEV)
+          </span>
+          <div className="flex gap-1">
+            <button 
+              className={`dev-btn text-[10px] px-2 py-1 ${simulatedStatus === 'pending' ? 'active' : ''}`}
+              onClick={() => setSimulatedStatus('pending')}
+            >
+              Análise
+            </button>
+            <button 
+              className={`dev-btn text-[10px] px-2 py-1 ${simulatedStatus === 'approved' ? 'active' : ''}`}
+              onClick={() => setSimulatedStatus('approved')}
+            >
+              Aprovado
+            </button>
+            <button 
+              className={`dev-btn text-[10px] px-2 py-1 ${simulatedStatus === 'rejected' ? 'active' : ''}`}
+              onClick={() => setSimulatedStatus('rejected')}
+            >
+              Recusado
+            </button>
+          </div>
+        </div>
+      )}
       
       <main className="content p-4">
-        <section className="welcome-header mb-6">
-           <h2 className="text-2xl font-bold text-primary mb-1">Olá, {family?.representativeName || user?.name}</h2>
-           <p className="text-sm text-outline">Acompanhe seu status e benefícios disponíveis.</p>
+        {/* ── Welcome Row ── */}
+        <section className="welcome-header mb-5">
+           <h2 className="text-xl font-bold text-primary mb-1">Olá, {family?.representativeName || user?.name}</h2>
+           <p className="text-sm text-outline">Acompanhe seus vales e a situação do seu cadastro.</p>
         </section>
 
-        <section className="status-card mb-6 p-6 bg-primary text-inverted rounded-2xl shadow-glow-soft">
-           <div className="flex items-center gap-4 mb-4">
-              <div className="status-icon bg-white/20 p-3 rounded-full">
-                 <Heart size={24} fill={family?.supportStatus === 'fed' ? 'white' : 'transparent'} />
+        {/* ── RENDER STATE: PENDING (Em análise) ── */}
+        {simulatedStatus === 'pending' && (
+          <div className="flex flex-col gap-4">
+            <section className="status-banner bg-warning/10 border border-warning/30 p-6 rounded-lg text-center flex flex-col items-center">
+              <Clock size={56} className="text-secondary mb-4 animate-pulse" />
+              <h3 className="font-bold text-lg text-primary mb-2">Cadastro em Análise Física</h3>
+              <p className="text-sm text-outline leading-relaxed">
+                As informações fornecidas estão sob verificação da entidade parceira <strong>Heliópolis Solidária</strong>. 
+                Uma visita domiciliar de rotina pode ser realizada para validação.
+              </p>
+              
+              <div className="w-full border-t border-outline/10 my-4"></div>
+              
+              <div className="flex justify-between w-full text-xs text-outline">
+                <span>Tempo de espera estimado:</span>
+                <span className="font-bold text-primary">até 48 horas úteis</span>
               </div>
+            </section>
+            
+            <section className="bg-white p-4 rounded-lg border border-outline/10">
+              <h4 className="font-bold text-sm text-primary mb-2">O que acontece agora?</h4>
+              <ul className="text-xs text-outline flex flex-col gap-2 list-disc pl-4">
+                <li>Sua ficha será avaliada pela assistente social da comunidade.</li>
+                <li>Havendo aprovação, você receberá um alerta automático pelo WhatsApp cadastrado.</li>
+                <li>O vale-refeição iFood Alimentação será liberado neste aplicativo imediatamente.</li>
+              </ul>
+            </section>
+          </div>
+        )}
+
+        {/* ── RENDER STATE: REJECTED (Recusado) ── */}
+        {simulatedStatus === 'rejected' && (
+          <div className="flex flex-col gap-4">
+            <section className="status-banner bg-error/10 border border-error/30 p-6 rounded-lg text-center flex flex-col items-center">
+              <AlertTriangle size={56} className="text-error mb-4" />
+              <h3 className="font-bold text-lg text-error mb-2">Cadastro não Aprovado</h3>
+              <p className="text-sm text-outline leading-relaxed mb-4">
+                Não foi possível validar as informações informadas ou confirmar a elegibilidade na região indicada.
+              </p>
+              
+              <div className="w-full bg-white p-3 rounded border border-outline/10 text-left mb-4">
+                <span className="text-[10px] uppercase font-bold text-outline block">Motivo do Indeferimento</span>
+                <span className="text-xs font-semibold text-text-main">
+                  Divergência nos dados de residência comprovados ou cadastro fora do perímetro de Heliópolis.
+                </span>
+              </div>
+
+              <Button 
+                variant="primary" 
+                fullWidth 
+                icon={<Phone size={16} />}
+                onClick={handleRequestReview}
+              >
+                Solicitar Revisão de Cadastro
+              </Button>
+            </section>
+
+            <div className="bg-white p-4 rounded-lg border border-outline/10 flex items-center justify-between">
               <div className="flex flex-col">
-                 <span className="text-xs opacity-80 uppercase font-bold tracking-wider">Status Atual</span>
-                 <span className="text-xl font-bold">
-                    {family?.supportStatus === 'fed' ? 'Alimentado hoje' : 'Aguardando apoio'}
-                 </span>
+                <span className="font-semibold text-xs text-primary">Dúvidas? Fale com a Entidade</span>
+                <span className="text-[10px] text-outline">Heliópolis Solidária (Rua das Flores, 45)</span>
               </div>
-           </div>
-           <p className="text-xs opacity-90 leading-relaxed">
-             {family?.supportStatus === 'fed' 
-               ? 'Sua família foi contemplada com uma doação hoje. O gift card já está disponível abaixo.' 
-               : 'Estamos conectando doadores à sua família. Assim que houver uma doação, você será notificado.'}
-           </p>
-        </section>
+              <Button variant="outline" size="small" onClick={() => showToast('Ligando para a entidade...', 'info')}>
+                Contato
+              </Button>
+            </div>
+          </div>
+        )}
 
-        <section className="gift-cards-section mb-6">
-           <h3 className="section-title mb-4 flex items-center gap-2">
-              <Gift size={18} className="text-secondary" />
-              <span>Gift Cards Disponíveis</span>
-           </h3>
-           
-           {family?.supportStatus === 'fed' ? (
-             <div className="gift-card-display p-4 bg-surface-highest border-2 border-dashed border-secondary rounded-xl text-center">
-                <span className="text-xs text-outline block mb-1">CÓDIGO DE RESGATE</span>
-                <span className="text-2xl font-mono font-black text-secondary tracking-widest">GC-ALIM-2026</span>
-                <p className="text-[10px] text-outline mt-2">Válido em qualquer mercado parceiro ou iFood.</p>
-             </div>
-           ) : (
-             <div className="empty-state p-8 text-center bg-surface-highest rounded-xl border border-outline/5">
-                <p className="text-sm text-outline italic">Nenhum gift card ativo no momento.</p>
-                <p className="text-[10px] text-outline mt-1">Volte amanhã após as 08:00 AM para conferir novamente.</p>
-             </div>
-           )}
-        </section>
-
-        <section className="history-preview">
-           <h3 className="section-title mb-4">Últimos Recebimentos</h3>
-           {history.length === 0 ? (
-             <p className="text-xs text-outline text-center py-4 bg-surface rounded-xl italic">Ainda não há registros de recebimento.</p>
-           ) : (
-             <div className="flex-col gap-3">
-                {history.map((item, i) => (
-                  <div key={i} className="history-item p-3 bg-surface rounded-lg border border-outline/5 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <Calendar size={16} className="text-outline" />
-                        <span className="text-sm">{new Date(item.donation.createdAt).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                    <span className="text-sm font-bold text-success">R$ {item.donation.amount}</span>
+        {/* ── RENDER STATE: APPROVED (Aprovado) ── */}
+        {simulatedStatus === 'approved' && (
+          <div className="flex flex-col gap-5">
+            {/* Current Benefit status */}
+            <section className="status-card p-6 bg-primary text-inverted rounded-lg shadow-glow-soft">
+               <div className="flex items-center gap-4 mb-4">
+                  <div className="status-icon bg-white/20 p-3 rounded-md">
+                     <Heart size={24} className="text-inverted" fill="white" />
                   </div>
-                ))}
-             </div>
-           )}
-        </section>
+                  <div className="flex flex-col">
+                     <span className="text-[10px] opacity-80 uppercase font-black tracking-wider">Cadastro Ativo</span>
+                     <span className="text-lg font-extrabold">Alimentado Hoje</span>
+                  </div>
+               </div>
+               <p className="text-xs opacity-90 leading-relaxed">
+                 Sua família recebeu o apoio doado pela rede hoje! O código do vale-refeição iFood Alimentação de R$ 40,00 está liberado abaixo.
+               </p>
+            </section>
+
+            {/* Gift Card Display with QR and copy */}
+            <section className="gift-cards-section">
+               <h3 className="section-title mb-3 flex items-center gap-2">
+                  <Gift size={18} className="text-secondary" />
+                  <span>Vale-Refeição Liberado</span>
+               </h3>
+               
+               <div className="gift-card-display p-5 bg-white border-2 border-dashed border-secondary rounded-lg text-center flex flex-col items-center">
+                  <span className="text-[10px] text-outline block mb-1 uppercase font-bold tracking-wider">Código de Resgate iFood</span>
+                  
+                  <div className="flex items-center gap-2 mb-4 bg-background px-4 py-2 rounded border border-outline-variant">
+                    <span className="text-xl font-mono font-black text-primary tracking-wider">IFOD-ALIM-9928-2026</span>
+                    <button 
+                      className="p-1 hover:text-secondary text-primary transition-all"
+                      onClick={() => handleCopyCode('IFOD-ALIM-9928-2026')}
+                      aria-label="Copiar código"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col items-center p-3 bg-background rounded border border-outline/10 w-full mb-3">
+                    <QrCode size={120} className="text-primary mb-2" />
+                    <span className="text-[10px] text-outline uppercase font-semibold">Apresente no caixa ou no app</span>
+                  </div>
+
+                  <p className="text-[10px] text-outline">
+                    Disponibilizado em: {new Date().toLocaleDateString('pt-BR')} • Válido por 30 dias.
+                  </p>
+               </div>
+            </section>
+
+            {/* Receipt History preview */}
+            <section className="history-preview">
+               <h3 className="section-title mb-3">Recebimentos Anteriores</h3>
+               {history.length === 0 ? (
+                 <p className="text-xs text-outline text-center py-4 bg-white rounded-lg border border-outline/5 italic">Ainda não há registros de apoios recebidos.</p>
+               ) : (
+                 <div className="flex flex-col gap-2">
+                    {history.map((item, i) => (
+                      <div key={i} className="history-item p-3 bg-white rounded-lg border border-outline/10 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <Calendar size={16} className="text-outline" />
+                            <span className="text-xs font-semibold text-outline">
+                              {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')}
+                            </span>
+                        </div>
+                        <span className="text-sm font-extrabold text-success">R$ {item.donation.amount}</span>
+                      </div>
+                    ))}
+                 </div>
+               )}
+            </section>
+          </div>
+        )}
       </main>
     </div>
   );

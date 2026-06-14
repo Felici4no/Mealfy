@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* Design Tokens: Colors */
@@ -17,8 +17,8 @@
   --color-error: #dc3545; /* Added a general error color */
 
   /* Design Tokens: Typography */
-  --font-family-heading: 'Manrope', sans-serif;
-  --font-family-body: 'Inter', sans-serif;
+  --font-family-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-family-body: 'Plus Jakarta Sans', sans-serif;
 
   /* Spacing */
   --spacing-1: 0.25rem;
@@ -30,10 +30,10 @@
   --spacing-8: 3rem;
   
   /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-sm: 0px;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
   --radius-full: 9999px;
   
   /* Shadows */
@@ -180,3 +180,24 @@ ul {
   color: var(--color-outline);
   margin-bottom: 8px;
 }
+
+/* Glassmorphism Utilities */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.dark-glassmorphism {
+  background: rgba(0, 54, 95, 0.8) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.blur-bg {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+

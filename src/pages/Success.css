@@ -22,12 +22,12 @@
 .success-icon-bg {
   width: 80px;
   height: 80px;
-  background-color: var(--color-secondary);
-  border-radius: 50%;
+  background-color: var(--color-success);
+  border-radius: var(--radius-xl); /* Geometric */
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 20px rgba(199, 167, 84, 0.4);
+  box-shadow: 0 8px 20px rgba(40, 167, 69, 0.2);
   animation: scaleIn 0.5s ease-out forwards;
 }
 

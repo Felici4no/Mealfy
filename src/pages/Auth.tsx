@@ -27,7 +27,7 @@ function mapAuthError(err: unknown): string {
 
 // ─── Contas de teste (só renderizadas em DEV) ──────────────────────────────
 const DEV_ACCOUNTS = [
-  { label: 'Doador',       email: 'doador@mealfy.com'       },
+  { label: 'Apoiador',     email: 'doador@mealfy.com'       },
   { label: 'Entidade',     email: 'entidade@mealfy.com'     },
   { label: 'Beneficiário', email: 'beneficiario@mealfy.com' },
 ];
