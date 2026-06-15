@@ -22,10 +22,13 @@ export interface User {
   documentNumber?: string;
   avatar?: string;
   instagram?: string;
+  personalMessage?: string;
   totalDonated: number;
   rankingPosition: number;
   rankingPercentile: string;
   favoriteCommunityId?: string;
+  /** IDs das famílias marcadas como "salvas" pelo usuário (Mapa) */
+  savedFamilyIds?: string[];
   privacySettings?: PrivacySettings;
   impactPreferences?: {
     preferredRegion?: string;
@@ -35,6 +38,21 @@ export interface User {
   entityId?: string; // If role is entity
   beneficiaryId?: string; // If role is beneficiary
   status?: 'pending' | 'approved' | 'rejected' | 'active' | 'suspended';
+}
+
+// Perfil público de doador, exibido no carrossel da Home, no ranking e em /profile/:id
+export interface PublicDonorProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  totalDonated: number;
+  rankingPosition: number;
+  instagram?: string;
+  personalMessage?: string;
+  supportsCount: number;
+  focusRegion?: string;
+  isAnonymous?: boolean;
+  privacySettings?: PrivacySettings;
 }
 
 export interface AuthorizingEntity {

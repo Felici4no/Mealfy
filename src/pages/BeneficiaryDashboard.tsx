@@ -5,9 +5,16 @@ import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
 import { donationService } from '../backend/services/donationService';
-import { Gift, Calendar, Heart, Clock, AlertTriangle, QrCode, Copy, Phone } from 'lucide-react';
+import { Gift, Calendar, Heart, Clock, AlertTriangle, QrCode, Copy, Phone, ShieldCheck, ShieldAlert, ChevronRight } from 'lucide-react';
 import type { Family, GiftCard, Donation } from '../backend/types';
+import GiftCardSelectorModal, { GIFT_CARD_PARTNERS } from '../components/ui/GiftCardSelectorModal';
 import './BeneficiaryDashboard.css';
+
+const GIFT_CARD_CODE_PREFIX: Record<string, string> = {
+  ifood: 'IFOD',
+  carrefour: 'CRFU',
+  '99': '99FD',
+};
 
 const BeneficiaryDashboard: React.FC = () => {
   const { user } = useAppContext();
@@ -19,6 +26,17 @@ const BeneficiaryDashboard: React.FC = () => {
 
   // Simulated status switcher for testing in DEV mode
   const [simulatedStatus, setSimulatedStatus] = useState<'approved' | 'pending' | 'rejected'>('approved');
+
+  // ── Gift card partner selection (mock, persisted locally) ──────────────────
+  const giftCardStorageKey = `mealfy_giftcard_${user?.id || 'guest'}`;
+  const [giftCardProvider, setGiftCardProvider] = useState<string>(
+    () => localStorage.getItem(giftCardStorageKey) || 'ifood'
+  );
+  const [showGiftCardSelector, setShowGiftCardSelector] = useState(false);
+  const selectedPartner = GIFT_CARD_PARTNERS.find((p) => p.id === giftCardProvider) || GIFT_CARD_PARTNERS[0];
+
+  // ── Status de verificação Gov.br (mock visual) ──────────────────────────────
+  const isGovVerified = false;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,6 +68,14 @@ const BeneficiaryDashboard: React.FC = () => {
 
   const handleRequestReview = () => {
     showToast('Pedido de re-análise enviado à entidade Heliópolis Solidária!', 'success');
+  };
+
+  const handleGiftCardConfirm = (providerId: string) => {
+    setGiftCardProvider(providerId);
+    localStorage.setItem(giftCardStorageKey, providerId);
+    setShowGiftCardSelector(false);
+    const partner = GIFT_CARD_PARTNERS.find((p) => p.id === providerId);
+    showToast(`Vale-alimentação atualizado para ${partner?.name}!`, 'success');
   };
 
   if (loading) {
@@ -97,7 +123,16 @@ const BeneficiaryDashboard: React.FC = () => {
         {/* ── Welcome Row ── */}
         <section className="welcome-header mb-5">
            <h2 className="text-xl font-bold text-primary mb-1">Olá, {family?.representativeName || user?.name}</h2>
-           <p className="text-sm text-outline">Acompanhe seus vales e a situação do seu cadastro.</p>
+           <p className="text-sm text-outline mb-2">Acompanhe seus vales e a situação do seu cadastro.</p>
+           {isGovVerified ? (
+             <span className="badge-verification badge-verification--ok">
+               <ShieldCheck size={12} className="mr-1" /> Verificado via Gov.br
+             </span>
+           ) : (
+             <span className="badge-verification badge-verification--pending">
+               <ShieldAlert size={12} className="mr-1" /> Identidade pendente
+             </span>
+           )}
         </section>
 
         {/* ── RENDER STATE: PENDING (Em análise) ── */}
@@ -190,19 +225,27 @@ const BeneficiaryDashboard: React.FC = () => {
 
             {/* Gift Card Display with QR and copy */}
             <section className="gift-cards-section">
-               <h3 className="section-title mb-3 flex items-center gap-2">
-                  <Gift size={18} className="text-secondary" />
-                  <span>Vale-Refeição Liberado</span>
-               </h3>
-               
+               <div className="flex items-center justify-between mb-3">
+                 <h3 className="section-title flex items-center gap-2">
+                    <Gift size={18} className="text-secondary" />
+                    <span>Vale-Refeição Liberado</span>
+                 </h3>
+                 <button className="giftcard-change-link" onClick={() => setShowGiftCardSelector(true)}>
+                   Alterar vale-alimentação <ChevronRight size={12} />
+                 </button>
+               </div>
+
                <div className="gift-card-display p-5 bg-white border-2 border-dashed border-secondary rounded-lg text-center flex flex-col items-center">
-                  <span className="text-[10px] text-outline block mb-1 uppercase font-bold tracking-wider">Código de Resgate iFood</span>
-                  
+                  <div className="giftcard-partner-logo mb-2" style={{ background: selectedPartner.color }} aria-hidden="true">
+                    {selectedPartner.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span className="text-[10px] text-outline block mb-1 uppercase font-bold tracking-wider">Código de Resgate {selectedPartner.name}</span>
+
                   <div className="flex items-center gap-2 mb-4 bg-background px-4 py-2 rounded border border-outline-variant">
-                    <span className="text-xl font-mono font-black text-primary tracking-wider">IFOD-ALIM-9928-2026</span>
-                    <button 
+                    <span className="text-xl font-mono font-black text-primary tracking-wider">{GIFT_CARD_CODE_PREFIX[giftCardProvider]}-ALIM-9928-2026</span>
+                    <button
                       className="p-1 hover:text-secondary text-primary transition-all"
-                      onClick={() => handleCopyCode('IFOD-ALIM-9928-2026')}
+                      onClick={() => handleCopyCode(`${GIFT_CARD_CODE_PREFIX[giftCardProvider]}-ALIM-9928-2026`)}
                       aria-label="Copiar código"
                     >
                       <Copy size={16} />
@@ -244,6 +287,15 @@ const BeneficiaryDashboard: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* ── Gift card selector modal ── */}
+      {showGiftCardSelector && (
+        <GiftCardSelectorModal
+          selected={giftCardProvider}
+          onConfirm={handleGiftCardConfirm}
+          onClose={() => setShowGiftCardSelector(false)}
+        />
+      )}
     </div>
   );
 };

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { authService } from '../backend/services/authService';
 import { AuthError } from '../backend/services/authProvider';
 import type { User } from '../backend/types';
 import GoogleMockModal from '../components/ui/GoogleMockModal';
+import GovBrMockModal, { type GovBrMockData } from '../components/ui/GovBrMockModal';
 import './Auth.css';
 
 // ─── Helpers de validação ──────────────────────────────────────────────────
@@ -39,6 +41,7 @@ const Auth: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, signInWithGoogle, isAuthenticated, user } = useAppContext();
+  const { showToast } = useToast();
 
   // ─── Form state ─────────────────────────────────────────────────────────
   const [email, setEmail]         = useState('');
@@ -56,6 +59,18 @@ const Auth: React.FC = () => {
   const [showGoogleModal, setShowGoogleModal]   = useState(false);
   const [isGoogleLoading, setIsGoogleLoading]   = useState(false);
   const mockGoogleUsers: User[] = authService.getActiveMockUsers();
+
+  // ─── Meta mock login ──────────────────────────────────────────────────────
+  const [isMetaLoading, setIsMetaLoading] = useState(false);
+
+  // ─── Gov.br mock login/verificação ────────────────────────────────────────
+  const [isGovLoading, setIsGovLoading]   = useState(false);
+  const [showGovModal, setShowGovModal]   = useState(false);
+  const mockGovData: GovBrMockData = {
+    name: 'Maria da Silva Santos',
+    birthDate: '14/03/1990',
+    cpf: '123.***.***-09',
+  };
 
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -112,6 +127,29 @@ const Auth: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ─── Meta (mock, visual apenas — sem chamada real) ───────────────────────
+  const handleMetaClick = async () => {
+    if (isMetaLoading) return;
+    setIsMetaLoading(true);
+    await new Promise<void>((r) => setTimeout(r, 1200));
+    setIsMetaLoading(false);
+    showToast('Login via Meta realizado com sucesso', 'success');
+  };
+
+  // ─── Gov.br (mock, visual apenas — sem chamada real) ─────────────────────
+  const handleGovClick = async () => {
+    if (isGovLoading) return;
+    setIsGovLoading(true);
+    await new Promise<void>((r) => setTimeout(r, 1200));
+    setIsGovLoading(false);
+    setShowGovModal(true);
+  };
+
+  const handleGovConfirm = () => {
+    setShowGovModal(false);
+    showToast('Identidade verificada via Gov.br', 'success');
   };
 
   // ─── DEV: preenchimento rápido ────────────────────────────────────────────
@@ -282,6 +320,47 @@ const Auth: React.FC = () => {
           </button>
         )}
 
+        {/* Botão Meta (mock visual) */}
+        <button
+          type="button"
+          className="auth-btn-meta"
+          onClick={handleMetaClick}
+          disabled={isMetaLoading}
+          aria-busy={isMetaLoading}
+        >
+          {isMetaLoading ? (
+            <span className="auth-spinner" aria-hidden="true" />
+          ) : (
+            <>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M20 10.06C20 4.74 15.52.5 10 .5S0 4.74 0 10.06c0 4.8 3.66 8.79 8.44 9.44v-6.7H6.13v-2.74h2.31V8.02c0-2.28 1.4-3.54 3.49-3.54.98 0 1.83.07 2.08.1v2.4h-1.42c-1.12 0-1.34.53-1.34 1.3v1.78h2.68l-.35 2.74h-2.33v6.7C16.34 18.85 20 14.86 20 10.06z" fill="#1877F2"/>
+                <path d="M13.58 12.8l.35-2.74h-2.68V8.28c0-.77.22-1.3 1.34-1.3h1.42v-2.4c-.25-.03-1.1-.1-2.08-.1-2.09 0-3.49 1.26-3.49 3.54v1.74H6.13v2.74h2.31v6.7c.49.06.99.1 1.5.1.43 0 .85-.03 1.26-.08v-6.72h2.38z" fill="#fff"/>
+              </svg>
+              Continuar com Meta
+            </>
+          )}
+        </button>
+
+        {/* Botão Gov.br (mock visual) */}
+        <button
+          type="button"
+          className="auth-btn-govbr"
+          onClick={handleGovClick}
+          disabled={isGovLoading}
+          aria-busy={isGovLoading}
+        >
+          {isGovLoading ? (
+            <span className="auth-spinner" aria-hidden="true" />
+          ) : (
+            <>
+              <span className="govbr-icon" aria-hidden="true">
+                <ShieldCheck size={18} color="#FFCD07" strokeWidth={2.5} />
+              </span>
+              Entrar com Gov.br
+            </>
+          )}
+        </button>
+
         {/* Link criar conta */}
         <p className="auth-register-prompt">
           Ainda não tem uma conta?{' '}
@@ -322,6 +401,15 @@ const Auth: React.FC = () => {
           users={mockGoogleUsers}
           onSelect={handleGoogleSelect}
           onClose={() => setShowGoogleModal(false)}
+        />
+      )}
+
+      {/* ── Gov.br mock modal ── */}
+      {showGovModal && (
+        <GovBrMockModal
+          data={mockGovData}
+          onConfirm={handleGovConfirm}
+          onClose={() => setShowGovModal(false)}
         />
       )}
     </div>

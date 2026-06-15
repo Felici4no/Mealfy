@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Family } from '../backend/types';
 import Button from '../components/ui/Button';
-import { LocateFixed, Layers, ShieldAlert, Check } from 'lucide-react';
+import { LocateFixed, Layers, ShieldAlert, Check, SlidersHorizontal, Info, Bookmark, BookmarkCheck } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import BottomSheet from '../components/ui/BottomSheet';
 import './MapView.css';
@@ -182,6 +182,8 @@ const MOCK_MAP_FAMILIES: Family[] = [
   }
 ];
 
+const REGIONS = ['Heliópolis', 'Paraisópolis', 'Cidade Tiradentes', 'Brasilândia'];
+
 // Recenter Map Helper
 const MapRecenter = ({ center }: { center: [number, number] }) => {
   const map = useMap();
@@ -193,17 +195,24 @@ const MapRecenter = ({ center }: { center: [number, number] }) => {
 
 const MapView: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedRegion, setSelectedRegion } = useAppContext();
-  
+  const { selectedRegion, setSelectedRegion, user, toggleSavedFamily } = useAppContext();
+
   // Filter States
   const [bairroFilter, setBairroFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [urgencyFilter, setUrgencyFilter] = useState<string>('all');
+  const [highlightSaved, setHighlightSaved] = useState<boolean>(false);
   const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
-  
+
+  // Sheet States
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isLegendOpen, setIsLegendOpen] = useState(false);
+
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5900, -46.6200]); // SP Center roughly
   const [selectedFamilyPreview, setSelectedFamilyPreview] = useState<Family | null>(null);
+
+  const savedFamilyIds = user?.savedFamilyIds || [];
 
   // Sync Bairro filter with Context Selected Region
   useEffect(() => {
@@ -233,8 +242,14 @@ const MapView: React.FC = () => {
     return true;
   });
 
+  const activeFilterCount =
+    (bairroFilter !== 'all' ? 1 : 0) +
+    (statusFilter !== 'all' ? 1 : 0) +
+    (urgencyFilter !== 'all' ? 1 : 0) +
+    (highlightSaved ? 1 : 0);
+
   const toggleSelection = (id: string) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
@@ -249,15 +264,29 @@ const MapView: React.FC = () => {
     }
   };
 
+  const handleBairroSelect = (value: string) => {
+    setBairroFilter(value);
+    setSelectedRegion(value === 'all' ? null : value);
+  };
+
+  const resetFilters = () => {
+    setBairroFilter('all');
+    setSelectedRegion(null);
+    setStatusFilter('all');
+    setUrgencyFilter('all');
+    setHighlightSaved(false);
+  };
+
   // Custom DivIcons with Glowing Shadows
   const createMarkerIcon = (fam: Family) => {
     const isSelected = selectedIds.includes(fam.id);
     const isUrgent = fam.priorityLevel >= 4 && fam.supportStatus === 'needs_help';
     const isFed = fam.supportStatus === 'fed';
-    
+    const isSaved = savedFamilyIds.includes(fam.id);
+
     let markerClass = 'marker-pin';
     let iconEmoji = '💔';
-    
+
     if (isFed) {
       markerClass += ' stable-glow';
       iconEmoji = '❤️';
@@ -272,6 +301,10 @@ const MapView: React.FC = () => {
       iconEmoji = '✅';
     }
 
+    if (highlightSaved && isSaved) {
+      markerClass += ' saved-highlight';
+    }
+
     return L.divIcon({
       html: `<div class="${markerClass}">${iconEmoji}</div>`,
       className: 'custom-marker-wrapper',
@@ -280,62 +313,43 @@ const MapView: React.FC = () => {
     });
   };
 
+  const isPreviewSaved = selectedFamilyPreview ? savedFamilyIds.includes(selectedFamilyPreview.id) : false;
+
   return (
     <div className="map-view-page">
-      {/* ── Geometric & Glassmorphic Filter Bar ── */}
-      <div className="map-top-bar glassmorphism">
-        <div className="filters-row flex gap-2 overflow-x-auto py-2 px-3">
-          {/* Bairro Selector */}
-          <select 
-            className="filter-select text-xs font-semibold text-primary" 
-            value={bairroFilter}
-            onChange={(e) => {
-              setBairroFilter(e.target.value);
-              setSelectedRegion(e.target.value === 'all' ? null : e.target.value);
-            }}
+      {/* ── Floating map controls (each is a standalone glass pill) ── */}
+      <div className="map-top-bar">
+        <div className="filters-row flex gap-2">
+          <button
+            className={`filter-action-btn ${activeFilterCount > 0 ? 'active' : ''}`}
+            onClick={() => setIsFiltersOpen(true)}
           >
-            <option value="all">Todas as Regiões</option>
-            <option value="Heliópolis">Heliópolis</option>
-            <option value="Paraisópolis">Paraisópolis</option>
-            <option value="Cidade Tiradentes">Cidade Tiradentes</option>
-            <option value="Brasilândia">Brasilândia</option>
-          </select>
+            <SlidersHorizontal size={14} />
+            Filtros
+            {activeFilterCount > 0 && (
+              <span className="filter-badge">{activeFilterCount}</span>
+            )}
+          </button>
 
-          {/* Status Filter */}
-          <select 
-            className="filter-select text-xs font-semibold text-primary"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+          <button
+            className="filter-action-btn"
+            onClick={() => setIsLegendOpen(true)}
+            aria-label="Ver legenda do mapa"
           >
-            <option value="all">Todos os Status</option>
-            <option value="needs_help">Aguardando Refeição</option>
-            <option value="fed">Alimentadas Hoje</option>
-          </select>
-
-          {/* Urgency Filter */}
-          <select 
-            className="filter-select text-xs font-semibold text-primary"
-            value={urgencyFilter}
-            onChange={(e) => setUrgencyFilter(e.target.value)}
-          >
-            <option value="all">Todas as Urgências</option>
-            <option value="high">Alta Prioridade (Urgente)</option>
-          </select>
+            <Info size={14} />
+            Legenda
+          </button>
 
           {/* Mass Selection Toggle */}
-          <button 
-            className={`filter-btn flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-sm border ${
-              isSelectionMode 
-                ? 'bg-secondary text-primary border-secondary' 
-                : 'bg-white/80 text-outline border-outline/10'
-            }`}
+          <button
+            className={`filter-action-btn ${isSelectionMode ? 'active' : ''}`}
             onClick={() => {
               setIsSelectionMode(!isSelectionMode);
               setSelectedIds([]);
             }}
           >
-            <Layers size={12} />
-            {isSelectionMode ? 'Apoio Coletivo: Sim' : 'Apoio Coletivo'}
+            <Layers size={14} />
+            Apoio Coletivo
           </button>
         </div>
       </div>
@@ -355,8 +369,8 @@ const MapView: React.FC = () => {
           />
 
           {filteredFamilies.map((fam) => (
-            <Marker 
-              key={fam.id} 
+            <Marker
+              key={fam.id}
               position={[fam.latitude, fam.longitude]}
               icon={createMarkerIcon(fam)}
               eventHandlers={{
@@ -367,23 +381,13 @@ const MapView: React.FC = () => {
         </MapContainer>
       </div>
 
-      {/* ── Legend Card (Left Bottom) ── */}
-      <div className="map-legend-overlay">
-        <div className="legend-card glassmorphism p-3">
-          <div className="legend-item text-xs font-bold text-primary mb-1">LEGENDA</div>
-          <div className="legend-item text-xs"><span className="bullet urgent"></span> Urgência Crítica (💔)</div>
-          <div className="legend-item text-xs"><span className="bullet warning"></span> Aguardando (💔)</div>
-          <div className="legend-item text-xs"><span className="bullet stable"></span> Alimentada (❤️)</div>
-        </div>
-      </div>
-
       {/* ── Mass Support Button (Bottom) ── */}
       {isSelectionMode && selectedIds.length > 0 && (
         <div className="mass-action-overlay p-4">
-          <Button 
-            variant="secondary" 
-            size="large" 
-            fullWidth 
+          <Button
+            variant="secondary"
+            size="large"
+            fullWidth
             className="shadow-glow"
             onClick={() => navigate('/donate', { state: { selectedFamilyIds: selectedIds } })}
           >
@@ -394,7 +398,7 @@ const MapView: React.FC = () => {
 
       {/* ── Recenter Controls (Right Bottom) ── */}
       <div className="map-controls-overlay">
-        <button 
+        <button
           onClick={() => setMapCenter([-23.5900, -46.6200])}
           className="map-control-btn glassmorphism"
           aria-label="Recentrar Mapa"
@@ -403,24 +407,129 @@ const MapView: React.FC = () => {
         </button>
       </div>
 
+      {/* ── Filtros BottomSheet ── */}
+      <BottomSheet isOpen={isFiltersOpen} onClose={() => setIsFiltersOpen(false)} title="Filtros do Mapa">
+        <div className="flex flex-col gap-5">
+          <div className="filter-group">
+            <span className="filter-group-label">Região</span>
+            <div className="filter-chip-group">
+              <button className={`filter-chip ${bairroFilter === 'all' ? 'active' : ''}`} onClick={() => handleBairroSelect('all')}>
+                Todas
+              </button>
+              {REGIONS.map((region) => (
+                <button
+                  key={region}
+                  className={`filter-chip ${bairroFilter === region ? 'active' : ''}`}
+                  onClick={() => handleBairroSelect(region)}
+                >
+                  {region}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <span className="filter-group-label">Status</span>
+            <div className="filter-chip-group">
+              <button className={`filter-chip ${statusFilter === 'all' ? 'active' : ''}`} onClick={() => setStatusFilter('all')}>
+                Todos
+              </button>
+              <button className={`filter-chip ${statusFilter === 'needs_help' ? 'active' : ''}`} onClick={() => setStatusFilter('needs_help')}>
+                Aguardando Refeição
+              </button>
+              <button className={`filter-chip ${statusFilter === 'fed' ? 'active' : ''}`} onClick={() => setStatusFilter('fed')}>
+                Alimentadas Hoje
+              </button>
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <span className="filter-group-label">Urgência</span>
+            <div className="filter-chip-group">
+              <button className={`filter-chip ${urgencyFilter === 'all' ? 'active' : ''}`} onClick={() => setUrgencyFilter('all')}>
+                Todas
+              </button>
+              <button className={`filter-chip ${urgencyFilter === 'high' ? 'active' : ''}`} onClick={() => setUrgencyFilter('high')}>
+                Alta Prioridade (Urgente)
+              </button>
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <span className="filter-group-label">Família Salva</span>
+            <button
+              className={`filter-chip filter-chip--block ${highlightSaved ? 'active' : ''}`}
+              onClick={() => setHighlightSaved(v => !v)}
+            >
+              <Bookmark size={14} className={highlightSaved ? 'fill-current' : ''} />
+              Destacar famílias salvas
+            </button>
+          </div>
+
+          <div className="flex gap-2 mt-1">
+            <Button variant="outline" fullWidth onClick={resetFilters}>
+              Limpar filtros
+            </Button>
+            <Button variant="primary" fullWidth onClick={() => setIsFiltersOpen(false)}>
+              Ver resultados
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* ── Legenda BottomSheet ── */}
+      <BottomSheet isOpen={isLegendOpen} onClose={() => setIsLegendOpen(false)} title="Legenda do Mapa">
+        <div className="surface-card legend-card">
+          <div className="legend-item">
+            <span className="bullet urgent"></span>
+            <span className="legend-icon">💔</span>
+            <span className="legend-text">Urgência Crítica</span>
+          </div>
+          <div className="legend-item">
+            <span className="bullet warning"></span>
+            <span className="legend-icon">💔</span>
+            <span className="legend-text">Aguardando</span>
+          </div>
+          <div className="legend-item">
+            <span className="bullet stable"></span>
+            <span className="legend-icon">❤️</span>
+            <span className="legend-text">Alimentada</span>
+          </div>
+          <div className="legend-item">
+            <span className="bullet saved"></span>
+            <span className="legend-icon"><Bookmark size={14} /></span>
+            <span className="legend-text">Família salva (com destaque ativo)</span>
+          </div>
+        </div>
+      </BottomSheet>
+
       {/* ── Slide-up BottomSheet for Family Preview ── */}
-      <BottomSheet 
-        isOpen={selectedFamilyPreview !== null} 
+      <BottomSheet
+        isOpen={selectedFamilyPreview !== null}
         onClose={() => setSelectedFamilyPreview(null)}
         title="Ficha do Beneficiário"
       >
         {selectedFamilyPreview && (
           <div className="family-preview-card p-2 flex flex-col gap-3">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start gap-2">
               <div>
                 <h3 className="font-extrabold text-primary text-lg">{selectedFamilyPreview.representativeName}</h3>
                 <span className="text-xs text-outline">{selectedFamilyPreview.neighborhood} • {selectedFamilyPreview.distanceToUser}</span>
               </div>
-              <span className={`urgency-badge text-xs font-bold px-2 py-1 rounded-sm ${
-                selectedFamilyPreview.priorityLevel >= 4 ? 'bg-error/10 text-error' : 'bg-success/10 text-success'
-              }`}>
-                Prioridade {selectedFamilyPreview.priorityLevel}/5
-              </span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  className={`save-family-btn ${isPreviewSaved ? 'active' : ''}`}
+                  onClick={() => toggleSavedFamily(selectedFamilyPreview.id)}
+                  aria-label={isPreviewSaved ? 'Remover dos salvos' : 'Salvar família'}
+                >
+                  {isPreviewSaved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
+                </button>
+                <span className={`urgency-badge text-xs font-bold px-2 py-1 rounded-sm ${
+                  selectedFamilyPreview.priorityLevel >= 4 ? 'bg-error/10 text-error' : 'bg-success/10 text-success'
+                }`}>
+                  Prioridade {selectedFamilyPreview.priorityLevel}/5
+                </span>
+              </div>
             </div>
 
             <p className="text-sm text-text-main italic">"{selectedFamilyPreview.description}"</p>
@@ -446,16 +555,16 @@ const MapView: React.FC = () => {
             </div>
 
             <div className="flex gap-2 mt-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 fullWidth
                 onClick={() => navigate(`/family/${selectedFamilyPreview.id}`)}
               >
                 Ver Ficha Completa
               </Button>
               {selectedFamilyPreview.supportStatus === 'needs_help' && (
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   fullWidth
                   className="bg-secondary text-primary"
                   onClick={() => navigate('/donate', { state: { targetFamily: selectedFamilyPreview } })}

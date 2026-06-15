@@ -22,9 +22,12 @@ interface AppContextType {
   selectedCommunity: Community | null;
   setSelectedCommunity: (community: Community) => void;
   updateUserPrivacy: (settings: Partial<PrivacySettings>) => Promise<void>;
+  updateUserProfile: (updates: Partial<User>) => Promise<void>;
   selectedRegion: string | null;
   setSelectedRegion: (region: string | null) => void;
   clearSelectedRegion: () => void;
+  /** Alterna o estado "salvo" de uma família para o usuário logado (Mapa) */
+  toggleSavedFamily: (familyId: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -146,6 +149,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     storage.set('current_user', newUser);
   };
 
+  const updateUserProfile = async (updates: Partial<User>): Promise<void> => {
+    if (!user) return;
+    const newUser = { ...user, ...updates };
+    setUser(newUser);
+    const users = storage.get<User[]>('users_db', []);
+    const idx = users.findIndex((u) => u.id === user.id);
+    if (idx !== -1) {
+      users[idx] = newUser;
+      storage.set('users_db', users);
+    }
+    storage.set('current_user', newUser);
+  };
+
+  const toggleSavedFamily = async (familyId: string): Promise<void> => {
+    if (!user) return;
+    const current = user.savedFamilyIds || [];
+    const savedFamilyIds = current.includes(familyId)
+      ? current.filter((id) => id !== familyId)
+      : [...current, familyId];
+    await updateUserProfile({ savedFamilyIds });
+  };
+
   if (showSplash) {
     return <SplashScreen isLoaded={!isInitializing} />;
   }
@@ -163,9 +188,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         selectedCommunity,
         setSelectedCommunity,
         updateUserPrivacy,
+        updateUserProfile,
         selectedRegion,
         setSelectedRegion,
         clearSelectedRegion,
+        toggleSavedFamily,
       }}
     >
       {children}

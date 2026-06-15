@@ -1,35 +1,77 @@
 .bottom-tab-bar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: calc(70px + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.05);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - var(--gutter) * 2);
+  max-width: calc(var(--layout-max-width) - var(--gutter) * 2);
+  bottom: calc(var(--spacing-3) + env(safe-area-inset-bottom, 0px));
   z-index: 9000;
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  height: var(--tabbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 4px;
+  padding: 6px;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bottom-tab-bar {
+    background: rgba(255, 255, 255, 0.97);
+  }
 }
 
 .tab-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--color-outline);
-  text-decoration: none;
-  font-size: 0.7rem;
-  font-weight: 600;
-  gap: 4px;
-  transition: color 0.2s ease, transform 0.2s ease;
   flex: 1;
+  height: 100%;
+  min-width: 44px;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.01em;
+  background-color: transparent;
+  transition: color var(--motion-base) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard);
+}
+
+.tab-item svg,
+.tab-item span {
+  position: relative;
+  z-index: 1;
+  transition: color var(--motion-base) var(--ease-standard),
+              transform var(--motion-base) var(--ease-out);
 }
 
 .tab-item:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
+}
+
+.tab-item:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* Active state: animated pill indicator slides between items */
+.active-pill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: rgba(var(--color-primary-rgb), 0.10);
+  border-radius: var(--radius-md);
 }
 
 .tab-item.active {
@@ -38,36 +80,19 @@
 
 .tab-item.active svg {
   color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
-.donate-tab {
-  position: relative;
-}
-
-.donate-icon-wrapper {
-  background-color: var(--color-primary);
-  width: 50px;
-  height: 50px;
-  border-radius: var(--radius-xl); /* straight/geometric corner */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-md);
-  margin-top: -24px; /* Float above the bar */
-  margin-bottom: 2px;
-  border: 3px solid rgba(255, 255, 255, 0.8);
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.donate-tab.active .donate-icon-wrapper {
-  background-color: var(--color-secondary);
-}
-
-.donate-tab.active span {
+/* "Alimente" uses the secondary (gold) accent when active */
+.donate-tab.active {
   color: var(--color-secondary);
 }
 
-.donate-tab:active .donate-icon-wrapper {
-  transform: scale(0.9);
+.donate-tab.active svg {
+  color: var(--color-secondary);
 }
 
+.donate-tab.active ~ .active-pill,
+.donate-tab.active .active-pill {
+  background-color: rgba(var(--color-secondary-rgb), 0.14);
+}

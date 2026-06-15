@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import './BottomSheet.css';
 
@@ -11,9 +11,37 @@ interface BottomSheetProps {
 
 const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, children }) => {
   const [render, setRender] = useState(isOpen);
+  const pushedHistoryRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) setRender(true);
+  }, [isOpen]);
+
+  // Makes the system/hardware "back" button close this sheet first,
+  // before navigating to the previous page.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    window.history.pushState({ mealfySheet: true }, '');
+    pushedHistoryRef.current = true;
+
+    const handlePopState = () => {
+      if (pushedHistoryRef.current) {
+        pushedHistoryRef.current = false;
+        onClose();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (pushedHistoryRef.current) {
+        pushedHistoryRef.current = false;
+        window.history.back();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleAnimationEnd = () => {

@@ -20,7 +20,7 @@ const CommunitySelectorModal: React.FC<CommunitySelectorModalProps> = ({ isOpen,
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Explorar Regiões">
       <p className="modal-subtitle mb-4 text-outline">
-        Escolha a comunidade para qual deseja direcionar a sua doação ou conhecer o impacto.
+        Escolha a comunidade para qual deseja direcionar o seu apoio ou conhecer o impacto.
       </p>
 
       <div className="community-options flex-col gap-3">

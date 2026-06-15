@@ -29,7 +29,7 @@
   height: 62px;
   border-radius: 999px;
   padding: 3px;
-  background: linear-gradient(135deg, #d8b84f, #f3d77a, #0b4b78);
+  background: linear-gradient(135deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,6 +53,13 @@
   color: var(--color-primary);
   font-size: 1.2rem;
   overflow: hidden;
+}
+
+.story-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .story-name {

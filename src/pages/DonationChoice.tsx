@@ -82,14 +82,14 @@ const DonationChoice: React.FC = () => {
           createdAt: new Date().toISOString(),
         },
         giftCard: {
-          label: targetFamily 
+          label: targetFamily
             ? `Vale Alimentar - ${targetFamily.representativeName}`
-            : `Apoio Coletivo - ${familiesCount} Famílias`,
+            : `Apoio Coletivo - ${familiesCount} ${familiesCount === 1 ? 'família' : 'famílias'}`,
           code: 'GC-ALIM-2026',
           provider: 'Mercado Parceiro / iFood'
         },
         familyAssigned: {
-          representativeName: targetFamily ? targetFamily.representativeName : `${familiesCount} Famílias`,
+          representativeName: targetFamily ? targetFamily.representativeName : `${familiesCount} ${familiesCount === 1 ? 'família' : 'famílias'}`,
           childrenCount: targetFamily ? targetFamily.childrenCount : 2
         }
       };

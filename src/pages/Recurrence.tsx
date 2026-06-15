@@ -16,6 +16,8 @@ interface MockRecurrence {
   nextBillingDate: string;
 }
 
+const periodLabel = (periodicity: 'semanal' | 'mensal') => periodicity === 'mensal' ? 'mês' : 'semana';
+
 const INITIAL_RECURRENCES: MockRecurrence[] = [
   { id: 'rec-1', communityName: 'Heliópolis', amount: 80, periodicity: 'mensal', status: 'active', nextBillingDate: '10/07/2026' },
   { id: 'rec-2', communityName: 'Cidade Tiradentes', amount: 40, periodicity: 'semanal', status: 'active', nextBillingDate: '20/06/2026' },
@@ -148,22 +150,24 @@ const RecurrenceManager: React.FC = () => {
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-outline block">Valor Programado</span>
                     <span className="text-lg font-black text-secondary">
-                      R$ {rec.amount} <span className="text-xs font-normal text-outline">/{rec.periodicity === 'mensal' ? 'mês' : 'sem'}</span>
+                      R$ {rec.amount} <span className="text-xs font-normal text-outline">/{periodLabel(rec.periodicity)}</span>
                     </span>
                   </div>
                 </div>
 
                 {/* Actions row */}
                 <div className="flex gap-2 justify-end">
-                  <button 
-                    className="p-2 border border-outline/10 hover:border-primary rounded text-primary flex items-center gap-1 text-xs font-bold bg-white"
+                  <button
+                    className="px-3 border border-outline/10 hover:border-primary rounded text-primary flex items-center gap-1 text-xs font-bold bg-white"
+                    style={{ minHeight: '44px', minWidth: '44px' }}
                     onClick={() => openAction('edit', rec)}
                   >
                     <Edit3 size={14} /> Editar
                   </button>
-                  
-                  <button 
-                    className="p-2 border border-outline/10 hover:border-warning rounded text-outline flex items-center gap-1 text-xs font-bold bg-white"
+
+                  <button
+                    className="px-3 border border-outline/10 hover:border-warning rounded text-outline flex items-center gap-1 text-xs font-bold bg-white"
+                    style={{ minHeight: '44px', minWidth: '44px' }}
                     onClick={() => openAction('pause', rec)}
                   >
                     {rec.status === 'active' ? (
@@ -173,8 +177,9 @@ const RecurrenceManager: React.FC = () => {
                     )}
                   </button>
 
-                  <button 
-                    className="p-2 border border-outline/10 hover:border-error rounded text-error flex items-center gap-1 text-xs font-bold bg-white"
+                  <button
+                    className="px-3 border border-outline/10 hover:border-error rounded text-error flex items-center gap-1 text-xs font-bold bg-white"
+                    style={{ minHeight: '44px', minWidth: '44px' }}
                     onClick={() => openAction('cancel', rec)}
                   >
                     <Trash2 size={14} /> Cancelar
@@ -196,8 +201,8 @@ const RecurrenceManager: React.FC = () => {
           <div className="flex flex-col gap-4">
             <p className="text-sm text-outline leading-relaxed">
               {selectedRec.status === 'active' 
-                ? `Ao pausar seu apoio recorrente a ${selectedRec.communityName}, as doações automáticas serão suspensas até que você decida reativá-lo.`
-                : `Você deseja reativar o seu apoio recorrente de R$ ${selectedRec.amount} por semana/mês para a comunidade de ${selectedRec.communityName}?`}
+                ? `Ao pausar seu apoio recorrente a ${selectedRec.communityName}, os apoios automáticos serão suspensos até que você decida reativá-lo.`
+                : `Você deseja reativar o seu apoio recorrente de R$ ${selectedRec.amount} por ${periodLabel(selectedRec.periodicity)} para a comunidade de ${selectedRec.communityName}?`}
             </p>
             <div className="flex gap-2">
               <Button variant="outline" fullWidth onClick={closeAction} disabled={isProcessing}>Cancelar</Button>
@@ -287,7 +292,7 @@ const RecurrenceManager: React.FC = () => {
               <p className="text-xs text-error font-semibold">Atenção: A ausência de apoio programado pode deixar crianças da região desamparadas.</p>
             </div>
             <p className="text-sm text-outline leading-relaxed">
-              Tem certeza absoluta de que deseja cancelar o apoio de R$ {selectedRec.amount}/{selectedRec.periodicity} para {selectedRec.communityName}? Essa ação não pode ser desfeita.
+              Tem certeza absoluta de que deseja cancelar o apoio de R$ {selectedRec.amount}/{periodLabel(selectedRec.periodicity)} para {selectedRec.communityName}? Essa ação não pode ser desfeita.
             </p>
             <div className="flex gap-2">
               <Button variant="outline" fullWidth onClick={closeAction} disabled={isProcessing}>Manter Apoio</Button>

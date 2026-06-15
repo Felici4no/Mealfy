@@ -130,7 +130,7 @@ const BigDonation: React.FC = () => {
           </div>
         </section>
 
-        <section className="info-box p-4 bg-surface-highest/60 rounded-md border border-outline/10 flex gap-3 mb-8">
+        <section className="info-box p-4 bg-surface-highest/60 rounded-md border border-outline/10 flex gap-3">
           <Info size={24} className="text-primary shrink-0" />
           <p className="text-xs text-outline leading-relaxed">
             Nós mapeamos as famílias elegíveis na região de <strong>{regionName}</strong> e distribuiremos o valor de forma inteligente criando múltiplos vales alimentação digitais. O recibo detalhará o impacto real.

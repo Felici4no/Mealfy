@@ -7,7 +7,7 @@ import { familyService } from '../backend/services/familyService';
 import { entityService } from '../backend/services/entityService';
 import { normalizeString } from '../backend/utils/normalizeUtils';
 import { useToast } from '../context/ToastContext';
-import { Users, CirclePlus as PlusCircle, CircleCheck as CheckCircle, Clock, FileText, Check, X, ShieldCheck, Mail } from 'lucide-react';
+import { Users, CirclePlus as PlusCircle, CircleCheck as CheckCircle, Clock, FileText, Check, X, ShieldCheck, ShieldAlert, Mail } from 'lucide-react';
 import type { Family, DonorIndication, AuthorizingEntity } from '../backend/types';
 import './EntityDashboard.css';
 
@@ -221,10 +221,11 @@ const EntityDashboard: React.FC = () => {
              <div className="flex flex-col gap-2">
                 {families.map((fam, idx) => {
                   const isCad = idx % 2 === 0;
+                  const isGovVerified = idx % 2 === 0;
                   return (
                     <div key={fam.id} className="family-list-item p-4 bg-white rounded-lg border border-outline/10 flex items-center justify-between">
                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 mb-1">
                             <span className="font-bold text-sm text-primary">{fam.representativeName}</span>
                             {isCad ? (
                               <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-black">CadÚnico</span>
@@ -232,7 +233,16 @@ const EntityDashboard: React.FC = () => {
                               <span className="text-[9px] bg-outline/10 text-outline px-1.5 py-0.5 rounded font-black">Manual</span>
                             )}
                           </div>
-                          <span className="text-xs text-outline">{fam.neighborhood}</span>
+                          <span className="text-xs text-outline mb-1">{fam.neighborhood}</span>
+                          {isGovVerified ? (
+                            <span className="badge-validation badge-govbr">
+                              <ShieldCheck size={12} className="mr-1" /> Verificado via Gov.br
+                            </span>
+                          ) : (
+                            <span className="badge-validation badge-pending">
+                              <ShieldAlert size={12} className="mr-1" /> Identidade pendente
+                            </span>
+                          )}
                        </div>
                        <div className={`status-pill text-[10px] px-2 py-1 rounded font-bold uppercase ${
                          fam.supportStatus === 'fed' || fam.supportStatus === 'supported' 

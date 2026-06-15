@@ -8,6 +8,56 @@
   padding-bottom: 100px;
 }
 
+/* Verification badge */
+.badge-verification {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: var(--radius-md);
+}
+
+.badge-verification--ok {
+  background-color: rgba(40, 167, 69, 0.15);
+  color: var(--color-success);
+}
+
+.badge-verification--pending {
+  background-color: rgba(199, 167, 84, 0.18);
+  color: var(--color-secondary);
+}
+
+/* Gift card partner logo + change link */
+.giftcard-partner-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  font-family: var(--font-family-heading);
+}
+
+.giftcard-change-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* DEV Mode Switcher */
 .dev-state-switcher {
   background-color: rgba(0, 54, 95, 0.08);

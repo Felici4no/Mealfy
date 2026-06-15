@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AppProvider, useAppContext } from './context/AppContext';
 import BottomTabBar from './components/layout/BottomTabBar';
 import { ToastProvider } from './context/ToastContext';
+import { useNativeBackButton } from './hooks/useNativeBackButton';
 import type { UserRole } from './backend/types';
 
 import Home from './pages/Home';
@@ -47,6 +48,7 @@ const PrivateRoute = ({ children, allowedRoles }: { children: React.ReactNode, a
 // Global Layout wrapper
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  useNativeBackButton();
 
   // We hide the bottom tab bar on certain screens
   const hideTabBarRoutes = ['/auth', '/register', '/forgot-password', '/donate', '/success', '/unauthorized'];
@@ -92,6 +94,7 @@ function App() {
             <Route path="/big-donation" element={<PrivateRoute allowedRoles={['donor']}><BigDonation /></PrivateRoute>} />
             <Route path="/success" element={<PrivateRoute allowedRoles={['donor']}><Success /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/profile/:id" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/recurrence" element={<PrivateRoute allowedRoles={['donor']}><Recurrence /></PrivateRoute>} />
             <Route path="/indicate-family" element={<PrivateRoute allowedRoles={['donor']}><IndicateFamily /></PrivateRoute>} />
 

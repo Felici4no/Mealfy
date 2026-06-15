@@ -26,12 +26,13 @@ const Button: React.FC<ButtonProps> = ({
   const widthClass = fullWidth ? 'btn-full' : '';
 
   return (
-    <button 
-      className={`${baseClass} ${variantClass} ${sizeClass} ${widthClass} ${className} ${loading ? 'loading' : ''}`.trim()} 
+    <button
+      className={`${baseClass} ${variantClass} ${sizeClass} ${widthClass} ${className} ${loading ? 'loading' : ''}`.trim()}
       disabled={loading || props.disabled}
+      aria-busy={loading || undefined}
       {...props}
     >
-      {loading ? <span className="btn-icon animate-spin">⏳</span> : (icon && <span className="btn-icon">{icon}</span>)}
+      {loading ? <span className="btn-spinner" aria-hidden="true" /> : (icon && <span className="btn-icon">{icon}</span>)}
       {children}
     </button>
   );

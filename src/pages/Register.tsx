@@ -1,23 +1,85 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import { authService } from '../backend/services/authService';
 import { useToast } from '../context/ToastContext';
 import { useAppContext } from '../context/AppContext';
-import { Soup, Building2, ArrowRight, CircleUser as UserCircle, Eye, EyeOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Soup, Building2, ArrowRight, ArrowLeft, X,
+  CircleUser as UserCircle, Eye, EyeOff,
+} from 'lucide-react';
 import './Auth.css';
+import './Register.css';
 
-type Step = 'picker' | 'donor' | 'entity' | 'beneficiary';
+type RoleStep = 'donor' | 'entity' | 'beneficiary';
 
 const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+const validatePasswords = (pwd: string, confirm: string): string | null => {
+  if (pwd.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
+  if (pwd !== confirm) return 'As senhas não coincidem.';
+  return null;
+};
+
+// ── Step definitions per role ─────────────────────────────────────────────
+interface StepDef {
+  id: string;
+}
+
+const DONOR_STEPS: StepDef[] = [
+  { id: 'name' },
+  { id: 'email' },
+  { id: 'document' },
+  { id: 'password' },
+  { id: 'confirmPassword' },
+  { id: 'phone' },
+  { id: 'instagram' },
+  { id: 'preferences' },
+  { id: 'summary' },
+];
+
+const ENTITY_STEPS: StepDef[] = [
+  { id: 'name' },
+  { id: 'cnpjType' },
+  { id: 'responsibleName' },
+  { id: 'email' },
+  { id: 'password' },
+  { id: 'confirmPassword' },
+  { id: 'phoneRegion' },
+  { id: 'summary' },
+];
+
+const BENEFICIARY_STEPS: StepDef[] = [
+  { id: 'name' },
+  { id: 'email' },
+  { id: 'password' },
+  { id: 'confirmPassword' },
+  { id: 'phone' },
+  { id: 'summary' },
+];
+
+const ROLE_STEPS: Record<RoleStep, StepDef[]> = {
+  donor: DONOR_STEPS,
+  entity: ENTITY_STEPS,
+  beneficiary: BENEFICIARY_STEPS,
+};
+
+// ── Animation variants (vertical slide + fade) ──────────────────────────────
+const variants = {
+  enter: (dir: number) => ({ y: dir >= 0 ? 48 : -48, opacity: 0 }),
+  center: { y: 0, opacity: 1 },
+  exit: (dir: number) => ({ y: dir >= 0 ? -48 : 48, opacity: 0 }),
+};
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { fetchSession, signIn } = useAppContext();
 
-  const [step, setStep] = useState<Step>('picker');
+  const [role, setRole] = useState<RoleStep | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
@@ -41,7 +103,7 @@ const Register: React.FC = () => {
   const [entityData, setEntityData] = useState({
     name: '',
     cnpj: '',
-    type: 'ONG' as any,
+    type: 'ONG' as 'ONG' | 'igreja' | 'escola' | 'instituto',
     responsibleName: '',
     email: '',
     password: '',
@@ -59,20 +121,81 @@ const Register: React.FC = () => {
     phone: '',
   });
 
-  // ── Shared validation ────────────────────────────────────────────────────
-  const validatePasswords = (pwd: string, confirm: string): string | null => {
-    if (pwd.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
-    if (pwd !== confirm) return 'As senhas não coincidem.';
-    return null;
+  const steps = role ? ROLE_STEPS[role] : [];
+  const currentStep = steps[stepIndex];
+  const totalSteps = steps.length;
+  const progress = role ? ((stepIndex + 1) / totalSteps) * 100 : 0;
+
+  // ── Generic data helpers ────────────────────────────────────────────────
+  const getData = (): any => {
+    if (role === 'donor') return donorData;
+    if (role === 'entity') return entityData;
+    return beneficiaryData;
   };
 
-  // ── Donor submit ─────────────────────────────────────────────────────────
-  const handleRegisterDonor = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isValidEmail(donorData.email)) { showToast('Informe um e-mail válido.', 'error'); return; }
-    const pwdError = validatePasswords(donorData.password, donorData.confirmPassword);
-    if (pwdError) { showToast(pwdError, 'error'); return; }
+  const setField = (field: string, value: any) => {
+    if (role === 'donor') setDonorData(prev => ({ ...prev, [field]: value }));
+    else if (role === 'entity') setEntityData(prev => ({ ...prev, [field]: value }));
+    else if (role === 'beneficiary') setBeneficiaryData(prev => ({ ...prev, [field]: value }));
+  };
 
+  // ── Navigation ───────────────────────────────────────────────────────────
+  const selectRole = (newRole: RoleStep) => {
+    setDirection(1);
+    setRole(newRole);
+    setStepIndex(0);
+  };
+
+  const goNext = () => {
+    if (!role) return;
+    if (stepIndex < steps.length - 1) {
+      setDirection(1);
+      setStepIndex(i => i + 1);
+    }
+  };
+
+  const goBack = () => {
+    if (!role) return;
+    if (stepIndex > 0) {
+      setDirection(-1);
+      setStepIndex(i => i - 1);
+    } else {
+      setDirection(-1);
+      setRole(null);
+    }
+  };
+
+  const isCurrentStepValid = (): boolean => {
+    if (!role || !currentStep) return false;
+    const data = getData();
+    switch (currentStep.id) {
+      case 'name': return data.name.trim().length > 0;
+      case 'email': return isValidEmail(data.email);
+      case 'document': return data.documentNumber.trim().length > 0;
+      case 'cnpjType': return data.cnpj.trim().length > 0;
+      case 'responsibleName': return data.responsibleName.trim().length > 0;
+      case 'password': return data.password.length >= 6;
+      case 'confirmPassword': return validatePasswords(data.password, data.confirmPassword) === null;
+      case 'phone': return true;
+      case 'instagram': return true;
+      case 'preferences': return true;
+      case 'phoneRegion': return data.phone.trim().length > 0 && data.region.trim().length > 0;
+      case 'summary': return true;
+      default: return true;
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (isCurrentStepValid()) goNext();
+    } else if (e.key === 'Backspace' && e.currentTarget.value === '') {
+      goBack();
+    }
+  };
+
+  // ── Submit handlers ──────────────────────────────────────────────────────
+  const handleRegisterDonor = async () => {
     setIsLoading(true);
     try {
       await authService.registerUser({
@@ -93,13 +216,7 @@ const Register: React.FC = () => {
     }
   };
 
-  // ── Entity submit ────────────────────────────────────────────────────────
-  const handleRegisterEntity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isValidEmail(entityData.email)) { showToast('Informe um e-mail válido.', 'error'); return; }
-    const pwdError = validatePasswords(entityData.password, entityData.confirmPassword);
-    if (pwdError) { showToast(pwdError, 'error'); return; }
-
+  const handleRegisterEntity = async () => {
     setIsLoading(true);
     try {
       await authService.registerEntity({
@@ -121,13 +238,7 @@ const Register: React.FC = () => {
     }
   };
 
-  // ── Beneficiary submit ───────────────────────────────────────────────────
-  const handleRegisterBeneficiary = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isValidEmail(beneficiaryData.email)) { showToast('Informe um e-mail válido.', 'error'); return; }
-    const pwdError = validatePasswords(beneficiaryData.password, beneficiaryData.confirmPassword);
-    if (pwdError) { showToast(pwdError, 'error'); return; }
-
+  const handleRegisterBeneficiary = async () => {
     setIsLoading(true);
     try {
       await authService.registerUser({
@@ -146,6 +257,12 @@ const Register: React.FC = () => {
     }
   };
 
+  const handleSubmit = () => {
+    if (role === 'donor') handleRegisterDonor();
+    else if (role === 'entity') handleRegisterEntity();
+    else if (role === 'beneficiary') handleRegisterBeneficiary();
+  };
+
   // ── Password field helper ────────────────────────────────────────────────
   const PwdToggle = ({ show, onToggle }: { show: boolean; onToggle: () => void }) => (
     <button type="button" className="auth-pwd-toggle" onClick={onToggle} aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}>
@@ -153,288 +270,442 @@ const Register: React.FC = () => {
     </button>
   );
 
-  // ── Donor form view ──────────────────────────────────────────────────────
-  if (step === 'donor') {
-    return (
-      <div className="auth-page login-view">
-        <div className="login-hero">
-          <button className="back-btn" onClick={() => setStep('picker')} aria-label="Voltar">
-            <ArrowRight size={24} style={{ transform: 'rotate(180deg)' }} />
-          </button>
-          <h1 className="login-hero-title">Criar conta como Apoiador</h1>
-          <p className="login-hero-subtitle">Apoie em poucos segundos e acompanhe seu impacto.</p>
-        </div>
-        <main className="login-content p-6 flex-col">
-          <form onSubmit={handleRegisterDonor} className="flex-col gap-4 mt-2">
-            <div className="form-group">
-              <label className="form-label">Nome Completo</label>
-              <input type="text" className="form-input" required value={donorData.name} onChange={e => setDonorData({...donorData, name: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">E-mail</label>
-              <input type="email" className="form-input" required value={donorData.email} onChange={e => setDonorData({...donorData, email: e.target.value})} autoComplete="email" />
-            </div>
+  // ── Step content renderer ───────────────────────────────────────────────
+  const renderStepBody = () => {
+    if (!role || !currentStep) return null;
+    const data = getData();
 
-            <div className="flex gap-3">
-              <div className="form-group w-1/3">
-                <label className="form-label">Tipo</label>
-                <select className="form-select" value={donorData.documentType} onChange={e => setDonorData({...donorData, documentType: e.target.value as any})}>
-                  <option value="cpf">CPF</option>
-                  <option value="cnpj">CNPJ</option>
-                </select>
-              </div>
-              <div className="form-group flex-1">
-                <label className="form-label">{donorData.documentType.toUpperCase()}</label>
-                <input type="text" className="form-input" required value={donorData.documentNumber} onChange={e => setDonorData({...donorData, documentNumber: e.target.value})} />
-              </div>
+    switch (currentStep.id) {
+      case 'name':
+        return (
+          <>
+            <h1 className="typeform-question">
+              {role === 'entity' ? 'Qual é o nome da sua entidade?' : 'Qual é o seu nome completo?'}
+            </h1>
+            <div className="typeform-field">
+              <input
+                autoFocus
+                type="text"
+                className="typeform-input"
+                placeholder="Digite aqui..."
+                value={data.name}
+                onChange={e => setField('name', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
             </div>
+          </>
+        );
 
-            <div className="form-group">
-              <label className="form-label">Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
-                <input type={showPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={donorData.password} onChange={e => setDonorData({...donorData, password: e.target.value})} autoComplete="new-password" />
-                <PwdToggle show={showPwd} onToggle={() => setShowPwd(v => !v)} />
-              </div>
+      case 'email':
+        return (
+          <>
+            <h1 className="typeform-question">
+              {role === 'entity' ? 'Qual o e-mail comercial da entidade?' : 'Qual é o seu e-mail?'}
+            </h1>
+            <div className="typeform-field">
+              <input
+                autoFocus
+                type="email"
+                className="typeform-input"
+                placeholder="seuemail@exemplo.com"
+                value={data.email}
+                onChange={e => setField('email', e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="email"
+              />
             </div>
+            {data.email.length > 0 && !isValidEmail(data.email) && (
+              <span className="typeform-error">Informe um e-mail válido.</span>
+            )}
+          </>
+        );
 
-            <div className="form-group">
-              <label className="form-label">Confirmar Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
-                <input type={showConfirmPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={donorData.confirmPassword} onChange={e => setDonorData({...donorData, confirmPassword: e.target.value})} autoComplete="new-password" />
-                <PwdToggle show={showConfirmPwd} onToggle={() => setShowConfirmPwd(v => !v)} />
-              </div>
+      case 'document':
+        return (
+          <>
+            <h1 className="typeform-question">Qual o seu documento?</h1>
+            <p className="typeform-hint">Usado para validar sua identidade como apoiador.</p>
+            <div className="typeform-chip-row">
+              <button
+                className={`typeform-chip ${data.documentType === 'cpf' ? 'active' : ''}`}
+                onClick={() => setField('documentType', 'cpf')}
+              >
+                CPF
+              </button>
+              <button
+                className={`typeform-chip ${data.documentType === 'cnpj' ? 'active' : ''}`}
+                onClick={() => setField('documentType', 'cnpj')}
+              >
+                CNPJ
+              </button>
             </div>
-
-            <div className="form-group">
-              <label className="form-label">Telefone (opcional)</label>
-              <input type="text" className="form-input" value={donorData.phone} onChange={e => setDonorData({...donorData, phone: e.target.value})} />
+            <div className="typeform-field">
+              <input
+                autoFocus
+                type="text"
+                className="typeform-input"
+                placeholder={`Número do ${data.documentType.toUpperCase()}`}
+                value={data.documentNumber}
+                onChange={e => setField('documentNumber', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
             </div>
+          </>
+        );
 
-            <div className="form-group">
-              <label className="form-label">Instagram (opcional)</label>
-              <input type="text" className="form-input" placeholder="@seu_usuario" value={donorData.instagram} onChange={e => setDonorData({...donorData, instagram: e.target.value})} />
+      case 'cnpjType':
+        return (
+          <>
+            <h1 className="typeform-question">Qual o CNPJ e o tipo da entidade?</h1>
+            <div className="typeform-field">
+              <input
+                autoFocus
+                type="text"
+                className="typeform-input"
+                placeholder="00.000.000/0001-00"
+                value={data.cnpj}
+                onChange={e => setField('cnpj', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
             </div>
+            <div className="typeform-chip-row" style={{ marginTop: 'var(--spacing-4)', flexWrap: 'wrap' }}>
+              {(['ONG', 'igreja', 'escola', 'instituto'] as const).map(type => (
+                <button
+                  key={type}
+                  className={`typeform-chip ${data.type === type ? 'active' : ''}`}
+                  onClick={() => setField('type', type)}
+                >
+                  {type === 'ONG' ? 'ONG' : type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
+          </>
+        );
 
-            <div className="bg-surface-highest p-4 rounded-xl flex-col gap-3 my-2">
-              <label className="flex items-center gap-2 text-sm text-text-main">
-                <input type="checkbox" checked={donorData.showInstagram} onChange={e => setDonorData({...donorData, showInstagram: e.target.checked})} />
-                Exibir Instagram no perfil
+      case 'responsibleName':
+        return (
+          <>
+            <h1 className="typeform-question">Quem é o responsável pela entidade?</h1>
+            <div className="typeform-field">
+              <input
+                autoFocus
+                type="text"
+                className="typeform-input"
+                placeholder="Nome completo"
+                value={data.responsibleName}
+                onChange={e => setField('responsibleName', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+          </>
+        );
+
+      case 'password':
+        return (
+          <>
+            <h1 className="typeform-question">Crie uma senha de acesso</h1>
+            <p className="typeform-hint">Mínimo de 6 caracteres.</p>
+            <div className="typeform-field typeform-input-wrapper">
+              <input
+                autoFocus
+                type={showPwd ? 'text' : 'password'}
+                className="typeform-input"
+                placeholder="••••••"
+                value={data.password}
+                onChange={e => setField('password', e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="new-password"
+              />
+              <PwdToggle show={showPwd} onToggle={() => setShowPwd(v => !v)} />
+            </div>
+          </>
+        );
+
+      case 'confirmPassword': {
+        const pwdError = data.confirmPassword.length > 0 ? validatePasswords(data.password, data.confirmPassword) : null;
+        return (
+          <>
+            <h1 className="typeform-question">Confirme sua senha</h1>
+            <div className="typeform-field typeform-input-wrapper">
+              <input
+                autoFocus
+                type={showConfirmPwd ? 'text' : 'password'}
+                className="typeform-input"
+                placeholder="••••••"
+                value={data.confirmPassword}
+                onChange={e => setField('confirmPassword', e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="new-password"
+              />
+              <PwdToggle show={showConfirmPwd} onToggle={() => setShowConfirmPwd(v => !v)} />
+            </div>
+            {pwdError && <span className="typeform-error">{pwdError}</span>}
+          </>
+        );
+      }
+
+      case 'phone':
+        return (
+          <>
+            <h1 className="typeform-question">Qual o seu telefone?</h1>
+            <p className="typeform-hint">Opcional — pressione Enter para pular.</p>
+            <div className="typeform-field">
+              <input
+                autoFocus
+                type="tel"
+                className="typeform-input"
+                placeholder="(11) 99999-9999"
+                value={data.phone}
+                onChange={e => setField('phone', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+          </>
+        );
+
+      case 'instagram':
+        return (
+          <>
+            <h1 className="typeform-question">Tem Instagram?</h1>
+            <p className="typeform-hint">Opcional — pressione Enter para pular.</p>
+            <div className="typeform-field">
+              <input
+                autoFocus
+                type="text"
+                className="typeform-input"
+                placeholder="@seu_usuario"
+                value={data.instagram}
+                onChange={e => setField('instagram', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+          </>
+        );
+
+      case 'preferences':
+        return (
+          <>
+            <h1 className="typeform-question">Suas preferências de privacidade</h1>
+            <div className="typeform-checkbox-list">
+              <label className="typeform-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={donorData.showInstagram}
+                  onChange={e => setField('showInstagram', e.target.checked)}
+                />
+                <span>Exibir Instagram no perfil</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-text-main">
-                <input type="checkbox" checked={donorData.showOnRanking} onChange={e => setDonorData({...donorData, showOnRanking: e.target.checked})} />
-                Aparecer no Ranking
+              <label className="typeform-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={donorData.showOnRanking}
+                  onChange={e => setField('showOnRanking', e.target.checked)}
+                />
+                <span>Aparecer no Ranking</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-text-main">
-                <input type="checkbox" checked={donorData.anonymousMode} onChange={e => setDonorData({...donorData, anonymousMode: e.target.checked})} />
-                Apoiar anonimamente
+              <label className="typeform-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={donorData.anonymousMode}
+                  onChange={e => setField('anonymousMode', e.target.checked)}
+                />
+                <span>Apoiar anonimamente</span>
               </label>
             </div>
+          </>
+        );
 
-            <Button type="submit" size="large" fullWidth loading={isLoading} className="mt-2">Criar Conta</Button>
-          </form>
-        </main>
+      case 'phoneRegion':
+        return (
+          <>
+            <h1 className="typeform-question">Telefone e região de atuação</h1>
+            <div className="typeform-field">
+              <input
+                autoFocus
+                type="tel"
+                className="typeform-input"
+                placeholder="Telefone"
+                value={data.phone}
+                onChange={e => setField('phone', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+            <div className="typeform-field" style={{ marginTop: 'var(--spacing-4)' }}>
+              <input
+                type="text"
+                className="typeform-input"
+                placeholder="Região (ex: Heliópolis - SP)"
+                value={data.region}
+                onChange={e => setField('region', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+          </>
+        );
+
+      case 'summary': {
+        if (role === 'donor') {
+          return (
+            <>
+              <h1 className="typeform-question">Tudo certo!</h1>
+              <p className="typeform-hint">Confira seus dados antes de criar sua conta.</p>
+              <div className="typeform-summary-list">
+                <div className="typeform-summary-row"><span>Nome</span><span>{donorData.name}</span></div>
+                <div className="typeform-summary-row"><span>E-mail</span><span>{donorData.email}</span></div>
+                <div className="typeform-summary-row"><span>Telefone</span><span>{donorData.phone || '—'}</span></div>
+                <div className="typeform-summary-row"><span>Tipo de conta</span><span>Apoiador</span></div>
+              </div>
+            </>
+          );
+        }
+        if (role === 'entity') {
+          return (
+            <>
+              <h1 className="typeform-question">Quase lá!</h1>
+              <p className="typeform-hint">Confira os dados da sua entidade — seu cadastro entrará em análise.</p>
+              <div className="typeform-summary-list">
+                <div className="typeform-summary-row"><span>Entidade</span><span>{entityData.name}</span></div>
+                <div className="typeform-summary-row"><span>Responsável</span><span>{entityData.responsibleName}</span></div>
+                <div className="typeform-summary-row"><span>E-mail</span><span>{entityData.email}</span></div>
+                <div className="typeform-summary-row"><span>Região</span><span>{entityData.region}</span></div>
+              </div>
+            </>
+          );
+        }
+        return (
+          <>
+            <h1 className="typeform-question">Quase lá!</h1>
+            <p className="typeform-hint">Confira seus dados antes de criar sua conta.</p>
+            <div className="typeform-summary-list">
+              <div className="typeform-summary-row"><span>Nome</span><span>{beneficiaryData.name}</span></div>
+              <div className="typeform-summary-row"><span>E-mail</span><span>{beneficiaryData.email}</span></div>
+              <div className="typeform-summary-row"><span>Telefone</span><span>{beneficiaryData.phone || '—'}</span></div>
+            </div>
+          </>
+        );
+      }
+
+      default:
+        return null;
+    }
+  };
+
+  // ── Role picker (step 0) ────────────────────────────────────────────────
+  const renderRolePicker = () => (
+    <>
+      <div className="typeform-brand">Mealfy</div>
+      <h1 className="typeform-question text-center">Como você quer participar?</h1>
+      <div className="typeform-choice-list">
+        <button className="typeform-choice-card" onClick={() => selectRole('donor')}>
+          <div className="typeform-choice-icon bg-primary/10 text-primary">
+            <Soup size={22} />
+          </div>
+          <div className="typeform-choice-text">
+            <h3>Quero apoiar</h3>
+            <p>Apoie em poucos segundos e acompanhe seu impacto.</p>
+          </div>
+          <ArrowRight size={18} className="text-outline/40" />
+        </button>
+
+        <button className="typeform-choice-card" onClick={() => selectRole('entity')}>
+          <div className="typeform-choice-icon bg-secondary/10 text-secondary">
+            <Building2 size={22} />
+          </div>
+          <div className="typeform-choice-text">
+            <h3>Sou uma entidade</h3>
+            <p>Cadastre famílias e gerencie apoios para sua comunidade.</p>
+          </div>
+          <ArrowRight size={18} className="text-outline/40" />
+        </button>
+
+        <button className="typeform-choice-card" onClick={() => selectRole('beneficiary')}>
+          <div className="typeform-choice-icon bg-success/10 text-success">
+            <UserCircle size={22} />
+          </div>
+          <div className="typeform-choice-text">
+            <h3>Sou Beneficiário</h3>
+            <p>Crie sua conta para acessar seu painel de recebimentos.</p>
+          </div>
+          <ArrowRight size={18} className="text-outline/40" />
+        </button>
       </div>
-    );
-  }
 
-  // ── Entity form view ─────────────────────────────────────────────────────
-  if (step === 'entity') {
-    return (
-      <div className="auth-page login-view">
-        <div className="login-hero">
-          <button className="back-btn" onClick={() => setStep('picker')} aria-label="Voltar">
-            <ArrowRight size={24} style={{ transform: 'rotate(180deg)' }} />
-          </button>
-          <h1 className="login-hero-title" style={{fontSize: '1.75rem'}}>Seja uma entidade autorizada</h1>
-          <p className="login-hero-subtitle">Após aprovação, sua organização poderá cadastrar famílias assistidas.</p>
-        </div>
-        <main className="login-content p-6 flex-col">
-          <form onSubmit={handleRegisterEntity} className="flex-col gap-4 mt-2">
-            <div className="form-group">
-              <label className="form-label">Nome da Entidade</label>
-              <input type="text" className="form-input" required value={entityData.name} onChange={e => setEntityData({...entityData, name: e.target.value})} />
-            </div>
-
-            <div className="flex gap-3">
-              <div className="form-group w-1/2">
-                <label className="form-label">CNPJ</label>
-                <input type="text" className="form-input" required placeholder="00.000.000/0001-00" value={entityData.cnpj} onChange={e => setEntityData({...entityData, cnpj: e.target.value})} />
-              </div>
-              <div className="form-group w-1/2">
-                <label className="form-label">Tipo</label>
-                <select className="form-select" value={entityData.type} onChange={e => setEntityData({...entityData, type: e.target.value as any})}>
-                  <option value="ONG">ONG</option>
-                  <option value="igreja">Igreja</option>
-                  <option value="escola">Escola</option>
-                  <option value="instituto">Instituto</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Nome do Responsável</label>
-              <input type="text" className="form-input" required value={entityData.responsibleName} onChange={e => setEntityData({...entityData, responsibleName: e.target.value})} />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">E-mail Comercial</label>
-              <input type="email" className="form-input" required value={entityData.email} onChange={e => setEntityData({...entityData, email: e.target.value})} autoComplete="email" />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Senha de acesso</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
-                <input type={showPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={entityData.password} onChange={e => setEntityData({...entityData, password: e.target.value})} autoComplete="new-password" />
-                <PwdToggle show={showPwd} onToggle={() => setShowPwd(v => !v)} />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Confirmar Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
-                <input type={showConfirmPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={entityData.confirmPassword} onChange={e => setEntityData({...entityData, confirmPassword: e.target.value})} autoComplete="new-password" />
-                <PwdToggle show={showConfirmPwd} onToggle={() => setShowConfirmPwd(v => !v)} />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="form-group w-1/2">
-                <label className="form-label">Telefone</label>
-                <input type="text" className="form-input" required value={entityData.phone} onChange={e => setEntityData({...entityData, phone: e.target.value})} />
-              </div>
-              <div className="form-group w-1/2">
-                <label className="form-label">Região</label>
-                <input type="text" className="form-input" required value={entityData.region} onChange={e => setEntityData({...entityData, region: e.target.value})} />
-              </div>
-            </div>
-
-            <Button type="submit" size="large" fullWidth loading={isLoading} className="mt-4">Cadastrar Organização</Button>
-            <p className="text-xs text-center text-outline mt-2">Sua solicitação entrará em análise pela nossa equipe.</p>
-          </form>
-        </main>
+      <div className="text-center mt-6">
+        <button className="text-primary font-bold text-sm" onClick={() => navigate('/auth')}>
+          Já tenho uma conta
+        </button>
       </div>
-    );
-  }
+    </>
+  );
 
-  // ── Beneficiary form view ────────────────────────────────────────────────
-  if (step === 'beneficiary') {
-    return (
-      <div className="auth-page login-view">
-        <div className="login-hero">
-          <button className="back-btn" onClick={() => setStep('picker')} aria-label="Voltar">
-            <ArrowRight size={24} style={{ transform: 'rotate(180deg)' }} />
-          </button>
-          <h1 className="login-hero-title">Criar conta como Beneficiário</h1>
-          <p className="login-hero-subtitle">Crie sua conta e aguarde o vínculo com uma entidade autorizada.</p>
-        </div>
-        <main className="login-content p-6 flex-col">
-          <form onSubmit={handleRegisterBeneficiary} className="flex-col gap-4 mt-2">
-            <div className="form-group">
-              <label className="form-label">Nome Completo</label>
-              <input type="text" className="form-input" required value={beneficiaryData.name} onChange={e => setBeneficiaryData({...beneficiaryData, name: e.target.value})} />
-            </div>
+  const stepKey = role ? `${role}-${currentStep?.id}` : 'role-picker';
+  const isLastStep = role ? stepIndex === steps.length - 1 : false;
 
-            <div className="form-group">
-              <label className="form-label">E-mail</label>
-              <input type="email" className="form-input" required value={beneficiaryData.email} onChange={e => setBeneficiaryData({...beneficiaryData, email: e.target.value})} autoComplete="email" />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
-                <input type={showPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={beneficiaryData.password} onChange={e => setBeneficiaryData({...beneficiaryData, password: e.target.value})} autoComplete="new-password" />
-                <PwdToggle show={showPwd} onToggle={() => setShowPwd(v => !v)} />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Confirmar Senha</label>
-              <div className="auth-input-wrapper" style={{border:'1.5px solid #e4beb9', borderRadius:'var(--radius-md)'}}>
-                <input type={showConfirmPwd ? 'text' : 'password'} className="form-input" style={{border:'none',outline:'none',flex:1,paddingRight:44}} required minLength={6} value={beneficiaryData.confirmPassword} onChange={e => setBeneficiaryData({...beneficiaryData, confirmPassword: e.target.value})} autoComplete="new-password" />
-                <PwdToggle show={showConfirmPwd} onToggle={() => setShowConfirmPwd(v => !v)} />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Telefone (opcional)</label>
-              <input type="text" className="form-input" value={beneficiaryData.phone} onChange={e => setBeneficiaryData({...beneficiaryData, phone: e.target.value})} />
-            </div>
-
-            <div className="bg-surface-highest p-4 rounded-xl">
-              <p className="text-xs text-outline leading-relaxed">
-                Após criar sua conta, você precisará ser vinculado a uma entidade autorizada pela equipe Mealfy para acessar os benefícios.
-              </p>
-            </div>
-
-            <Button type="submit" size="large" fullWidth loading={isLoading} className="mt-2">Criar Conta</Button>
-          </form>
-        </main>
-      </div>
-    );
-  }
-
-  // ── Picker (default) ─────────────────────────────────────────────────────
   return (
-    <div className="auth-page role-picker-view">
-      <AppHeader transparent showBack onBack={() => navigate('/auth')} />
-      <div className="auth-hero pt-16">
-        <div className="auth-hero-overlay" />
-        <img
-          src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-          alt="Criança sorrindo"
-          className="auth-hero-image"
-        />
-        <div className="auth-hero-content">
-          <div className="auth-brand">Mealfy</div>
-          <h1 className="auth-hero-title">Como você quer participar?</h1>
-        </div>
+    <div className="typeform-page">
+      <div className="typeform-progress-track">
+        <div className="typeform-progress-fill" style={{ width: `${progress}%` }} />
       </div>
 
-      <main className="auth-content p-6 flex-col">
-        <div className="roles-list flex-col gap-4 mb-6 mt-4">
-          <button className="role-card-btn" onClick={() => setStep('donor')}>
-            <div className="role-icon-wrapper bg-primary/10 text-primary">
-              <Soup size={24} />
-            </div>
-            <div className="role-card-text">
-              <h3>Quero apoiar</h3>
-              <p>Apoie em poucos segundos e acompanhe seu impacto.</p>
-            </div>
-            <ArrowRight size={20} className="text-outline/40" />
-          </button>
+      <div className="typeform-header">
+        <button
+          className="typeform-back-btn"
+          onClick={goBack}
+          disabled={!role}
+          aria-label="Voltar"
+        >
+          <ArrowLeft size={18} />
+        </button>
 
-          <button className="role-card-btn" onClick={() => setStep('entity')}>
-            <div className="role-icon-wrapper bg-secondary/10 text-secondary">
-              <Building2 size={24} />
-            </div>
-            <div className="role-card-text">
-              <h3>Sou uma entidade</h3>
-              <p>Cadastre famílias e gerencie apoios para sua comunidade.</p>
-            </div>
-            <ArrowRight size={20} className="text-outline/40" />
-          </button>
+        {role ? (
+          <span className="typeform-step-counter">Pergunta {stepIndex + 1} de {totalSteps}</span>
+        ) : (
+          <span />
+        )}
 
-          <button className="role-card-btn" onClick={() => setStep('beneficiary')}>
-            <div className="role-icon-wrapper bg-success/10 text-success">
-              <UserCircle size={24} />
-            </div>
-            <div className="role-card-text">
-              <h3>Sou Beneficiário</h3>
-              <p>Crie sua conta para acessar seu painel de recebimentos.</p>
-            </div>
-            <ArrowRight size={20} className="text-outline/40" />
-          </button>
-        </div>
+        <button className="typeform-exit-btn" onClick={() => navigate('/auth')} aria-label="Fechar">
+          <X size={18} />
+        </button>
+      </div>
 
-        <div className="auth-footer mt-auto text-center flex-col gap-6">
-          <button
-            className="text-primary font-bold flex items-center justify-center gap-2 mx-auto text-sm"
-            onClick={() => navigate('/auth')}
+      <div className="typeform-body">
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
+          <motion.div
+            key={stepKey}
+            className="typeform-step"
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
-            Já tenho uma conta
-          </button>
-        </div>
-      </main>
+            {role ? renderStepBody() : renderRolePicker()}
+
+            {role && (
+              isLastStep ? (
+                <Button
+                  size="large"
+                  fullWidth
+                  loading={isLoading}
+                  className="typeform-continue-btn"
+                  onClick={handleSubmit}
+                >
+                  {role === 'entity' ? 'Cadastrar Organização' : 'Criar Conta'}
+                </Button>
+              ) : (
+                <button
+                  className="typeform-continue-btn"
+                  disabled={!isCurrentStepValid()}
+                  onClick={goNext}
+                >
+                  Continuar <ArrowRight size={18} />
+                </button>
+              )
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

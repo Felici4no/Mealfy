@@ -143,6 +143,10 @@
   box-shadow: var(--shadow-sm);
 }
 
+.info-box {
+  margin-bottom: 170px; /* Clear space for the fixed bottom action button */
+}
+
 .fixed-bottom-action {
   position: fixed;
   bottom: 80px; /* Above tab bar */
@@ -156,6 +160,12 @@
 .app-wrapper .fixed-bottom-action {
   position: absolute;
   bottom: 80px;
+}
+
+/* Keep the bottom action bar pinned to the viewport while scrolling,
+   so it doesn't permanently cover content that overflows the first screen. */
+.donation-choice-page .fixed-bottom-action {
+  position: fixed;
 }
 
 /* Wizard Stepper Styling */

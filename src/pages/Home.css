@@ -121,8 +121,13 @@
 }
 
 .border-inverted {
+  background-color: rgba(255, 255, 255, 0.12) !important;
   border-color: rgba(255,255,255,0.4) !important;
   color: var(--color-text-inverted) !important;
+}
+
+.border-inverted:active:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.24) !important;
 }
 
 .social-proof-section {
@@ -136,55 +141,102 @@
   border-top-right-radius: var(--radius-lg);
 }
 
-.section-title {
-  font-size: 1.25rem;
+.home-page .section-title {
+  font-size: var(--text-section);
 }
 
-.stats-grid {
+/* Scoped under .home-page to avoid collision with dashboard .stats-grid */
+.home-page .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-3);
 }
 
-.stat-card {
-  background-color: #ffffff;
-  border-radius: var(--radius-md);
+.home-page .stat-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-card);
   padding: var(--spacing-4) var(--spacing-2);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
 }
 
-.stat-number {
+.home-page .stat-number {
   font-family: var(--font-family-heading);
-  font-size: 1.4rem;
-  font-weight: 800;
+  font-size: 1.5rem;
+  font-weight: var(--weight-extrabold);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
-.stat-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--color-outline);
+.home-page .stat-label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
+  text-align: center;
 }
 
+/* Partner wordmarks — intentional, uniform, muted */
 .sponsor-logos {
   display: flex;
-  gap: 16px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: var(--radius-md);
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: transparent;
 }
 
 .sponsor-logo {
-  font-size: 10px !important;
+  font-family: var(--font-family-heading);
+  font-size: 0.8rem !important;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+  font-style: normal !important;
+  text-transform: uppercase;
+}
+
+.sponsor-eyebrow {
+  display: block;
+  text-align: center;
+  font-size: var(--text-label);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-2);
 }
 
 .bottom-spacing {
   height: 20px;
+}
+
+/* Impact Quote Card */
+.impact-quote-card {
+  border-left: 3px solid var(--color-secondary);
+  background-color: rgba(199, 167, 84, 0.05);
+}
+
+.impact-quote-text {
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--color-text-main);
+}
+
+.impact-quote-author {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-outline);
+  text-align: right;
+  margin-top: var(--spacing-2);
+}
+
+.support-development-section h4 {
+  font-size: 1rem;
 }
