@@ -40,8 +40,7 @@ workflows:
         script: npx cap add ios || true
       - name: Sincronizar Capacitor
         script: npx cap sync ios
-      - name: CocoaPods
-        script: cd ios/App && pod install
+      # Capacitor 8 usa Swift Package Manager (sem CocoaPods/Podfile).
       - name: Configurar assinatura (ad-hoc)
         script: |
           keychain initialize
@@ -53,7 +52,7 @@ workflows:
       - name: Gerar .ipa
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --project "ios/App/App.xcodeproj" \
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa

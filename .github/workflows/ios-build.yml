@@ -40,17 +40,19 @@ jobs:
       - name: Sync Capacitor iOS
         run: npx cap sync ios
 
-      - name: Install CocoaPods
-        working-directory: ios/App
-        run: pod install --repo-update
-
+      # Capacitor 8 uses Swift Package Manager (no CocoaPods/Podfile).
       - name: Compile (unsigned, simulator)
         run: |
-          xcodebuild \
-            -workspace ios/App/App.xcworkspace \
+          if [ -d ios/App/App.xcworkspace ]; then
+            TARGET=(-workspace ios/App/App.xcworkspace)
+          else
+            TARGET=(-project ios/App/App.xcodeproj)
+          fi
+          xcodebuild "${TARGET[@]}" \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            clean build
