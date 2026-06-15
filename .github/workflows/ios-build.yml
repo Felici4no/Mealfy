@@ -34,25 +34,24 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
-      - name: Add iOS platform
-        run: npx cap add ios
+      # Use CocoaPods (mature path); the SPM plugin packaging has compile bugs.
+      - name: Add iOS platform (CocoaPods)
+        run: npx cap add ios --packagemanager CocoaPods
 
       - name: Sync Capacitor iOS
         run: npx cap sync ios
 
-      # Capacitor 8 uses Swift Package Manager (no CocoaPods/Podfile).
+      - name: Install CocoaPods
+        working-directory: ios/App
+        run: pod install --repo-update
+
       - name: Compile (unsigned, simulator)
         run: |
-          if [ -d ios/App/App.xcworkspace ]; then
-            TARGET=(-workspace ios/App/App.xcworkspace)
-          else
-            TARGET=(-project ios/App/App.xcodeproj)
-          fi
-          xcodebuild "${TARGET[@]}" \
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
-            -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO \
             clean build
