@@ -46,7 +46,14 @@ export const familyService = {
    */
   markFamilyFed: async (
     familyId: string,
-    meta?: { donationId?: string; provider?: Family['lastGiftCardProvider']; code?: string }
+    meta?: {
+      donationId?: string;
+      provider?: Family['lastGiftCardProvider'];
+      code?: string;
+      donorName?: string;
+      donorInstagram?: string;
+      donorAvatar?: string;
+    }
   ): Promise<Family | null> => {
     familyService.initDB();
     const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
@@ -59,6 +66,9 @@ export const familyService = {
       ...(meta?.donationId ? { lastDonationId: meta.donationId } : {}),
       ...(meta?.provider ? { lastGiftCardProvider: meta.provider } : {}),
       ...(meta?.code ? { lastGiftCardCode: meta.code } : {}),
+      ...(meta?.donorName ? { lastFedByName: meta.donorName } : {}),
+      ...(meta?.donorInstagram ? { lastFedByInstagram: meta.donorInstagram } : {}),
+      ...(meta?.donorAvatar ? { lastFedByAvatar: meta.donorAvatar } : {}),
     };
     storage.set(FAMILIES_KEY, families);
     return families[idx];

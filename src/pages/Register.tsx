@@ -16,6 +16,19 @@ type RoleStep = 'donor' | 'entity' | 'beneficiary';
 
 const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
+// ── Máscaras de documento ─────────────────────────────────────────────────
+const onlyDigits = (v: string) => v.replace(/\D/g, '');
+const maskCPF = (v: string) => onlyDigits(v).slice(0, 11)
+  .replace(/(\d{3})(\d)/, '$1.$2')
+  .replace(/(\d{3})(\d)/, '$1.$2')
+  .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+const maskCNPJ = (v: string) => onlyDigits(v).slice(0, 14)
+  .replace(/(\d{2})(\d)/, '$1.$2')
+  .replace(/(\d{3})(\d)/, '$1.$2')
+  .replace(/(\d{3})(\d)/, '$1/$2')
+  .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+const maskDocument = (v: string, type: 'cpf' | 'cnpj') => (type === 'cnpj' ? maskCNPJ(v) : maskCPF(v));
+
 const validatePasswords = (pwd: string, confirm: string): string | null => {
   if (pwd.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
   if (pwd !== confirm) return 'As senhas não coincidem.';
@@ -171,8 +184,8 @@ const Register: React.FC = () => {
     switch (currentStep.id) {
       case 'name': return data.name.trim().length > 0;
       case 'email': return isValidEmail(data.email);
-      case 'document': return data.documentNumber.trim().length > 0;
-      case 'cnpjType': return data.cnpj.trim().length > 0;
+      case 'document': return onlyDigits(data.documentNumber).length === (data.documentType === 'cnpj' ? 14 : 11);
+      case 'cnpjType': return onlyDigits(data.cnpj).length === 14;
       case 'responsibleName': return data.responsibleName.trim().length > 0;
       case 'password': return data.password.length >= 6;
       case 'confirmPassword': return validatePasswords(data.password, data.confirmPassword) === null;
@@ -344,9 +357,10 @@ const Register: React.FC = () => {
                 autoFocus
                 type="text"
                 className="typeform-input"
-                placeholder={`Número do ${data.documentType.toUpperCase()}`}
+                placeholder={data.documentType === 'cnpj' ? '00.000.000/0000-00' : '000.000.000-00'}
+                inputMode="numeric"
                 value={data.documentNumber}
-                onChange={e => setField('documentNumber', e.target.value)}
+                onChange={e => setField('documentNumber', maskDocument(e.target.value, data.documentType))}
                 onKeyDown={handleKeyDown}
               />
             </div>
@@ -362,9 +376,10 @@ const Register: React.FC = () => {
                 autoFocus
                 type="text"
                 className="typeform-input"
-                placeholder="00.000.000/0001-00"
+                placeholder="00.000.000/0000-00"
+                inputMode="numeric"
                 value={data.cnpj}
-                onChange={e => setField('cnpj', e.target.value)}
+                onChange={e => setField('cnpj', maskCNPJ(e.target.value))}
                 onKeyDown={handleKeyDown}
               />
             </div>

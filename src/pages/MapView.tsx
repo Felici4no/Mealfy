@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Geolocation } from '@capacitor/geolocation';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -231,6 +232,23 @@ const MapView: React.FC = () => {
     return () => { active = false; };
   }, []);
 
+  // ── Localização do usuário (Android/web) com fallback ──
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
+
+  const requestLocation = useCallback(async () => {
+    setGeoStatus('loading');
+    try {
+      const pos = await Geolocation.getCurrentPosition({ timeout: 8000, enableHighAccuracy: false });
+      setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+      setGeoStatus('granted');
+    } catch {
+      setGeoStatus('denied'); // mapa continua com fallback (SP / região escolhida)
+    }
+  }, []);
+
+  useEffect(() => { requestLocation(); }, [requestLocation]);
+
   // Regiões/bairros do filtro derivados das famílias carregadas (SP + RJ)
   const REGIONS = Array.from(new Set(families.map(f => f.neighborhood))).sort();
 
@@ -253,8 +271,12 @@ const MapView: React.FC = () => {
       setMapCenter(CITY_CENTERS[cityFilter]);
       return;
     }
+    if (userLocation) {
+      setMapCenter(userLocation);
+      return;
+    }
     setMapCenter([-23.5900, -46.6200]);
-  }, [bairroFilter, cityFilter, families]);
+  }, [bairroFilter, cityFilter, families, userLocation]);
 
   // Filter Logic
   const filteredFamilies = families.filter(fam => {
@@ -379,6 +401,21 @@ const MapView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ── Banner de localização ── */}
+      {geoStatus === 'loading' && (
+        <div className="map-geo-banner">Permita sua localização para encontrar famílias próximas…</div>
+      )}
+      {geoStatus === 'denied' && (
+        <div className="map-geo-banner map-geo-banner--warn">
+          <span>Não conseguimos acessar sua localização. Você ainda pode explorar famílias por região.</span>
+          <div className="map-geo-actions">
+            <button onClick={requestLocation}>Tentar novamente</button>
+            <button onClick={() => { setUserLocation(null); setCityFilter('all'); setBairroFilter('all'); setMapCenter([-23.5900, -46.6200]); setGeoStatus('idle'); }}>Usar região padrão</button>
+            <button onClick={() => setIsFiltersOpen(true)}>Selecionar região</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Leaflet Map Container ── */}
       <div className="map-container-wrapper">
@@ -590,13 +627,27 @@ const MapView: React.FC = () => {
             <p className="text-sm text-text-main italic">"{selectedFamilyPreview.description}"</p>
 
             <div className="bg-surface-highest/60 p-3 rounded-md border border-outline/5">
-              <span className="text-[10px] uppercase font-bold text-outline block mb-1">Necessidade Principal</span>
+              <span className="text-[10px] uppercase font-bold text-outline block mb-1">O que essa família precisa hoje</span>
               <p className="text-sm font-semibold">{selectedFamilyPreview.mainNeed}</p>
               <div className="mt-2 text-xs text-outline flex items-center gap-1">
                 <ShieldAlert size={14} className="text-secondary" />
                 <span>Validado por: <strong>{selectedFamilyPreview.sourceEntityName || 'Parceiro Oficial'}</strong></span>
               </div>
             </div>
+
+            {/* Alimentada por */}
+            {!isBeneficiaryEligible(selectedFamilyPreview) && selectedFamilyPreview.lastFedByName && (
+              <div className="bg-success/10 border border-success/20 p-3 rounded-md text-xs">
+                <span className="text-[10px] uppercase font-bold text-success block mb-1">Alimentada por</span>
+                <span className="text-sm font-bold text-text-main">{selectedFamilyPreview.lastFedByName}</span>
+                {selectedFamilyPreview.lastFedByInstagram && (
+                  <span className="text-secondary"> · {selectedFamilyPreview.lastFedByInstagram}</span>
+                )}
+                {selectedFamilyPreview.lastGiftCardProvider && (
+                  <span className="text-outline block">Vale {PROVIDER_LABELS[selectedFamilyPreview.lastGiftCardProvider]}</span>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-between items-center text-sm font-medium border-t border-outline/10 pt-3">
               <span>Dependentes: <strong>{selectedFamilyPreview.childrenCount}</strong></span>

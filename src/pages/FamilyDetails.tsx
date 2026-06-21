@@ -169,6 +169,36 @@ const FamilyDetails: React.FC = () => {
           </p>
         </section>
 
+        {/* ── Alimentada por ── */}
+        <section className="mb-6">
+          <h3 className="text-[10px] font-bold text-outline uppercase tracking-wider mb-2">Alimentada por</h3>
+          {(family.supportStatus === 'fed' || family.supportStatus === 'supported') && family.lastFedByName ? (
+            <div className="flex items-center gap-3 p-3 bg-surface rounded-md border border-outline/10">
+              <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold flex-shrink-0">
+                {family.lastFedByAvatar?.startsWith('http')
+                  ? <img src={family.lastFedByAvatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  : (family.lastFedByName.charAt(0).toUpperCase())}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-primary truncate">{family.lastFedByName}</p>
+                {family.lastFedByInstagram && (
+                  <a href={`https://instagram.com/${family.lastFedByInstagram.replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="text-xs text-secondary">
+                    {family.lastFedByInstagram}
+                  </a>
+                )}
+                <p className="text-[11px] text-outline">
+                  {family.lastFedAt ? new Date(family.lastFedAt).toLocaleDateString('pt-BR') + ' às ' + new Date(family.lastFedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Hoje'}
+                  {family.lastGiftCardProvider ? ` · Vale ${PROVIDER_LABELS[family.lastGiftCardProvider]}` : ''}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-outline italic p-3 bg-surface rounded-md border border-outline/5">
+              Ainda aguardando o primeiro apoio de hoje.
+            </p>
+          )}
+        </section>
+
         {/* ── Urgency Box ── */}
         <section className="family-urgency mb-8">
           <div className={`urgency-box flex items-start gap-3 p-4 rounded-md border ${
@@ -176,7 +206,7 @@ const FamilyDetails: React.FC = () => {
           }`}>
             <AlertCircle size={20} className={isUrgent ? 'text-error mt-0.5' : 'text-secondary mt-0.5'} />
             <div>
-              <h4 className="font-semibold mb-1 text-sm text-primary">Necessidade Principal</h4>
+              <h4 className="font-semibold mb-1 text-sm text-primary">O que essa família precisa hoje</h4>
               <p className="text-sm text-text-main">{family.mainNeed}</p>
             </div>
           </div>

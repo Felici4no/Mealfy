@@ -127,6 +127,10 @@ export interface Family {
   lastDonationId?: string;
   lastGiftCardProvider?: GiftCardProvider;
   lastGiftCardCode?: string;
+  /** Quem alimentou a família por último (exibido em "Alimentada por") */
+  lastFedByName?: string;
+  lastFedByInstagram?: string;
+  lastFedByAvatar?: string;
   /** Validação de identidade/dados (governo) — separado da aprovação */
   verificationStatus?: 'pending' | 'verified' | 'rejected' | 'blocked';
   /** Aprovação final no Mealfy (manual pela entidade/admin) */

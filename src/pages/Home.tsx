@@ -227,8 +227,8 @@ const Home: React.FC = () => {
         <div className="py-3 mb-3 border-t border-b border-outline/10">
           <span className="sponsor-eyebrow">Parceiros de tecnologia</span>
           <div className="sponsor-logos">
-            <div className="sponsor-logo">Owl Fortec</div>
-            <div className="sponsor-logo">Taylor</div>
+            <div className="sponsor-logo">Owl4tech</div>
+            <div className="sponsor-logo">Talon Intelligence</div>
           </div>
         </div>
 

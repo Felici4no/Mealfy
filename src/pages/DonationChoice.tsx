@@ -15,7 +15,7 @@ import './DonationChoice.css';
 const DonationChoice: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { selectedCommunity } = useAppContext();
+  const { selectedCommunity, user } = useAppContext();
   const { showToast } = useToast();
   
   // Navigation states
@@ -101,7 +101,12 @@ const DonationChoice: React.FC = () => {
         releasedCode = card.code;
         label = `Vale ${PROVIDER_LABELS[provider]} — ${targetFamily.representativeName}`;
         // Persiste "alimentada hoje" na fonte de verdade (bloqueia nova doação no dia)
-        await familyService.markFamilyFed(targetFamily.id, { donationId: `don-${Date.now()}`, provider, code: releasedCode });
+        await familyService.markFamilyFed(targetFamily.id, {
+          donationId: `don-${Date.now()}`, provider, code: releasedCode,
+          donorName: user?.privacySettings?.anonymousMode ? 'Apoiador anônimo' : (user?.name || 'Apoiador'),
+          donorInstagram: user?.privacySettings?.anonymousMode ? undefined : user?.instagram,
+          donorAvatar: user?.avatar,
+        });
       } else {
         // Apoio coletivo: libera 1 código por família, usando providers com estoque
         const order: GiftCardProvider[] = ['ifood', '99', 'carrefour'];
@@ -356,10 +361,10 @@ const DonationChoice: React.FC = () => {
                   onChange={(e) => setIsRecurrent(e.target.checked)} 
                   disabled={isProcessing}
                 />
-                <span className="text-sm font-bold text-primary">Tornar este apoio recorrente (mensal)</span>
+                <span className="text-sm font-bold text-primary">Quero apoiar essa família novamente quando estiver disponível</span>
               </label>
               <p className="text-[10px] text-outline pl-6 leading-relaxed">
-                Ao selecionar apoio mensal, a Mealfy debitará este valor automaticamente a cada 30 dias para manter a estabilidade alimentar dessas crianças.
+                A Mealfy poderá te lembrar quando essa família estiver disponível novamente para receber apoio. A doação só acontece com nova confirmação sua — sem cobrança automática.
               </p>
             </div>
 

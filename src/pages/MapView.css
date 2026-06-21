@@ -1,6 +1,8 @@
 .map-view-page {
   height: 100dvh;
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -88,10 +90,10 @@
   }
 }
 
-/* ── Floating map controls (Top) ── */
+/* ── Floating map controls (logo acima da navbar) ── */
 .map-top-bar {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  bottom: calc(var(--tabbar-clearance) + 8px);
   left: var(--gutter);
   right: var(--gutter);
   z-index: 1000;
@@ -273,7 +275,7 @@
 /* Recenter Controls */
 .map-controls-overlay {
   position: absolute;
-  bottom: calc(var(--tabbar-clearance) + 8px);
+  bottom: calc(var(--tabbar-clearance) + 72px);
   right: var(--gutter);
   z-index: 1000;
   pointer-events: auto;
@@ -318,4 +320,47 @@
 
 .family-preview-card {
   width: 100%;
+}
+
+/* ── Banner de localização (loading/erro) ── */
+.map-geo-banner {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 110px);
+  left: var(--gutter);
+  right: var(--gutter);
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: saturate(160%) blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 12px 14px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-main);
+}
+.map-geo-banner--warn {
+  border-color: rgba(var(--color-warning-rgb), 0.4);
+}
+.map-geo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.map-geo-actions button {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  cursor: pointer;
+}
+.map-geo-actions button:first-child {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
 }

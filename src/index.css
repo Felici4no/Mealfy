@@ -158,6 +158,17 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Rede de segurança contra corte lateral / scroll horizontal no Android real */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Mídia nunca estoura o container */
+img, svg, video, canvas {
+  max-width: 100%;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-family-heading);
   font-weight: var(--weight-bold);

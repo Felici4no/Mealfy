@@ -104,10 +104,16 @@
 
 .typeform-input {
   width: 100%;
+  min-width: 0;        /* evita overflow quando é filho de flex */
+  max-width: 20rem;    /* um pouco menor */
+  margin: 0 auto;      /* mantém centralizado */
+  display: block;
+  text-align: center;
+  box-sizing: border-box;
   border: none;
-  border-bottom: 2px solid var(--color-surface-highest);
+  border-bottom: 2px solid transparent;
   background: transparent;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 600;
   padding: var(--spacing-2) 0;
   color: var(--color-text-main);
@@ -116,8 +122,16 @@
   font-family: var(--font-family-body);
 }
 
+/* Garante que os contêineres do passo nunca estourem a largura da página */
+.typeform-step,
+.typeform-field {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .typeform-input:focus {
-  border-color: var(--color-primary);
+  border-color: transparent;
 }
 
 .typeform-input::placeholder {
@@ -129,6 +143,9 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .typeform-input-wrapper .typeform-input {
