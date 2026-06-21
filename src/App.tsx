@@ -26,6 +26,7 @@ import Unauthorized from './pages/Unauthorized';
 import Register from './pages/Register';
 import IndicateFamily from './pages/IndicateFamily';
 import ForgotPassword from './pages/ForgotPassword';
+import AdminDashboard from './pages/AdminDashboard';
 
 import './App.css';
 
@@ -51,7 +52,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   useNativeBackButton();
 
   // We hide the bottom tab bar on certain screens
-  const hideTabBarRoutes = ['/auth', '/register', '/forgot-password', '/donate', '/success', '/unauthorized'];
+  const hideTabBarRoutes = ['/auth', '/register', '/forgot-password', '/donate', '/success', '/unauthorized', '/admin'];
   const isHiddenRoute = hideTabBarRoutes.some(route => location.pathname.startsWith(route));
 
   // Hide if beneficiary or admin (they have their own navigation or are simple)
@@ -104,6 +105,9 @@ function App() {
             
             {/* Beneficiary Routes */}
             <Route path="/beneficiary/dashboard" element={<PrivateRoute allowedRoles={['beneficiary']}><BeneficiaryDashboard /></PrivateRoute>} />
+
+            {/* Admin Route (web panel, full-width) */}
+            <Route path="/admin" element={<PrivateRoute allowedRoles={['admin']}><AdminDashboard /></PrivateRoute>} />
             
             {/* Admin dashboard removed from mobile app — managed via separate admin application */}
 
@@ -128,7 +132,7 @@ const DashboardRedirect = () => {
   switch(user?.role) {
     case 'entity':      return <Navigate to="/entity/dashboard" replace />;
     case 'beneficiary': return <Navigate to="/beneficiary/dashboard" replace />;
-    case 'admin':       return <Navigate to="/unauthorized" replace />;
+    case 'admin':       return <Navigate to="/admin" replace />;
     case 'donor':
     default:            return <Navigate to="/" replace />;
   }

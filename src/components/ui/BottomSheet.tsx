@@ -38,7 +38,13 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, child
       window.removeEventListener('popstate', handlePopState);
       if (pushedHistoryRef.current) {
         pushedHistoryRef.current = false;
-        window.history.back();
+        // Só remove a entrada do sheet se ela ainda for o topo do histórico.
+        // Se o usuário navegou para outra rota (ex.: "Ver ficha completa"),
+        // NÃO chamar back() — isso desfazia a navegação e a tela "não aparecia".
+        const state = window.history.state as { mealfySheet?: boolean } | null;
+        if (state && state.mealfySheet) {
+          window.history.back();
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

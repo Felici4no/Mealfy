@@ -108,10 +108,6 @@ export class MockAuthProvider implements AuthProvider {
       throw new AuthError('invalid_credentials', 'E-mail ou senha incorretos.');
     }
 
-    if (user.role === 'admin') {
-      throw new AuthError('admin_blocked', 'Esta conta não possui acesso ao aplicativo Mealfy.');
-    }
-
     if (user.status === 'pending') {
       throw new AuthError('account_pending', 'Sua conta ainda está em análise.');
     }

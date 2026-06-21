@@ -4,6 +4,7 @@ import Button from '../components/ui/Button';
 import { Check, Share2, History, HeartHandshake, Copy, MessageCircle, AtSign, Mail } from 'lucide-react';
 import BottomSheet from '../components/ui/BottomSheet';
 import { useToast } from '../context/ToastContext';
+import { PROVIDER_LABELS } from '../backend/mockData/giftCardInventory';
 import './Success.css';
 
 const Success: React.FC = () => {
@@ -59,6 +60,11 @@ const Success: React.FC = () => {
           <div className="receipt-row">
             <span className="receipt-label">Destinatário</span>
             <span className="receipt-value">{donationResult.familyAssigned.representativeName}</span>
+          </div>
+          <div className="receipt-divider"></div>
+          <div className="receipt-row">
+            <span className="receipt-label">Plataforma</span>
+            <span className="receipt-value font-bold text-primary">{PROVIDER_LABELS[donationResult.giftCard.provider as 'ifood' | '99' | 'carrefour'] || donationResult.giftCard.provider}</span>
           </div>
           <div className="receipt-divider"></div>
           <div className="receipt-row">

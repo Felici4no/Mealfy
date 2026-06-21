@@ -12,7 +12,7 @@ export interface GiftCardPartner {
 export const GIFT_CARD_PARTNERS: GiftCardPartner[] = [
   { id: 'ifood',     name: 'iFood',     color: '#EA1D2C', description: 'Resgate em qualquer loja iFood Mercado.' },
   { id: 'carrefour', name: 'Carrefour', color: '#1E4DA1', description: 'Use em qualquer unidade Carrefour ou Carrefour Express.' },
-  { id: '99',        name: '99Food',    color: '#FFCC00', description: 'Pague com saldo 99Pay em restaurantes e mercados parceiros.' },
+  { id: '99',        name: '99 Mercado', color: '#FFCC00', description: 'Pague com saldo 99Pay em restaurantes e mercados parceiros.' },
 ];
 
 interface GiftCardSelectorModalProps {

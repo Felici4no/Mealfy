@@ -19,15 +19,49 @@ interface Donor {
   };
 }
 
+interface SelfUser {
+  name: string;
+  avatar?: string;
+  instagram?: string;
+}
+
 interface StoriesRankingProps {
   donors: Donor[];
   onSelectDonor?: (donor: Donor) => void;
+  /** Usuário logado — sempre exibido como primeira entrada do carrossel. */
+  currentUser?: SelfUser | null;
+  /** Acionado ao tocar na entrada do usuário quando não há Instagram conectado. */
+  onConnectInstagram?: () => void;
 }
 
-const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor }) => {
+const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor, currentUser, onConnectInstagram }) => {
+  const hasInstagram = !!currentUser?.instagram;
   return (
     <div className="stories-ranking-container">
       <div className="stories-scroll">
+        {/* ── Primeira entrada: o próprio usuário ── */}
+        {currentUser && (
+          <div
+            className="story-item story-item--self"
+            onClick={() => (hasInstagram ? onSelectDonor?.({ id: 'self', name: currentUser.name, avatar: currentUser.avatar || '', totalDonated: 0 } as Donor) : onConnectInstagram?.())}
+            title={hasInstagram ? currentUser.instagram : 'Conecte seu Instagram'}
+          >
+            <div className="story-avatar-ring self-ring">
+              <div className="story-avatar">
+                {currentUser.avatar?.startsWith('http') ? (
+                  <img src={currentUser.avatar} alt={currentUser.name} />
+                ) : (
+                  currentUser.name?.[0]?.toUpperCase() || 'V'
+                )}
+              </div>
+              {!hasInstagram && <span className="self-add-badge" aria-hidden="true">+</span>}
+            </div>
+            <span className="story-name story-name--self">
+              {hasInstagram ? 'Você' : 'Conectar IG'}
+            </span>
+          </div>
+        )}
+
         {donors.map((donor) => {
           const isAnon = donor.isAnonymous || donor.privacySettings?.anonymousMode;
           const displayName = isAnon ? 'Anônimo' : donor.name;

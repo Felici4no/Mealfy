@@ -32,6 +32,7 @@ const DEV_ACCOUNTS = [
   { label: 'Apoiador',     email: 'doador@mealfy.com'       },
   { label: 'Entidade',     email: 'entidade@mealfy.com'     },
   { label: 'Beneficiário', email: 'beneficiario@mealfy.com' },
+  { label: 'Admin',        email: 'admin@mealfy.com'        },
 ];
 const DEV_PASSWORD = '123456';
 
@@ -169,10 +170,17 @@ const Auth: React.FC = () => {
       <div className="auth-hero">
         <div className="auth-hero-overlay" />
         <img
-          src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+          src="/images/home-hero.jpg"
           alt=""
           className="auth-hero-image"
           aria-hidden="true"
+          onError={(e) => {
+            const t = e.currentTarget;
+            if (!t.dataset.fallback) {
+              t.dataset.fallback = '1';
+              t.src = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+            }
+          }}
         />
         <div className="auth-hero-content">
           <div className="auth-brand" aria-label="Mealfy">Mealfy</div>

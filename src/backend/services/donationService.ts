@@ -1,11 +1,18 @@
-import type { Donation, GiftCard, Family, BigDonationResult } from '../types';
+import type { Donation, GiftCard, Family, BigDonationResult, GiftCardProvider } from '../types';
 import { mockDonations, mockGiftCards } from '../mockData/donations';
 import { familyService } from './familyService';
+import { giftCardService } from './giftCardService';
+import { PROVIDER_LABELS } from '../mockData/giftCardInventory';
+import { isBeneficiaryEligible } from '../utils/timeUtils';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 
 import { donationsApi } from '../../api/donationsApi';
 import { handleApiError } from '../utils/fallback';
+
+/** Resolve o provider da família (padrão iFood se não definido). */
+const resolveProvider = (family?: Family): GiftCardProvider =>
+  (family?.preferredGiftCardProvider as GiftCardProvider) || 'ifood';
 
 const DONATIONS_KEY = 'donations_db';
 const GIFTCARDS_KEY = 'giftcards_db';
@@ -20,13 +27,14 @@ export const donationService = {
     }
   },
 
-  generateGiftCard: async (payload: { amount: number, familyId: string, donorId: string, donationId: string }): Promise<GiftCard> => {
+  generateGiftCard: async (payload: { amount: number, familyId: string, donorId: string, donationId: string, provider: GiftCardProvider }): Promise<GiftCard> => {
     await randomDelay(200, 500);
     donationService.initDB();
-    
-    const providers = ['ifood', 'other'];
-    const randomProvider = providers[Math.floor(Math.random() * providers.length)];
-    const randomCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    giftCardService.initInventory();
+
+    // Libera um código real do estoque do provider escolhido pela família.
+    // Lança erro ("Sem códigos disponíveis para ...") se o estoque acabar.
+    const released = giftCardService.releaseCode(payload.provider);
 
     const newGiftCard: GiftCard = {
       id: `gc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -36,9 +44,9 @@ export const donationService = {
       amount: payload.amount,
       createdAt: new Date().toISOString(),
       status: 'generated',
-      label: `Gift Card Mealfy — R$${payload.amount}`,
-      provider: randomProvider,
-      code: randomCode
+      label: `Vale ${PROVIDER_LABELS[payload.provider]} — R$${payload.amount}`,
+      provider: payload.provider,
+      code: released.code
     };
 
     const cards = storage.get<GiftCard[]>(GIFTCARDS_KEY, mockGiftCards);
@@ -93,15 +101,21 @@ export const donationService = {
       throw new Error("Todas as famílias desta comunidade já foram ajudadas!");
     }
 
+    // ── Regra crítica: 1 doação por dia por família ──
+    if (!isBeneficiaryEligible(selectedFamily!)) {
+      throw new Error('Esta família já foi alimentada hoje. Próxima liberação às 08h.');
+    }
+
     // Generate Gift Card
     const donorId = payload.donorId || `anon-${Date.now()}`;
     const donationId = `don-${Date.now()}`;
-    
+
     const giftCard = await donationService.generateGiftCard({
       amount: payload.amount,
       familyId: selectedFamily!.id,
       donorId,
-      donationId
+      donationId,
+      provider: resolveProvider(selectedFamily)
     });
 
     // Create Donation Record
@@ -137,11 +151,13 @@ export const donationService = {
       }
     }
 
-    // Update Family Status
-    const familyAssigned = await familyService.updateFamilyStatus(selectedFamily!.id, 'supported');
-    familyAssigned.lastFedAt = new Date().toISOString();
-    familyAssigned.supportStatus = 'fed';
-    
+    // Marca a família como alimentada hoje (persistido — bloqueia nova doação no dia)
+    const familyAssigned = (await familyService.markFamilyFed(selectedFamily!.id, {
+      donationId,
+      provider: giftCard.provider as Family['lastGiftCardProvider'],
+      code: giftCard.code,
+    })) || selectedFamily!;
+
     return { donation: newDonation, giftCard, familyAssigned };
   },
 
@@ -170,12 +186,15 @@ export const donationService = {
     const giftCards: GiftCard[] = [];
 
     for (const familyId of payload.familyIds) {
+      const fam = await familyService.getFamilyById(familyId);
+      if (fam && !isBeneficiaryEligible(fam)) continue; // pula famílias já alimentadas hoje
       const donationId = `don-batch-${Date.now()}-${familyId}`;
       const gc = await donationService.generateGiftCard({
         amount: payload.amountPerFamily,
         familyId,
         donorId: payload.donorId,
-        donationId
+        donationId,
+        provider: resolveProvider(fam || undefined)
       });
 
       const don: Donation = {
@@ -196,17 +215,12 @@ export const donationService = {
       donations.push(don);
       giftCards.push(gc);
 
-      // Update Family Status
-      await familyService.updateFamilyStatus(familyId, 'supported');
-      
-      const FAMILIES_KEY = 'families_db';
-      const allFamilies = storage.get<Family[]>(FAMILIES_KEY, []);
-      const fIdx = allFamilies.findIndex(f => f.id === familyId);
-      if (fIdx !== -1) {
-        allFamilies[fIdx].lastFedAt = new Date().toISOString();
-        allFamilies[fIdx].supportStatus = 'fed';
-        storage.set(FAMILIES_KEY, allFamilies);
-      }
+      // Marca a família como alimentada hoje (persistido)
+      await familyService.markFamilyFed(familyId, {
+        donationId,
+        provider: gc.provider as Family['lastGiftCardProvider'],
+        code: gc.code,
+      });
     }
 
     return { donations, giftCards };
@@ -279,7 +293,8 @@ export const donationService = {
         amount: perFamilyAmount,
         familyId: family.id,
         donorId: payload.donorId,
-        donationId: `bigdon-${Date.now()}-${family.id}`
+        donationId: `bigdon-${Date.now()}-${family.id}`,
+        provider: resolveProvider(family)
       });
 
       const don: Donation = {
@@ -301,8 +316,12 @@ export const donationService = {
       giftCards.push(gc);
       familyIds.push(family.id);
 
-      // Update Status
-      await familyService.updateFamilyStatus(family.id, 'supported');
+      // Marca a família como alimentada hoje (persistido)
+      await familyService.markFamilyFed(family.id, {
+        donationId: don.id,
+        provider: gc.provider as Family['lastGiftCardProvider'],
+        code: gc.code,
+      });
     }
 
     // Update user global total

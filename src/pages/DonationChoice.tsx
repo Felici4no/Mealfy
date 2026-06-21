@@ -5,6 +5,11 @@ import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { Users, Check, ChevronRight } from 'lucide-react';
+import { giftCardService } from '../backend/services/giftCardService';
+import { familyService } from '../backend/services/familyService';
+import { PROVIDER_LABELS } from '../backend/mockData/giftCardInventory';
+import { isBeneficiaryEligible } from '../backend/utils/timeUtils';
+import type { GiftCardProvider } from '../backend/types';
 import './DonationChoice.css';
 
 const DonationChoice: React.FC = () => {
@@ -71,39 +76,72 @@ const DonationChoice: React.FC = () => {
   const handleContinue = async () => {
     setIsProcessing(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Build mock result structure
-      const mockResult = {
+      // ── Regra crítica (nível service): revalida contra a fonte de verdade ──
+      // Mesmo se a UI falhar, doação repetida no mesmo dia é bloqueada aqui.
+      if (targetFamily) {
+        const fresh = await familyService.getFamilyById(targetFamily.id);
+        if (fresh && !isBeneficiaryEligible(fresh)) {
+          showToast('Esta família já foi alimentada hoje. Próxima liberação às 08h.', 'error');
+          setIsProcessing(false);
+          return;
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      giftCardService.initInventory();
+
+      let releasedCode: string;
+      let provider: GiftCardProvider;
+      let label: string;
+
+      if (targetFamily) {
+        // Provider REAL escolhido pela família beneficiária
+        provider = (targetFamily.preferredGiftCardProvider as GiftCardProvider) || 'ifood';
+        const card = giftCardService.releaseCode(provider); // lança erro se sem estoque
+        releasedCode = card.code;
+        label = `Vale ${PROVIDER_LABELS[provider]} — ${targetFamily.representativeName}`;
+        // Persiste "alimentada hoje" na fonte de verdade (bloqueia nova doação no dia)
+        await familyService.markFamilyFed(targetFamily.id, { donationId: `don-${Date.now()}`, provider, code: releasedCode });
+      } else {
+        // Apoio coletivo: libera 1 código por família, usando providers com estoque
+        const order: GiftCardProvider[] = ['ifood', '99', 'carrefour'];
+        const codes: string[] = [];
+        let lastProvider: GiftCardProvider = 'ifood';
+        for (let i = 0; i < familiesCount; i++) {
+          const p = order.find(pp => giftCardService.countAvailable(pp) > 0);
+          if (!p) throw new Error('Sem códigos de vale disponíveis em estoque no momento.');
+          codes.push(giftCardService.releaseCode(p).code);
+          lastProvider = p;
+        }
+        releasedCode = codes[0];
+        provider = lastProvider;
+        label = `Apoio Coletivo — ${familiesCount} ${familiesCount === 1 ? 'família' : 'famílias'} (${codes.length} vales)`;
+      }
+
+      const result = {
         donation: {
           id: `don-${Date.now()}`,
           amount: totalAmount,
           createdAt: new Date().toISOString(),
         },
-        giftCard: {
-          label: targetFamily
-            ? `Vale Alimentar - ${targetFamily.representativeName}`
-            : `Apoio Coletivo - ${familiesCount} ${familiesCount === 1 ? 'família' : 'famílias'}`,
-          code: 'GC-ALIM-2026',
-          provider: 'Mercado Parceiro / iFood'
-        },
+        giftCard: { label, code: releasedCode, provider },
         familyAssigned: {
           representativeName: targetFamily ? targetFamily.representativeName : `${familiesCount} ${familiesCount === 1 ? 'família' : 'famílias'}`,
           childrenCount: targetFamily ? targetFamily.childrenCount : 2
         }
       };
 
-      navigate('/success', { 
-        state: { 
-          donationResult: mockResult, 
-          isBatch: isBatch || familiesCount > 1, 
+      navigate('/success', {
+        state: {
+          donationResult: result,
+          isBatch: isBatch || familiesCount > 1,
           count: familiesCount,
           totalAmount
-        } 
+        }
       });
     } catch (err: any) {
-      showToast('Erro ao processar o suporte alimentar.', 'error');
+      // Sem estoque ou erro de liberação: NÃO navega — a doação não parece concluída.
+      showToast(err?.message || 'Não foi possível liberar o vale agora. Tente novamente.', 'error');
     } finally {
       setIsProcessing(false);
     }

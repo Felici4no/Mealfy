@@ -6,6 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { entityService } from '../backend/services/entityService';
 import { normalizeString } from '../backend/utils/normalizeUtils';
+import { storage } from '../backend/utils/storage';
 import { useToast } from '../context/ToastContext';
 import { Users, CirclePlus as PlusCircle, CircleCheck as CheckCircle, Clock, FileText, Check, X, ShieldCheck, ShieldAlert, Mail } from 'lucide-react';
 import type { Family, DonorIndication, AuthorizingEntity } from '../backend/types';
@@ -19,6 +20,7 @@ const EntityDashboard: React.FC = () => {
   const [families, setFamilies] = useState<Family[]>([]);
   const [indications, setIndications] = useState<DonorIndication[]>([]);
   const [entityData, setEntityData] = useState<AuthorizingEntity | null>(null);
+  const [emailLog, setEmailLog] = useState<{ family: string; date: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -43,7 +45,8 @@ const EntityDashboard: React.FC = () => {
       return indRegion.includes(entityRegion) || entityRegion.includes(indRegion);
     });
     setIndications(pendingInd);
-    
+    setEmailLog(storage.get<{ family: string; date: string }[]>('entity_email_log', []));
+
     setLoading(false);
   };
 
@@ -55,6 +58,10 @@ const EntityDashboard: React.FC = () => {
     try {
       const label = `Validado por ${entityData?.name || user?.name}`;
       await familyService.convertIndicationToFamily(indId, user, label);
+      // Registro mockado de e-mail enviado
+      const log = storage.get<{ family: string; date: string }[]>('entity_email_log', []);
+      log.unshift({ family: name, date: new Date().toISOString() });
+      storage.set('entity_email_log', log.slice(0, 30));
       showToast(`Indicação de ${name} validada com sucesso! O e-mail com o código do vale-refeição já foi disparado.`, 'success');
       fetchData(); // Reload lists
     } catch (err) {
@@ -199,6 +206,27 @@ const EntityDashboard: React.FC = () => {
              </div>
            )}
         </section>
+
+        {/* ── E-mails automáticos (mock) ── */}
+        {emailLog.length > 0 && (
+          <section className="email-log-section mb-6">
+            <h3 className="section-title mb-3 flex items-center gap-2">
+              <Mail size={18} className="text-secondary" /> Credenciais enviadas
+            </h3>
+            <div className="flex flex-col gap-2">
+              {emailLog.slice(0, 6).map((e, i) => (
+                <div key={i} className="email-log-item flex items-center justify-between p-3 bg-white rounded-lg border border-outline/10">
+                  <span className="text-sm text-text-main">
+                    Credenciais enviadas para <strong>{e.family}</strong>
+                  </span>
+                  <span className="text-[11px] text-outline">
+                    {new Date(e.date).toLocaleDateString('pt-BR')} {new Date(e.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Registered Families List ── */}
         <section className="families-list-section">

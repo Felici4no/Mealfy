@@ -479,6 +479,33 @@ const Profile: React.FC = () => {
                     />
                  </div>
                  
+                 {/* Conectar rede social (cria/atualiza o dado) — separado da visibilidade */}
+                 <div className="flex justify-between items-center border-t border-outline/10 pt-4">
+                    <div className="flex flex-col">
+                       <span className="font-semibold text-sm">Conta social</span>
+                       <span className="text-xs text-outline">
+                         {user.instagram ? `Conectado: ${user.instagram}` : 'Conecte Instagram/Meta para ganhar destaque'}
+                       </span>
+                    </div>
+                    <Button
+                      variant={user.instagram ? 'outline' : 'primary'}
+                      size="small"
+                      onClick={() => {
+                        if (user.instagram) {
+                          updateUserProfile({ instagram: undefined });
+                          showToast('Conta social desconectada.', 'info');
+                        } else {
+                          const handle = '@' + (user.name || 'usuario').toLowerCase().trim().replace(/\s+/g, '.').replace(/[^a-z0-9._]/g, '');
+                          updateUserProfile({ instagram: handle });
+                          updateUserPrivacy({ showInstagram: true });
+                          showToast('Instagram/Meta conectado!', 'success');
+                        }
+                      }}
+                    >
+                      {user.instagram ? 'Desconectar' : 'Conectar Instagram/Meta'}
+                    </Button>
+                 </div>
+
                  <div className="flex justify-between items-center">
                     <div className="flex flex-col">
                        <span className="font-semibold text-sm">Mostrar link do Instagram</span>

@@ -6,6 +6,9 @@ import type { Family } from '../backend/types';
 import Button from '../components/ui/Button';
 import { LocateFixed, Layers, ShieldAlert, Check, SlidersHorizontal, Info, Bookmark, BookmarkCheck } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { familyService } from '../backend/services/familyService';
+import { PROVIDER_LABELS } from '../backend/mockData/giftCardInventory';
+import { isBeneficiaryEligible } from '../backend/utils/timeUtils';
 import BottomSheet from '../components/ui/BottomSheet';
 import './MapView.css';
 
@@ -182,7 +185,11 @@ const MOCK_MAP_FAMILIES: Family[] = [
   }
 ];
 
-const REGIONS = ['Heliópolis', 'Paraisópolis', 'Cidade Tiradentes', 'Brasilândia'];
+// Centros aproximados por cidade (para o filtro SP/RJ)
+const CITY_CENTERS: Record<string, [number, number]> = {
+  SP: [-23.5900, -46.6200],
+  RJ: [-22.9100, -43.2900],
+};
 
 // Recenter Map Helper
 const MapRecenter = ({ center }: { center: [number, number] }) => {
@@ -212,6 +219,21 @@ const MapView: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5900, -46.6200]); // SP Center roughly
   const [selectedFamilyPreview, setSelectedFamilyPreview] = useState<Family | null>(null);
 
+  // Famílias vêm da MESMA fonte da ficha (families_db via familyService)
+  const [families, setFamilies] = useState<Family[]>([]);
+  const [cityFilter, setCityFilter] = useState<'all' | 'SP' | 'RJ'>('all');
+
+  useEffect(() => {
+    let active = true;
+    familyService.getMapFamilies()
+      .then(f => { if (active) setFamilies(f.length ? f : MOCK_MAP_FAMILIES); })
+      .catch(() => { if (active) setFamilies(MOCK_MAP_FAMILIES); });
+    return () => { active = false; };
+  }, []);
+
+  // Regiões/bairros do filtro derivados das famílias carregadas (SP + RJ)
+  const REGIONS = Array.from(new Set(families.map(f => f.neighborhood))).sort();
+
   const savedFamilyIds = user?.savedFamilyIds || [];
 
   // Sync Bairro filter with Context Selected Region
@@ -221,28 +243,32 @@ const MapView: React.FC = () => {
     }
   }, [selectedRegion]);
 
-  // Recenter map when bairro filter changes
+  // Recenter map when bairro/city filter changes
   useEffect(() => {
-    if (bairroFilter === 'all') {
-      setMapCenter([-23.5900, -46.6200]);
-    } else {
-      const firstFam = MOCK_MAP_FAMILIES.find(f => f.neighborhood.toLowerCase() === bairroFilter.toLowerCase());
-      if (firstFam) {
-        setMapCenter([firstFam.latitude, firstFam.longitude]);
-      }
+    if (bairroFilter !== 'all') {
+      const firstFam = families.find(f => f.neighborhood.toLowerCase() === bairroFilter.toLowerCase());
+      if (firstFam) { setMapCenter([firstFam.latitude, firstFam.longitude]); return; }
     }
-  }, [bairroFilter]);
+    if (cityFilter !== 'all') {
+      setMapCenter(CITY_CENTERS[cityFilter]);
+      return;
+    }
+    setMapCenter([-23.5900, -46.6200]);
+  }, [bairroFilter, cityFilter, families]);
 
   // Filter Logic
-  const filteredFamilies = MOCK_MAP_FAMILIES.filter(fam => {
+  const filteredFamilies = families.filter(fam => {
+    if (cityFilter !== 'all' && fam.state !== cityFilter) return false;
     if (bairroFilter !== 'all' && fam.neighborhood.toLowerCase() !== bairroFilter.toLowerCase()) return false;
     if (statusFilter === 'needs_help' && fam.supportStatus !== 'needs_help') return false;
     if (statusFilter === 'fed' && fam.supportStatus !== 'fed') return false;
     if (urgencyFilter === 'high' && fam.priorityLevel < 4) return false;
+    if (highlightSaved && !savedFamilyIds.includes(fam.id)) return false;
     return true;
   });
 
   const activeFilterCount =
+    (cityFilter !== 'all' ? 1 : 0) +
     (bairroFilter !== 'all' ? 1 : 0) +
     (statusFilter !== 'all' ? 1 : 0) +
     (urgencyFilter !== 'all' ? 1 : 0) +
@@ -411,6 +437,21 @@ const MapView: React.FC = () => {
       <BottomSheet isOpen={isFiltersOpen} onClose={() => setIsFiltersOpen(false)} title="Filtros do Mapa">
         <div className="flex flex-col gap-5">
           <div className="filter-group">
+            <span className="filter-group-label">Cidade</span>
+            <div className="filter-chip-group">
+              <button className={`filter-chip ${cityFilter === 'all' ? 'active' : ''}`} onClick={() => { setCityFilter('all'); setBairroFilter('all'); }}>
+                Todas
+              </button>
+              <button className={`filter-chip ${cityFilter === 'SP' ? 'active' : ''}`} onClick={() => { setCityFilter('SP'); setBairroFilter('all'); }}>
+                São Paulo
+              </button>
+              <button className={`filter-chip ${cityFilter === 'RJ' ? 'active' : ''}`} onClick={() => { setCityFilter('RJ'); setBairroFilter('all'); }}>
+                Rio de Janeiro
+              </button>
+            </div>
+          </div>
+
+          <div className="filter-group">
             <span className="filter-group-label">Região</span>
             <div className="filter-chip-group">
               <button className={`filter-chip ${bairroFilter === 'all' ? 'active' : ''}`} onClick={() => handleBairroSelect('all')}>
@@ -514,7 +555,9 @@ const MapView: React.FC = () => {
             <div className="flex justify-between items-start gap-2">
               <div>
                 <h3 className="font-extrabold text-primary text-lg">{selectedFamilyPreview.representativeName}</h3>
-                <span className="text-xs text-outline">{selectedFamilyPreview.neighborhood} • {selectedFamilyPreview.distanceToUser}</span>
+                <span className="text-xs text-outline">
+                  {(selectedFamilyPreview.community || selectedFamilyPreview.neighborhood)}, {selectedFamilyPreview.neighborhood} — {selectedFamilyPreview.city}/{selectedFamilyPreview.state}
+                </span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
@@ -532,6 +575,18 @@ const MapView: React.FC = () => {
               </div>
             </div>
 
+            {/* Localização aproximada (sem endereço residencial completo) */}
+            <div className="bg-surface-highest/60 p-3 rounded-md border border-outline/5 text-xs text-text-main flex flex-col gap-1">
+              {selectedFamilyPreview.zone && (
+                <span className="text-outline">{selectedFamilyPreview.zone}</span>
+              )}
+              <span><strong>Endereço aproximado:</strong> {selectedFamilyPreview.approximateAddress || selectedFamilyPreview.neighborhood}</span>
+              {selectedFamilyPreview.referencePoint && (
+                <span><strong>Referência:</strong> {selectedFamilyPreview.referencePoint}</span>
+              )}
+              <span><strong>Vale escolhido:</strong> {PROVIDER_LABELS[selectedFamilyPreview.preferredGiftCardProvider || 'ifood']}</span>
+            </div>
+
             <p className="text-sm text-text-main italic">"{selectedFamilyPreview.description}"</p>
 
             <div className="bg-surface-highest/60 p-3 rounded-md border border-outline/5">
@@ -544,13 +599,13 @@ const MapView: React.FC = () => {
             </div>
 
             <div className="flex justify-between items-center text-sm font-medium border-t border-outline/10 pt-3">
-              <span>Filhos: <strong>{selectedFamilyPreview.childrenCount}</strong></span>
-              {selectedFamilyPreview.supportStatus === 'fed' ? (
-                <span className="text-success flex items-center gap-1">
-                  <Check size={16} /> Alimentado hoje
-                </span>
+              <span>Dependentes: <strong>{selectedFamilyPreview.childrenCount}</strong></span>
+              {isBeneficiaryEligible(selectedFamilyPreview) ? (
+                <span className="text-secondary font-bold">Disponível para receber hoje</span>
               ) : (
-                <span className="text-error">Precisa de Refeição</span>
+                <span className="text-success flex items-center gap-1">
+                  <Check size={16} /> Já alimentada hoje
+                </span>
               )}
             </div>
 
@@ -562,7 +617,7 @@ const MapView: React.FC = () => {
               >
                 Ver Ficha Completa
               </Button>
-              {selectedFamilyPreview.supportStatus === 'needs_help' && (
+              {isBeneficiaryEligible(selectedFamilyPreview) && (
                 <Button
                   variant="primary"
                   fullWidth

@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
+import { storage } from '../backend/utils/storage';
 import { ShieldCheck, Search, Loader2 } from 'lucide-react';
 import type { Family } from '../backend/types';
 import './RegisterFamily.css';
@@ -76,7 +77,8 @@ const RegisterFamily: React.FC = () => {
     setTimeout(() => {
       setNisChecking(false);
       setNisVerified(true);
-      showToast('NIS localizado com Bolsa Família ativo!', 'success');
+      // Verificação de identidade != aprovação. O cadastro ainda segue para análise.
+      showToast('NIS verificado. O cadastro seguirá para análise (não aprova automaticamente).', 'info');
     }, 1200);
   };
 
@@ -101,10 +103,11 @@ const RegisterFamily: React.FC = () => {
         throw new Error('A família deve ter pelo menos um dependente para ser cadastrada.');
       }
 
-      // Dependent age validation (0-17)
-      const invalidAges = childrenAges.some(age => age < 0 || age > 17);
-      if (invalidAges) {
-        throw new Error('Apenas dependentes menores de 18 anos são elegíveis (idade permitida: 0 a 17 anos).');
+      // Regra crítica de elegibilidade: ao menos UM dependente de 0 a 17 anos.
+      // Receber Bolsa Família / ter NIS válido NÃO basta.
+      const hasEligibleDependent = childrenAges.some(age => age >= 0 && age <= 17);
+      if (!hasEligibleDependent) {
+        throw new Error('Cadastro inelegível: é obrigatório ao menos um dependente com idade entre 0 e 17 anos. Receber Bolsa Família/NIS não é suficiente.');
       }
 
       const newFamilyData: Omit<Family, 'id'> = {
@@ -128,17 +131,28 @@ const RegisterFamily: React.FC = () => {
         sourceType: 'entity',
         sourceLabel: `Cadastrado por ${user?.name || 'Entidade Parceira'}`,
         sourceEntityName: user?.name,
-        // If Bolsa Família is verified, it auto approves or starts active
-        supportStatus: (user?.status === 'approved' || nisVerified) ? 'needs_help' : 'pending',
-        status: (user?.status === 'approved' || nisVerified) ? 'approved' : 'pending',
+        // NUNCA aprova automaticamente: todo cadastro vai para análise da entidade/admin.
+        supportStatus: 'needs_help',
+        status: 'pending',
+        verificationStatus: nisVerified ? 'verified' : 'pending',
+        approvalStatus: 'pending',
+        dataSource: nisVerified ? 'gov' : 'manual',
         distanceToUser: '1.8 km',
-        priorityLevel: nisVerified ? 1 : 3, // CadÚnico gets priority 1
+        priorityLevel: nisVerified ? 1 : 3, // CadÚnico/Gov dá prioridade na fila
         latitude: -23.612 + (Math.random() * 0.05),
         longitude: -46.593 + (Math.random() * 0.05)
       };
 
       await familyService.addFamily(newFamilyData);
-      showToast("Cadastro concluído com sucesso! Beneficiário integrado à rede.", "success");
+
+      // Registro mockado de "e-mail" enviado, visível no painel da entidade.
+      try {
+        const log = storage.get<{ family: string; date: string }[]>('entity_email_log', []);
+        log.unshift({ family: formData.representativeName, date: new Date().toISOString() });
+        storage.set('entity_email_log', log.slice(0, 30));
+      } catch { /* ignore */ }
+
+      showToast('Cadastro enviado para análise. A aprovação é feita pela entidade/admin.', 'success');
       
       if (user?.role === 'entity') {
         navigate('/entity/dashboard', { replace: true });

@@ -8,12 +8,11 @@ import { Loader as Loader2, Share2, AtSign, Copy, MessageCircle, Mail } from 'lu
 import StoriesRanking from '../components/ui/StoriesRanking';
 import BottomSheet from '../components/ui/BottomSheet';
 import { useToast } from '../context/ToastContext';
-import { mockDonors } from '../backend/mockData/users';
 import './Home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedRegion } = useAppContext();
+  const { selectedRegion, stories, user, updateUserProfile } = useAppContext();
   const { showToast } = useToast();
   const [families, setFamilies] = useState<Family[]>([]);
   const [loadingFamilies, setLoadingFamilies] = useState(true);
@@ -81,6 +80,13 @@ const Home: React.FC = () => {
     }, 1500);
   };
 
+  const handleConnectInstagram = async () => {
+    if (!user) return;
+    const handle = '@' + (user.name || 'usuario').toLowerCase().trim().replace(/\s+/g, '.').replace(/[^a-z0-9._]/g, '');
+    await updateUserProfile({ instagram: handle });
+    showToast('Instagram conectado ao seu perfil! Você ganha mais destaque na comunidade.', 'success');
+  };
+
   const handleSelectDonor = (donor: any) => {
     if (donor.isSorteio) {
       showToast('Sorteio 21+: Qualquer pessoa que apoiar hoje tem a chance de aparecer no topo do carrossel de impacto!', 'info');
@@ -115,8 +121,10 @@ const Home: React.FC = () => {
 
         {/* Stories Ranking Component */}
         <StoriesRanking
-          donors={mockDonors}
+          donors={stories}
           onSelectDonor={handleSelectDonor}
+          currentUser={user ? { name: user.name, avatar: user.avatar, instagram: user.instagram } : null}
+          onConnectInstagram={handleConnectInstagram}
         />
       </div>
 

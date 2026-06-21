@@ -10,14 +10,58 @@ import { handleApiError } from '../utils/fallback';
 
 const FAMILIES_KEY = 'families_db';
 const INDICATIONS_KEY = 'donor_indications_db';
+const SEED_VERSION_KEY = 'families_seed_version';
+const SEED_VERSION = 3; // bump para re-semear (fonte única SP + RJ com localização segura)
 
 export const familyService = {
   initDB: () => {
     const existing = storage.get<Family[]>(FAMILIES_KEY, null as any);
-    // If DB is empty OR the first family is missing the latitude property (meaning it's the old schema)
-    if (!existing || (existing.length > 0 && existing[0].latitude === undefined)) {
+    const version = storage.get<number>(SEED_VERSION_KEY, 0);
+    // Re-semeia se vazio, schema antigo, ou versão de seed desatualizada.
+    // Depois disso o estado (ex.: famílias alimentadas) persiste normalmente.
+    if (!existing || (existing.length > 0 && existing[0].latitude === undefined) || version < SEED_VERSION) {
       storage.set(FAMILIES_KEY, mockFamilies);
+      storage.set(SEED_VERSION_KEY, SEED_VERSION);
     }
+  },
+
+  /**
+   * Famílias para o mapa do doador — mesma fonte (families_db) usada pela ficha.
+   * Retorna apenas as publicamente visíveis (aprovadas) com coordenadas.
+   */
+  getMapFamilies: async (): Promise<Family[]> => {
+    familyService.initDB();
+    const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+    return families.filter(f =>
+      typeof f.latitude === 'number' &&
+      typeof f.longitude === 'number' &&
+      f.status !== 'pending' && f.status !== 'rejected' && f.status !== 'suspended'
+    );
+  },
+
+  /**
+   * Marca uma família como ALIMENTADA HOJE (fonte de verdade da regra diária).
+   * Persiste em families_db: supportStatus 'fed', lastFedAt e metadados do vale.
+   * Utilitário único para evitar duplicação entre os fluxos de doação.
+   */
+  markFamilyFed: async (
+    familyId: string,
+    meta?: { donationId?: string; provider?: Family['lastGiftCardProvider']; code?: string }
+  ): Promise<Family | null> => {
+    familyService.initDB();
+    const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+    const idx = families.findIndex(f => f.id === familyId);
+    if (idx === -1) return null;
+    families[idx] = {
+      ...families[idx],
+      supportStatus: 'fed',
+      lastFedAt: new Date().toISOString(),
+      ...(meta?.donationId ? { lastDonationId: meta.donationId } : {}),
+      ...(meta?.provider ? { lastGiftCardProvider: meta.provider } : {}),
+      ...(meta?.code ? { lastGiftCardCode: meta.code } : {}),
+    };
+    storage.set(FAMILIES_KEY, families);
+    return families[idx];
   },
 
   getFamilies: async (filters?: { region?: string; communityId?: string }): Promise<Family[]> => {

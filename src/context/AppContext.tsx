@@ -1,11 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { storage } from '../backend/utils/storage';
-import type { User, Community, PrivacySettings } from '../backend/types';
+import type { User, Community, PrivacySettings, PublicDonorProfile } from '../backend/types';
 import { authService } from '../backend/services/authService';
 import { communityService } from '../backend/services/communityService';
 import { usersApi } from '../api/usersApi';
 import SplashScreen from '../components/ui/SplashScreen';
+import { mockDonors } from '../backend/mockData/users';
+
+/** Tempo mínimo de exibição do splash, para a barra de progresso ser visível. */
+const SPLASH_MIN_MS = 2600;
+const STORIES_KEY = 'stories_v1';
 
 interface AppContextType {
   isAuthenticated: boolean;
@@ -28,6 +33,10 @@ interface AppContextType {
   clearSelectedRegion: () => void;
   /** Alterna o estado "salvo" de uma família para o usuário logado (Mapa) */
   toggleSavedFamily: (familyId: string) => Promise<void>;
+  /** Carrossel de stories (top 20 doadores) — editável pelo admin, persistido localmente */
+  stories: PublicDonorProfile[];
+  /** Substitui a lista de stories (usado pelo painel admin) */
+  updateStories: (next: PublicDonorProfile[]) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -42,7 +51,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [selectedRegion, setSelectedRegionState] = useState<string | null>(null);
 
+  // Stories (top 20) — fonte editável persistida em localStorage
+  const [stories, setStoriesState] = useState<PublicDonorProfile[]>(
+    () => storage.get<PublicDonorProfile[]>(STORIES_KEY, mockDonors)
+  );
+
+  const updateStories = (next: PublicDonorProfile[]) => {
+    setStoriesState(next);
+    storage.set(STORIES_KEY, next);
+  };
+
   useEffect(() => {
+    const start = Date.now();
     const initApp = async () => {
       try {
         const sessionUser = await authService.getCurrentSession();
@@ -59,8 +79,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (err) {
         console.error('Erro inicializando app', err);
       } finally {
-        setIsInitializing(false);
-        setTimeout(() => setShowSplash(false), 400);
+        // Mantém o splash por um tempo mínimo para a barra de progresso ser vista.
+        const elapsed = Date.now() - start;
+        const wait = Math.max(0, SPLASH_MIN_MS - elapsed);
+        setTimeout(() => {
+          setIsInitializing(false);        // dispara a barra -> 100%
+          setTimeout(() => setShowSplash(false), 600); // aguarda o fade-out
+        }, wait);
       }
     };
     initApp();
@@ -193,6 +218,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setSelectedRegion,
         clearSelectedRegion,
         toggleSavedFamily,
+        stories,
+        updateStories,
       }}
     >
       {children}

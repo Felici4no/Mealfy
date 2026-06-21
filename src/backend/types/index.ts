@@ -92,6 +92,7 @@ export interface Child {
   school: string;
   grade?: string;
   isPWD?: boolean; // Person with Disability
+  relationship?: string; // Parentesco com o responsável (filho(a), neto(a), etc.)
 }
 
 export interface Family {
@@ -120,7 +121,30 @@ export interface Family {
   originalIndicationId?: string;
   lastFedAt?: string; // Timestamp of last donation
   status?: SupportStatus; // Added for compatibility
+  /** Plataforma de vale-alimentação escolhida pela família beneficiária */
+  preferredGiftCardProvider?: GiftCardProvider;
+  /** Dados da última doação recebida (rastreabilidade da regra diária) */
+  lastDonationId?: string;
+  lastGiftCardProvider?: GiftCardProvider;
+  lastGiftCardCode?: string;
+  /** Validação de identidade/dados (governo) — separado da aprovação */
+  verificationStatus?: 'pending' | 'verified' | 'rejected' | 'blocked';
+  /** Aprovação final no Mealfy (manual pela entidade/admin) */
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  /** Origem dos dados: validado pelo governo ou informado manualmente */
+  dataSource?: 'gov' | 'manual';
+  /** ── Localização segura (doador vê aproximado; endereço completo é sensível) ── */
+  community?: string;        // Nome da comunidade (ex.: "Rocinha")
+  zone?: string;             // Zona/região (ex.: "Zona Sul")
+  approximateAddress?: string; // Endereço aproximado (sem número/complemento)
+  referencePoint?: string;   // Ponto de referência público
+  nis?: string;              // NIS (exibido mascarado na ficha)
+  incomeApprox?: string;     // Renda aproximada (opcional)
+  vulnerabilities?: string[];// PCD, mãe solo, moradia precária, etc.
 }
+
+/** Provedores oficiais de vale-alimentação (padrão único do app). */
+export type GiftCardProvider = 'ifood' | '99' | 'carrefour';
 
 export interface DonorIndication {
   id: string;

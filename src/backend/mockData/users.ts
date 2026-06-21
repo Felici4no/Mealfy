@@ -51,6 +51,18 @@ export const mockUsers: User[] = [
     rankingPercentile: '',
     status: 'active',
   },
+  {
+    id: 'u-admin-1',
+    name: 'Admin Mealfy',
+    email: 'admin@mealfy.com',
+    role: 'admin',
+    phone: '+5511900000000',
+    avatar: 'A',
+    totalDonated: 0,
+    rankingPosition: 0,
+    rankingPercentile: '',
+    status: 'active',
+  },
 ];
 
 // Credenciais separadas das identidades.
@@ -65,6 +77,7 @@ export const mockCredentials: MockUserCredential[] = [
   { userId: 'u-12345',        email: 'doador@mealfy.com',       password: MOCK_PASSWORD },
   { userId: 'u-entity-1',     email: 'entidade@mealfy.com',     password: MOCK_PASSWORD },
   { userId: 'u-beneficiary-1',email: 'beneficiario@mealfy.com', password: MOCK_PASSWORD },
+  { userId: 'u-admin-1',      email: 'admin@mealfy.com',        password: MOCK_PASSWORD },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────────
