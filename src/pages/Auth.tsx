@@ -170,7 +170,7 @@ const Auth: React.FC = () => {
       <div className="auth-hero">
         <div className="auth-hero-overlay" />
         <img
-          src="/images/home-hero.jpg"
+          src="/images/login-hero.jpg"
           alt=""
           className="auth-hero-image"
           aria-hidden="true"
@@ -178,13 +178,13 @@ const Auth: React.FC = () => {
             const t = e.currentTarget;
             if (!t.dataset.fallback) {
               t.dataset.fallback = '1';
-              t.src = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+              t.src = 'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
             }
           }}
         />
         <div className="auth-hero-content">
           <div className="auth-brand" aria-label="Mealfy">Mealfy</div>
-          <h1 className="auth-hero-title">Bem-vindo de volta</h1>
+          <h1 className="auth-hero-title">Bem-vindo</h1>
           <p className="auth-hero-subtitle">
             Entre para continuar transformando conexões em impacto.
           </p>

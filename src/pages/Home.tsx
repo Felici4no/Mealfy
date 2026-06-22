@@ -6,6 +6,7 @@ import { familyService } from '../backend/services/familyService';
 import type { Family } from '../backend/types';
 import { Loader as Loader2, Share2, AtSign, Copy, MessageCircle, Mail } from 'lucide-react';
 import StoriesRanking from '../components/ui/StoriesRanking';
+import FaithCarousel from '../components/ui/FaithCarousel';
 import BottomSheet from '../components/ui/BottomSheet';
 import { useToast } from '../context/ToastContext';
 import './Home.css';
@@ -97,27 +98,21 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-page">
-      {/* ── Top Header Brand ── */}
+      {/* ── Top Header Brand (logo + wordmark centralizados) ── */}
       <div className="home-top">
-        <div className="home-brand-row">
-          <div className="flex items-center gap-2">
+        <header className="home-brand-row">
+          <div className="home-brand-spacer" aria-hidden="true" />
+          <div className="home-brand-lockup">
             <span className="home-brand">Mealfy</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              className="p-2 bg-surface-highest/60 hover:bg-surface-highest rounded-md border border-outline/10 text-primary"
-              onClick={handleShareClick}
-              aria-label="Compartilhar"
-            >
-              <Share2 size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="home-social-copy">
-          <span className="home-eyebrow">Comunidade ativa</span>
-          <h2 className="home-social-title">Pessoas movendo impacto hoje</h2>
-        </div>
+          <button
+            className="home-share-btn"
+            onClick={handleShareClick}
+            aria-label="Compartilhar"
+          >
+            <Share2 size={18} />
+          </button>
+        </header>
 
         {/* Stories Ranking Component */}
         <StoriesRanking
@@ -126,6 +121,9 @@ const Home: React.FC = () => {
           currentUser={user ? { name: user.name, avatar: user.avatar, instagram: user.instagram } : null}
           onConnectInstagram={handleConnectInstagram}
         />
+
+        {/* Carrossel de mensagem religiosa logo abaixo dos stories */}
+        <FaithCarousel />
       </div>
 
       {/* ── Hero Headline ── */}

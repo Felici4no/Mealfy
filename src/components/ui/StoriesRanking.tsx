@@ -56,9 +56,7 @@ const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor, 
               </div>
               {!hasInstagram && <span className="self-add-badge" aria-hidden="true">+</span>}
             </div>
-            <span className="story-name story-name--self">
-              {hasInstagram ? 'Você' : 'Conectar IG'}
-            </span>
+            <span className="story-name story-name--self">Você</span>
           </div>
         )}
 
@@ -75,7 +73,7 @@ const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor, 
               <div className={`story-avatar-ring ${donor.totalDonated > 100 ? 'top-tier' : ''}`}>
                 <div className="story-avatar">
                   {isAnon ? (
-                    <User size={24} className="text-outline/40" />
+                    <User size={30} className="text-outline/40" />
                   ) : donor.avatar?.startsWith('http') ? (
                     <img src={donor.avatar} alt={donor.name} />
                   ) : (

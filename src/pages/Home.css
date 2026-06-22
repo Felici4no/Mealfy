@@ -15,12 +15,25 @@
   z-index: 5;
 }
 
+/* Header: grid de 3 colunas mantém o lockup perfeitamente centralizado,
+   independente do botão à direita (spacer espelha a largura do botão). */
 .home-brand-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.home-brand-spacer {
+  width: 40px;
+  height: 40px;
+}
+
+.home-brand-lockup {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  position: relative;
+  justify-content: center;
+  gap: 8px;
 }
 
 .home-brand {
@@ -29,34 +42,24 @@
   font-style: italic;
   font-weight: 900;
   color: var(--color-primary);
-  /* Centralizado no header, independente do botão à direita */
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  line-height: 1;
 }
 
-.home-social-copy {
+.home-share-btn {
+  width: 40px;
+  height: 40px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 0 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  transition: background-color var(--motion-fast) var(--ease-standard);
 }
 
-.home-eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-secondary);
-}
-
-.home-social-title {
-  font-family: var(--font-family-heading);
-  font-size: 22px;
-  line-height: 1.1;
-  font-weight: 800;
-  color: var(--color-text-main);
-  margin: 0;
+.home-share-btn:active {
+  background-color: var(--color-surface-highest);
 }
 
 .hero-section {

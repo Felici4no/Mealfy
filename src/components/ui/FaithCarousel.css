@@ -1,0 +1,45 @@
+/* Faixa editorial discreta (ticker/marquee) entre os stories e o hero.
+   Texto corre continuamente da direita p/ esquerda, em loop, sem paginação. */
+
+.faith-ticker {
+  width: 100%;
+  overflow: hidden;
+  padding: 8px 0;
+  margin: 8px 0 12px;
+  border-top: 1px solid rgba(2, 14, 30, 0.08);
+  border-bottom: 1px solid rgba(2, 14, 30, 0.08);
+}
+
+.faith-ticker-track {
+  display: flex;
+  width: max-content;
+  gap: 40px;
+  animation: faithTicker 28s linear infinite;
+  will-change: transform;
+}
+
+.faith-ticker-track span {
+  white-space: nowrap;
+  font-family: var(--font-family-heading);
+  font-size: 14px;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--color-primary);
+}
+
+@keyframes faithTicker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Acessibilidade: respeita quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .faith-ticker-track {
+    animation: none;
+    transform: none;
+  }
+}

@@ -1,8 +1,10 @@
 .stories-ranking-container {
   width: 100%;
   overflow-x: auto;
-  padding: 10px 0;
-  -webkit-overflow-scrolling: touch;
+  padding: 6px 0 4px;
+  -webkit-overflow-scrolling: touch;   /* scroll horizontal suave no iOS/Android */
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
 }
 
 .stories-ranking-container::-webkit-scrollbar {
@@ -11,29 +13,35 @@
 
 .stories-scroll {
   display: flex;
-  gap: 16px;
-  padding: 0 16px;
+  gap: 18px;
+  padding: 2px 16px;
 }
 
 .story-item {
-  min-width: 68px;
+  min-width: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
+  scroll-snap-align: start;
+  transition: transform var(--motion-fast, 140ms) var(--ease-standard, ease);
+}
+
+.story-item:active {
+  transform: scale(0.95);
 }
 
 .story-avatar-ring {
-  width: 62px;
-  height: 62px;
+  width: 78px;
+  height: 78px;
   border-radius: 999px;
-  padding: 3px;
+  padding: 3.5px;
   background: linear-gradient(135deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.10);
 }
 
 .story-avatar-ring.top-tier {
@@ -45,13 +53,13 @@
   height: 100%;
   border-radius: 50%;
   background: white;
-  border: 2px solid white;
+  border: 3px solid white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
   color: var(--color-primary);
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   overflow: hidden;
 }
 
@@ -63,8 +71,8 @@
 }
 
 .story-name {
-  max-width: 64px;
-  font-size: 11px;
+  max-width: 78px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #15384f;
   white-space: nowrap;
