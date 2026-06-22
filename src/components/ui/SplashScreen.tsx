@@ -41,9 +41,6 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ isLoaded = false }) => {
       role="status"
       aria-label="Carregando Mealfy"
     >
-      {/* Ambient background glow */}
-      <div className="splash-ambient" />
-
       <div className="splash-content">
         {/* Logo image */}
         <div className="splash-logo-wrapper">

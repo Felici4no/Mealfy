@@ -8,7 +8,7 @@ import './FaithCarousel.css';
  * buraco visível.
  */
 const FAITH_MESSAGE =
-  'Para que todos vejam, entendam e juntamente compreendam que a mão do Senhor foi quem fez isso ✝️';
+  'Para que todos vejam, entendam e juntamente compreendam que a mão do Senhor foi quem fez isso †';
 
 const FaithCarousel: React.FC = () => {
   return (

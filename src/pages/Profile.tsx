@@ -168,7 +168,7 @@ const Profile: React.FC = () => {
 
       <main className="content">
         {/* ── Profile Header ── */}
-        <section className="profile-header p-4 pb-6">
+        <section className="profile-header">
           <div className="avatar-container mb-3">
             <div className="avatar">
               {isAnonymousView ? (

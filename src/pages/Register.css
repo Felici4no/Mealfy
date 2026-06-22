@@ -143,9 +143,12 @@
   position: relative;
   display: flex;
   align-items: center;
+  /* Casa a largura com a do .typeform-input (centralizado), para o olho
+     ficar exatamente na borda direita do campo — não atravessa o quadro. */
   width: 100%;
   min-width: 0;
-  max-width: 100%;
+  max-width: 20rem;
+  margin: 0 auto;
 }
 
 .typeform-input-wrapper .typeform-input {
@@ -154,7 +157,7 @@
 
 .typeform-input-wrapper .auth-pwd-toggle {
   position: absolute;
-  right: 0;
+  right: 4px;
 }
 
 .typeform-continue-btn {

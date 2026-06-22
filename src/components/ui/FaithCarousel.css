@@ -4,8 +4,9 @@
 .faith-ticker {
   width: 100%;
   overflow: hidden;
-  padding: 8px 0;
-  margin: 8px 0 12px;
+  padding: 7px 0;
+  /* Faixa "faceando" o hero: sem margem inferior, encostada na imagem */
+  margin: 2px 0 0;
   border-top: 1px solid rgba(2, 14, 30, 0.08);
   border-bottom: 1px solid rgba(2, 14, 30, 0.08);
 }
