@@ -258,6 +258,47 @@ para impedir que dois processos peguem o mesmo código. Código `used` nunca vol
 > ⚠️ Os gift cards do **seed** usam `codeEncrypted` placeholder (base64 — Fase 1). Os reais, via
 > `import`, são **AES-256-GCM**. Em produção, importe via o endpoint (nunca dependa do seed).
 
+## Doações (Fase 4)
+
+Fluxo: doador cria intenção → (Pix na Fase 5; **mock** nesta fase) → confirmação libera
+**1 gift card** e marca a família **alimentada** (1x/dia). O **doador nunca vê o código**;
+só o **beneficiário** vê.
+
+**Máquina de estados:** `pending_payment → (payment_confirmed) → completed` · `canceled` · `failed` · `refunded`.
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/donations` | donor | cria intenção (`pending_payment`) `{familyId, amount, provider?}` |
+| GET | `/donations/:id` | autenticado | role-aware (doador a sua; admin/entidade dona) |
+| POST | `/donations/:id/confirm-payment-mock` | admin (dev/staging) | confirma pagamento mock → libera vale → `completed` |
+| POST | `/donations/:id/cancel` | donor dono · admin | cancela `pending_payment` |
+| GET | `/me/donations` | donor | histórico (sem código) |
+| GET | `/families/:id/donations` | admin · entidade dona | doações da família |
+| GET | `/beneficiary/gift-cards` · `/:id` | beneficiary | **vê o código decifrado** |
+
+**Regras (autoritativas no backend):**
+- família **aprovada** + **dependente 0–17** + **não alimentada no ciclo** (reset **08h America/Sao_Paulo**);
+- provider: `todayRequestedProvider` → `preferredGiftCardProvider` → `provider` do payload;
+- **estoque** conferido antes de criar; vale **só liberado após confirmação** (nunca antes);
+- na confirmação, transação atômica: guarda diária (`UPDATE ... WHERE lastFedAt < cycleStart`) →
+  libera vale (`available→used`, `FOR UPDATE SKIP LOCKED`) → `completed` → "alimentada por".
+
+**Quem vê o quê:** doador → "Família recebeu o apoio" + "Vale iFood enviado" + "Alimentada por você" (**sem código**);
+beneficiário → **código completo** (decifrado, só no endpoint dele); admin/entidade → gestão **sem código**.
+
+**Exemplo (curl):**
+```bash
+DN=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' -d '{"email":"doador@mealfy.com","password":"123456"}' | jq -r .token)
+AD=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@mealfy.com","password":"123456"}' | jq -r .token)
+ID=$(curl -s -X POST localhost:3000/donations -H "Authorization: Bearer $DN" -H 'Content-Type: application/json' -d '{"familyId":"seed-fam-approved-sp","amount":2500}' | jq -r .donation.id)
+curl -s -X POST localhost:3000/donations/$ID/confirm-payment-mock -H "Authorization: Bearer $AD" | jq .donation.status   # completed
+curl -s localhost:3000/me/donations -H "Authorization: Bearer $DN" | jq               # doador: sem código
+BN=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' -d '{"email":"beneficiario@mealfy.com","password":"123456"}' | jq -r .token)
+curl -s localhost:3000/beneficiary/gift-cards -H "Authorization: Bearer $BN" | jq      # beneficiário: código decifrado
+```
+
+> ⚠️ `confirm-payment-mock` é **dev/staging** (bloqueado em produção). O Pix real + webhook chegam na **Fase 5**.
+
 ## Status das fases
 - **Fase 1A** ✅ Fundação da API (Express + TS + `/health` + env Zod).
 - **Fase 1B** ✅ Prisma + PostgreSQL (client singleton + status no health).
@@ -268,6 +309,9 @@ para impedir que dois processos peguem o mesmo código. Código `used` nunca vol
 - **Fase 1G** ✅ Validação em **PostgreSQL real** (ver abaixo).
 - **Fase 2** ✅ Auth (bcrypt+JWT) · /me · entidades · famílias + dependentes ·
   regra 0–17 · aprovação manual · mapa/ficha · provider diário · audit logs.
+- **Fase 4** ✅ Doações: máquina de estados, **bloqueio diário** (reset 08h SP), confirmação
+  mock → liberação de vale, "alimentada por", histórico do doador (sem código) e
+  **endpoint do beneficiário** (vê o código). Validado ao vivo no Supabase.
 - **Fase 3** ✅ Gift cards reais: crypto AES-256-GCM, importação admin, estoque/listagem
   segura (só `codeMasked`), invalidação e reserva/liberação transacional (`FOR UPDATE SKIP LOCKED`).
 - **Fase 2H** ✅ Validado **ao vivo no Supabase cloud** (projeto `mealfy-staging`, PostgreSQL 17, us-west-2):
@@ -306,11 +350,11 @@ Dados conferidos no banco (e **idempotentes** — re-seed não duplica):
 > Sem Postgres à mão? Dá para reproduzir com um Postgres local/cloud em `DATABASE_URL`,
 > ou com um Postgres embarcado de dev (ex.: pacote `embedded-postgres`).
 
-### Próximos passos — Fase 4 (Doações) e Fase 5 (Pix)
-- `donations` com máquina de estados; bloqueio de **1 doação/família/dia** no backend.
-- Liberar o gift card **só após o pagamento confirmado** (usando `releaseAvailableCardForDonation`).
-- Endpoint do **beneficiário** para ver o código (usa `toBeneficiaryGiftCard`, já preparado).
-- Fase 5: `payments` + `PaymentProvider` (MockPix) + webhook idempotente.
+### Próximos passos — Fase 5 (Pix real)
+- `payments` + `PaymentProvider` abstrato + **MockPixPaymentProvider** (QR/copia-e-cola).
+- `POST /payments/webhook` **idempotente** (assinatura + `PaymentEvent.externalEventId` único).
+- Substituir o `confirm-payment-mock` pelo fluxo Pix assíncrono (estados intermediários
+  `payment_confirmed`/`gift_card_released`); expiração de cobrança.
 
 Plano completo: [`../docs/BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md`](../docs/BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md).
 
