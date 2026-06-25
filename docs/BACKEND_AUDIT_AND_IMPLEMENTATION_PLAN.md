@@ -42,7 +42,9 @@ Princípios do MVP:
 - **Sem integração automática** com iFood/99/Carrefour: estoque de códigos é comprado e **importado manualmente** pelo admin.
 - O **beneficiário** vê o código no app; o **doador nunca vê o código** — vê apenas que a família recebeu o apoio.
 - Cada família recebe **no máximo 1 doação/refeição por dia**.
-- A família **escolhe diariamente** o provider desejado (iFood, 99Pay/99 Mercado, mercado/Carrefour).
+- A família (ou a entidade responsável) **informa diariamente** o provider desejado (iFood, 99 Mercado, Carrefour).
+
+> **Nomenclatura de provider (única):** nome **público** "iFood" / "99 Mercado" / "Carrefour"; identificador **interno** (banco/API/gift card/enum) `ifood` / `ninetynine` / `carrefour`. Usar sempre o interno no código.
 - Beneficiário **não se autocadastra**: a **entidade** cadastra a família.
 - **Backend é a fonte de verdade** — o front deixa de decidir elegibilidade e de liberar gift card.
 
@@ -66,7 +68,7 @@ Princípios do MVP:
 2. **Admin** importa os códigos em lote no painel (`POST /admin/gift-cards/import`).
 3. **Entidade** cadastra a **família/beneficiário** (com ≥1 dependente 0–17) → família entra em análise.
 4. **Admin/entidade** aprova a família.
-5. **Família** escolhe diariamente o **provider** (iFood / 99 / Carrefour).
+5. **Família** (ou entidade responsável) informa diariamente o **provider** (iFood / 99 Mercado / Carrefour → interno `ifood`/`ninetynine`/`carrefour`).
 6. **Apoiador** escolhe a família e doa via **Pix** (`POST /donations`).
 7. **Backend** cria `donation: pending_payment` + cobrança Pix e devolve QR Code / copia-e-cola.
 8. **Apoiador paga**; o gateway envia **webhook** → backend confirma (idempotente).

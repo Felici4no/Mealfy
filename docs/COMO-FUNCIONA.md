@@ -9,7 +9,9 @@
 
 O **Mealfy** é um aplicativo de celular para **combater a fome infantil**.
 
-A ideia é simples: uma pessoa que quer ajudar (o **apoiador**) escolhe uma **família com crianças** no mapa e faz uma **doação por Pix**. Quando o pagamento é confirmado, essa família recebe um **vale-refeição/mercado** (um código de gift card, tipo iFood, 99 ou Carrefour) para comprar comida.
+A ideia é simples: uma pessoa que quer ajudar (o **apoiador**) escolhe uma **família com crianças** no mapa e faz uma **doação por Pix**. Quando o pagamento é confirmado, essa família recebe um **vale-refeição/mercado** (um código de gift card, tipo iFood, 99 Mercado ou Carrefour) para comprar comida.
+
+> **Nota de nomenclatura:** o vale da 99 aparece para o usuário como **"99 Mercado"** (nome público) e, internamente — no banco, API e gift cards — é identificado como **`ninetynine`**. Manter um nome público e um interno evita confusão entre UI e dados.
 
 Cada família pode receber **uma ajuda por dia**.
 
@@ -53,7 +55,7 @@ São **quatro tipos de usuário**:
 
 ## Como a família recebe
 
-1. Todo dia, a família **escolhe o tipo de vale** que prefere: **iFood**, **99Pay/99 Mercado** ou **mercado/Carrefour**.
+1. Todo dia, a **família, ou a entidade responsável por ela, informa diariamente qual tipo de vale será mais útil naquele dia**: **iFood**, **99 Mercado** ou **Carrefour**.
 2. Quando um apoiador doa e o pagamento é confirmado, o sistema **libera um código** daquele tipo escolhido.
 3. A família **vê o código dentro do app**, com o nome do parceiro, a instrução de uso e a data/hora.
 4. Depois de receber, a família fica marcada como **"alimentada hoje"** e só pode receber de novo **no dia seguinte**.
@@ -71,9 +73,19 @@ Apoiador paga via Pix  →  Banco/gateway confirma o pagamento
         →  A família vê o código no app
 ```
 
-**Regra de ouro:** o vale **só é liberado depois que o Pix é confirmado de verdade**. Nunca antes.
+**Regra de ouro:** o vale **só é liberado depois que o pagamento é confirmado pelo gateway Pix**. Nunca antes.
 
 Os códigos vêm de um **estoque interno**: a operação da Mealfy compra os vales e o **admin importa** os códigos no painel. Cada código só pode ir para **uma** família.
+
+---
+
+## Regra de estoque
+
+Antes de iniciar uma doação, o sistema precisa verificar se existe gift card disponível para o tipo de vale escolhido pela família naquele dia.
+
+Se não houver código disponível, a doação não deve ser iniciada. O app deve informar que aquele tipo de vale está temporariamente indisponível e orientar a operação/admin a repor o estoque.
+
+Essa regra evita que um apoiador pague por Pix e a família não receba o vale.
 
 ---
 
@@ -81,7 +93,7 @@ Os códigos vêm de um **estoque interno**: a operação da Mealfy compra os val
 
 Hoje o app está **funcionando de ponta a ponta, mas com dados simulados** guardados no próprio celular (localStorage). Ainda são simulação:
 
-- o **pagamento** (não existe Pix de verdade ainda — "doar" hoje já entrega o vale, o que vai mudar);
+- o **pagamento Pix** — hoje, em ambiente de demonstração, a confirmação é simulada para permitir testar o fluxo completo (no MVP real, o vale só será liberado após a confirmação do gateway Pix);
 - o **estoque de vales** (códigos fictícios);
 - o **login** (senha única de teste);
 - o **cadastro de famílias, entidades e o painel admin** (dados ficam só no aparelho);
@@ -112,6 +124,22 @@ Algumas coisas ficam para depois, por dependerem de parceiros, contratos ou base
 - **Integração automática com iFood/99/Carrefour** — no começo os vales são comprados e importados à mão; no futuro pode virar integração automática.
 - **Gov.br / CadÚnico / NIS** — só com **convênio e permissão legal**; até lá, continua como estudo/simulação.
 - **Login social** (Google/Meta/Gov.br) e **deep links/QR Code reais** de compartilhamento.
+
+---
+
+## O que será considerado MVP real
+
+O Mealfy será considerado funcional para MVP quando:
+
+- o apoiador conseguir doar via Pix;
+- o Pix só liberar vale após confirmação do pagamento;
+- o admin conseguir importar códigos de gift card;
+- o sistema impedir reuso de código;
+- a família conseguir visualizar o código dentro do app;
+- o doador não conseguir visualizar o código;
+- a entidade conseguir cadastrar e acompanhar famílias;
+- o backend impedir mais de uma ajuda por família no mesmo dia;
+- o painel admin conseguir auditar doações, pagamentos, famílias e estoque.
 
 ---
 
