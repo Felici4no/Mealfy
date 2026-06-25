@@ -214,16 +214,17 @@ curl -s localhost:3000/families/map -H "Authorization: Bearer $AD" | jq '.famili
 - **Fase 1G** ✅ Validação em **PostgreSQL real** (ver abaixo).
 - **Fase 2** ✅ Auth (bcrypt+JWT) · /me · entidades · famílias + dependentes ·
   regra 0–17 · aprovação manual · mapa/ficha · provider diário · audit logs.
-- **Fase 2H** ✅ Schema + seed validados em **Supabase cloud** (projeto `mealfy-staging`,
-  PostgreSQL 17, us-west-2): 14 tabelas criadas, seed idempotente
-  (users 3 · entities 1 · families 4 · dependents 5 · gift_card_batches 3 · gift_cards 15).
-  RLS habilitado nas tabelas (a API pública não acessa — só o backend, como owner).
+- **Fase 2H** ✅ Validado **ao vivo no Supabase cloud** (projeto `mealfy-staging`, PostgreSQL 17, us-west-2):
+  - schema (14 tabelas/13 enums) + seed idempotente (users 3 · entities 1 · families 4 · dependents 5 · gift_card_batches 3 · gift_cards 15);
+  - **API local conectada ao Supabase**: `GET /health` → `database: "connected"`;
+  - **smoke tests HTTP** passaram (login, `/me` sem hash, criar família, aprovar 0–17, recusar sem menor = 422, `/families/map` sem PII, provider diário);
+  - **audit logs gravados no cloud** (`create/approve/reject/request_daily_provider`);
+  - RLS habilitado nas tabelas (a API pública do Supabase não acessa — só o backend, como owner).
 
-> **Conectar o backend ao Supabase:** ponha a `DATABASE_URL` (Session pooler, porta 5432)
-> e a `DIRECT_URL` no `backend/.env` (gitignored). Como o schema já foi aplicado via Studio/MCP,
-> faça o baseline antes do primeiro deploy do Prisma:
-> `npx prisma migrate resolve --applied 20260625000605_init` e então `npm run prisma:deploy`
-> (no-op) + `npm run dev` → `/health` deve mostrar `database: "connected"`.
+> **Conexão Prisma ↔ Supabase:** runtime usa o **transaction pooler** (porta 6543, `?pgbouncer=true`).
+> Para **migrations** (`migrate deploy`), use o **session pooler** (porta 5432) via `DIRECT_URL` e
+> adicione `directUrl = env("DIRECT_URL")` ao datasource. Como o schema foi aplicado fora do Prisma,
+> faça o baseline antes do 1º deploy: `npx prisma migrate resolve --applied 20260625000605_init`.
 
 ### Validação em PostgreSQL real (Fase 1G)
 Fluxo provado de ponta a ponta contra um Postgres 17 real:
