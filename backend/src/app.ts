@@ -1,38 +1,30 @@
 import 'express-async-errors';
-import express from 'express';
+import express, { type Application } from 'express';
 import cors from 'cors';
+
+import { env } from './config/env';
+import { healthRoutes } from './modules/health/health.routes';
+import { notFoundHandler } from './shared/middlewares/notFound';
 import { errorHandler } from './shared/middlewares/errorHandler';
 
-import { authRoutes } from './modules/auth/auth.routes';
-import { familiesRoutes } from './modules/families/families.routes';
-import { indicationsRoutes } from './modules/indications/indications.routes';
-import { donationsRoutes } from './modules/donations/donations.routes';
-import { rankingRoutes } from './modules/ranking/ranking.routes';
-import { adminRoutes } from './modules/admin/admin.routes';
-import { regionsRoutes } from './modules/regions/regions.routes';
+/**
+ * Monta a aplicação Express (sem dar listen — facilita testes).
+ * Cada módulo registra suas rotas aqui conforme as fases avançam.
+ */
+export function createApp(): Application {
+  const app = express();
 
-const app = express();
+  const corsOrigin =
+    env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map((o) => o.trim());
+  app.use(cors({ origin: corsOrigin }));
+  app.use(express.json());
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*'
-}));
+  // Módulos
+  app.use('/health', healthRoutes);
 
-app.use(express.json());
+  // 404 + erro global (sempre por último)
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Routes
-app.use('/auth', authRoutes);
-app.use('/families', familiesRoutes);
-app.use('/indications', indicationsRoutes);
-app.use('/donations', donationsRoutes);
-app.use('/ranking', rankingRoutes);
-app.use('/admin', adminRoutes);
-app.use('/regions', regionsRoutes);
-
-app.use(errorHandler);
-
-export { app };
+  return app;
+}
