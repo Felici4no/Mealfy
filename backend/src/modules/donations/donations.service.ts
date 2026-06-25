@@ -1,6 +1,7 @@
 import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { createAuditLog } from '../auditLogs/auditLog.service';
+import { wasFedThisCycle } from '../../shared/utils/feedCycle';
 import type { GiftCardProvider, UserRole, Family } from '@prisma/client';
 import type { CreateDonationInput } from './donations.validator';
 
@@ -44,6 +45,12 @@ async function loadEligibleFamily(familyId: string): Promise<FamilyWithDeps> {
  */
 export async function createDonationIntent(donorUserId: string, input: CreateDonationInput) {
   const family = await loadEligibleFamily(input.familyId);
+
+  // Bloqueio diário (autoritativo): 1 doação/família por ciclo (reset 08h SP).
+  if (wasFedThisCycle(family.lastFedAt)) {
+    throw new AppError('Esta família já foi alimentada hoje. Próxima liberação às 08h.', 409, 'already_fed_today');
+  }
+
   const provider = resolveDonationProvider(family, input.provider);
 
   const stock = await prisma.giftCard.count({ where: { provider, status: 'available' } });
