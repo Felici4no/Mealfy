@@ -214,6 +214,16 @@ curl -s localhost:3000/families/map -H "Authorization: Bearer $AD" | jq '.famili
 - **Fase 1G** ✅ Validação em **PostgreSQL real** (ver abaixo).
 - **Fase 2** ✅ Auth (bcrypt+JWT) · /me · entidades · famílias + dependentes ·
   regra 0–17 · aprovação manual · mapa/ficha · provider diário · audit logs.
+- **Fase 2H** ✅ Schema + seed validados em **Supabase cloud** (projeto `mealfy-staging`,
+  PostgreSQL 17, us-west-2): 14 tabelas criadas, seed idempotente
+  (users 3 · entities 1 · families 4 · dependents 5 · gift_card_batches 3 · gift_cards 15).
+  RLS habilitado nas tabelas (a API pública não acessa — só o backend, como owner).
+
+> **Conectar o backend ao Supabase:** ponha a `DATABASE_URL` (Session pooler, porta 5432)
+> e a `DIRECT_URL` no `backend/.env` (gitignored). Como o schema já foi aplicado via Studio/MCP,
+> faça o baseline antes do primeiro deploy do Prisma:
+> `npx prisma migrate resolve --applied 20260625000605_init` e então `npm run prisma:deploy`
+> (no-op) + `npm run dev` → `/health` deve mostrar `database: "connected"`.
 
 ### Validação em PostgreSQL real (Fase 1G)
 Fluxo provado de ponta a ponta contra um Postgres 17 real:
