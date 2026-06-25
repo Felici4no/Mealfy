@@ -151,3 +151,46 @@ export async function listGiftCards(filters: ListGiftCardsQuery) {
 export async function listBatches() {
   return prisma.giftCardBatch.findMany({ orderBy: { createdAt: 'desc' } });
 }
+
+/**
+ * Invalida um gift card. Só `available` ou `reserved` podem ser invalidados.
+ * `used` exige procedimento especial (não pelo fluxo normal). Código invalidado
+ * nunca volta a `available`.
+ */
+export async function invalidateGiftCard(actorUserId: string, id: string, reason?: string) {
+  const gc = await prisma.giftCard.findUnique({ where: { id } });
+  if (!gc) throw new AppError('Gift card não encontrado', 404, 'gift_card_not_found');
+
+  if (gc.status === 'used') {
+    throw new AppError(
+      'Código já utilizado não pode ser invalidado pelo fluxo normal.',
+      422,
+      'cannot_invalidate_used',
+    );
+  }
+  if (gc.status !== 'available' && gc.status !== 'reserved') {
+    throw new AppError(
+      `Só é possível invalidar códigos disponíveis ou reservados (status atual: ${gc.status}).`,
+      422,
+      'cannot_invalidate',
+    );
+  }
+
+  const updated = await prisma.giftCard.update({ where: { id }, data: { status: 'invalid' } });
+  await prisma.giftCardEvent.create({
+    data: {
+      giftCardId: id,
+      eventType: 'invalidated',
+      userId: actorUserId,
+      metadata: reason ? { reason } : undefined,
+    },
+  });
+  await createAuditLog({
+    actorUserId,
+    action: 'invalidate_gift_card',
+    entityType: 'gift_card',
+    entityId: id,
+    metadata: reason ? { reason } : undefined,
+  });
+  return updated;
+}

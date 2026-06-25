@@ -1,6 +1,10 @@
 import type { Request, Response } from 'express';
 import { AppError } from '../../shared/errors/AppError';
-import { importGiftCardsSchema, listGiftCardsQuerySchema } from './giftCards.validator';
+import {
+  importGiftCardsSchema,
+  listGiftCardsQuerySchema,
+  invalidateGiftCardSchema,
+} from './giftCards.validator';
 import * as giftCardsService from './giftCards.service';
 import { toAdminGiftCard } from './giftCards.dto';
 
@@ -27,4 +31,10 @@ export async function listGiftCards(req: Request, res: Response): Promise<Respon
 
 export async function listBatches(_req: Request, res: Response): Promise<Response> {
   return res.json({ batches: await giftCardsService.listBatches() });
+}
+
+export async function invalidateGiftCard(req: Request, res: Response): Promise<Response> {
+  const { reason } = invalidateGiftCardSchema.parse(req.body ?? {});
+  const gc = await giftCardsService.invalidateGiftCard(adminId(req), req.params.id, reason);
+  return res.json({ giftCard: toAdminGiftCard(gc) });
 }
