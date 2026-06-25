@@ -222,9 +222,14 @@ curl -s localhost:3000/families/map -H "Authorization: Bearer $AD" | jq '.famili
   - RLS habilitado nas tabelas (a API pública do Supabase não acessa — só o backend, como owner).
 
 > **Conexão Prisma ↔ Supabase:** runtime usa o **transaction pooler** (porta 6543, `?pgbouncer=true`).
-> Para **migrations** (`migrate deploy`), use o **session pooler** (porta 5432) via `DIRECT_URL` e
-> adicione `directUrl = env("DIRECT_URL")` ao datasource. Como o schema foi aplicado fora do Prisma,
-> faça o baseline antes do 1º deploy: `npx prisma migrate resolve --applied 20260625000605_init`.
+> **Baseline já aplicado:** a migration `20260625000605_init` está registrada como aplicada no
+> Supabase (`_prisma_migrations`), então `prisma migrate deploy` **não reaplica** o schema.
+> Para **migrations futuras** (que o pgbouncer não suporta): adicione no `.env` o
+> `DIRECT_URL` (session pooler, porta 5432) e `directUrl = env("DIRECT_URL")` ao datasource,
+> e então rode `npm run prisma:deploy`.
+>
+> **Gift cards (Fase 3):** exige `ENCRYPTION_KEY` (32 bytes em hex = 64 chars) no `.env` —
+> usada no AES-256-GCM dos códigos. Nunca commitar.
 
 ### Validação em PostgreSQL real (Fase 1G)
 Fluxo provado de ponta a ponta contra um Postgres 17 real:
