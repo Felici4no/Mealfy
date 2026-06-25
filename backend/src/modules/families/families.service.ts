@@ -138,3 +138,68 @@ export async function updateFamily(actor: Actor, id: string, input: UpdateFamily
   });
   return family;
 }
+
+async function loadFamilyOr404(id: string) {
+  const family = await prisma.family.findUnique({ where: { id }, include: familyInclude });
+  if (!family) throw new AppError('Família não encontrada', 404, 'family_not_found');
+  return family;
+}
+
+/**
+ * Aprova a família. REGRA CRÍTICA: só aprova se houver ao menos um dependente
+ * elegível (0–17). NIS/CadÚnico não aprova sozinho — aprovação é sempre manual.
+ */
+export async function approveFamily(actor: Actor, id: string) {
+  const family = await loadFamilyOr404(id);
+  const hasEligibleMinor = family.dependents.some((d) => d.isEligibleMinor);
+  if (!hasEligibleMinor) {
+    throw new AppError(
+      'Família precisa de ao menos um dependente de 0 a 17 anos para ser aprovada',
+      422,
+      'no_eligible_minor',
+    );
+  }
+  const updated = await prisma.family.update({
+    where: { id },
+    data: { approvalStatus: 'approved' },
+    include: familyInclude,
+  });
+  await createAuditLog({ actorUserId: actor.userId, action: 'approve_family', entityType: 'family', entityId: id });
+  return updated;
+}
+
+export async function rejectFamily(actor: Actor, id: string, reason?: string) {
+  await loadFamilyOr404(id);
+  const updated = await prisma.family.update({
+    where: { id },
+    data: { approvalStatus: 'rejected' },
+    include: familyInclude,
+  });
+  await createAuditLog({ actorUserId: actor.userId, action: 'reject_family', entityType: 'family', entityId: id, metadata: reason ? { reason } : undefined });
+  return updated;
+}
+
+export async function blockFamily(actor: Actor, id: string, reason?: string) {
+  await loadFamilyOr404(id);
+  const updated = await prisma.family.update({
+    where: { id },
+    data: { approvalStatus: 'blocked' },
+    include: familyInclude,
+  });
+  await createAuditLog({ actorUserId: actor.userId, action: 'block_family', entityType: 'family', entityId: id, metadata: reason ? { reason } : undefined });
+  return updated;
+}
+
+/** Mapa público: só famílias aprovadas e com localização. Serializado p/ doador. */
+export async function getMapFamilies(filters: { state?: string }) {
+  return prisma.family.findMany({
+    where: {
+      approvalStatus: 'approved',
+      latitude: { not: null },
+      longitude: { not: null },
+      state: filters.state?.toUpperCase(),
+    },
+    include: familyInclude,
+    orderBy: { createdAt: 'desc' },
+  });
+}
