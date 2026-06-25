@@ -160,6 +160,26 @@ No app (`Mealfy-repo/.env`): `VITE_API_URL=https://sua-api...` e rebuild do APK.
 - **Fase 1D** ✅ Seed dev/staging idempotente.
 - **Fase 1E** ✅ Preparação de deploy Railway/Render (build/start/Dockerfile).
 - **Fase 1F** ✅ Esta documentação.
+- **Fase 1G** ✅ Validação em **PostgreSQL real** (ver abaixo).
+
+### Validação em PostgreSQL real (Fase 1G)
+Fluxo provado de ponta a ponta contra um Postgres 17 real:
+`prisma migrate deploy` (migration `*_init` aplicada) → `prisma:seed` → `npm run build`/`typecheck`
+verdes → API local com `GET /health` retornando **`database: "connected"`**.
+
+Dados conferidos no banco (e **idempotentes** — re-seed não duplica):
+
+| Tabela | Qtde | Detalhe |
+|---|---:|---|
+| users | 3 | admin, entity, donor |
+| entities | 1 | aprovada |
+| families | 4 | 2 approved · 1 pending · 1 blocked |
+| family_dependents | 5 | aprovada SP tem menores elegíveis (8 e 14 anos) |
+| gift_card_batches | 3 | ifood · ninetynine · carrefour |
+| gift_cards | 15 | 5 por provider, todos `available` |
+
+> Sem Postgres à mão? Dá para reproduzir com um Postgres local/cloud em `DATABASE_URL`,
+> ou com um Postgres embarcado de dev (ex.: pacote `embedded-postgres`).
 
 ### Próximos passos — Fase 2 (Famílias & Entidade)
 - `auth` (register/login, bcrypt + JWT) substituindo o header `x-user-id`.
