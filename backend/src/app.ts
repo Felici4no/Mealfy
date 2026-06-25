@@ -11,6 +11,7 @@ import { familiesRoutes } from './modules/families/families.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
 import { giftCardsRoutes } from './modules/giftCards/giftCards.routes';
 import { donationsRoutes } from './modules/donations/donations.routes';
+import { beneficiaryRoutes } from './modules/beneficiary/beneficiary.routes';
 import { notFoundHandler } from './shared/middlewares/notFound';
 import { errorHandler } from './shared/middlewares/errorHandler';
 
@@ -33,6 +34,7 @@ export function createApp(): Application {
   app.use('/entity', entitiesRoutes);
   app.use('/families', familiesRoutes);
   app.use('/donations', donationsRoutes);
+  app.use('/beneficiary', beneficiaryRoutes);
   app.use('/admin', adminRoutes);
   app.use('/admin', giftCardsRoutes);
 

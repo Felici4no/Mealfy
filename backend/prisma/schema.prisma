@@ -120,9 +120,10 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  donorProfile DonorProfile?
-  entity       Entity?
-  favorites    Favorite[]
+  donorProfile        DonorProfile?
+  entity              Entity?
+  favorites           Favorite[]
+  beneficiaryFamilies Family[]      @relation("FamilyBeneficiary")
 
   @@map("users")
 }
@@ -190,13 +191,16 @@ model Family {
   dataSource                DataSource               @default(manual)
   socialDescription         String?
   needToday                 Boolean                  @default(true)
+  beneficiaryUserId         String?
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
 
-  dependents FamilyDependent[]
+  dependents      FamilyDependent[]
+  beneficiaryUser User?             @relation("FamilyBeneficiary", fields: [beneficiaryUserId], references: [id], onDelete: SetNull)
 
   @@index([approvalStatus])
   @@index([entityId])
+  @@index([beneficiaryUserId])
   @@map("families")
 }
 

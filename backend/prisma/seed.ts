@@ -16,6 +16,7 @@ import {
   GiftCardProvider,
   type Prisma,
 } from '@prisma/client';
+import { encryptGiftCardCode } from '../src/shared/crypto/crypto.service';
 
 const prisma = new PrismaClient();
 
@@ -24,7 +25,6 @@ const DEV_PASSWORD = '123456';
 
 const maskCode = (code: string): string => `****-${code.slice(-4)}`;
 const hashCode = (code: string): string => crypto.createHash('sha256').update(code).digest('hex');
-const devEncode = (code: string): string => Buffer.from(code).toString('base64'); // PLACEHOLDER (Fase 3)
 
 async function seedUsers() {
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
@@ -229,7 +229,7 @@ async function seedGiftCards(adminUserId: string) {
         update: {},
         create: {
           provider,
-          codeEncrypted: devEncode(code),
+          codeEncrypted: encryptGiftCardCode(code),
           codeMasked: maskCode(code),
           codeHash: hashCode(code),
           amount: AMOUNT,
