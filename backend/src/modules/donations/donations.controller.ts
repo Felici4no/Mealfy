@@ -20,6 +20,32 @@ export async function createDonation(req: Request, res: Response): Promise<Respo
   });
 }
 
+export async function getDonation(req: Request, res: Response): Promise<Response> {
+  const actor = actorOf(req);
+  const { donation, family, view } = await donationsService.getDonationForActor(actor, req.params.id);
+  const dto = view === 'donor'
+    ? toDonorDonation(donation, family, actor.userId)
+    : toAdminDonation(donation, family);
+  return res.json({ donation: dto });
+}
+
+export async function listMyDonations(req: Request, res: Response): Promise<Response> {
+  const actor = actorOf(req);
+  const items = await donationsService.listMyDonations(actor.userId);
+  return res.json({
+    donations: items.map(({ donation, family }) => toDonorDonation(donation, family, actor.userId)),
+  });
+}
+
+export async function listFamilyDonations(req: Request, res: Response): Promise<Response> {
+  const actor = actorOf(req);
+  const { family, donations } = await donationsService.listFamilyDonations(actor, req.params.id);
+  return res.json({
+    family: { id: family.id, displayName: family.displayName },
+    donations: donations.map((d) => toAdminDonation(d, family)),
+  });
+}
+
 /**
  * Confirmação MOCK (dev/staging) — admin only e BLOQUEADA em produção.
  * O Pix real (webhook) chega na Fase 5.

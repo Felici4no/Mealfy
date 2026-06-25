@@ -26,6 +26,8 @@ export function toDonorFamily(f: FamilyWithDependents) {
     childrenCount: eligibleMinors(f.dependents),
     socialDescription: f.socialDescription,
     needToday: f.needToday,
+    lastFedAt: f.lastFedAt,
+    lastGiftCardProvider: f.lastGiftCardProvider,
     lastDonorName: f.lastDonorName,
     lastDonorInstagram: f.lastDonorInstagram,
   };
