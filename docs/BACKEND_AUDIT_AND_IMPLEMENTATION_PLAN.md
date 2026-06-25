@@ -685,7 +685,7 @@ Além de `npx tsc --noEmit` (front e backend) e `npm run build` verdes.
 | Fase | Entregas | Saída verificável |
 |:---:|---|---|
 | **0** ✅ | Auditoria + `BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md` + `COMO-FUNCIONA.md`; mapa de mocks e de endpoints | **este documento** |
-| **1** | Estrutura API (Express já existe) + **Prisma/PostgreSQL** (substitui `mock-db`); `/health`; `.env.example`; migrations; seed inicial (admin, regiões) | API sobe; `migrate`/`seed` rodam |
+| **1** ✅ | Backend isolado em `/backend` (Express+TS), **Prisma/PostgreSQL** (substitui `mock-db`); `/health` com status do banco; `.env.example`; schema (14 tabelas/13 enums) + migration inicial; seed idempotente; Dockerfile + deploy Railway/Render | API sobe; `/health` ok; `prisma validate`/`generate`/`build` verdes; `migrate`/`seed` rodam ao apontar p/ um Postgres |
 | **2** | Famílias + dependentes + entidades no banco; endpoints families/entity; **regra 0–17**; aprovação manual; JWT/login | Testes 1–3, 15 |
 | **3** | `gift_cards`/`batches`; import admin; estoque; **criptografia/mascaramento**; reserva/liberação transacional | Testes 4, 5, 13 |
 | **4** | `donations` com máquina de estados; **bloqueio diário no backend**; "alimentada por"; histórico real | Testes 11, 12 |
