@@ -9,6 +9,7 @@ import { usersRoutes } from './modules/users/users.routes';
 import { entitiesRoutes } from './modules/entities/entities.routes';
 import { familiesRoutes } from './modules/families/families.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
+import { giftCardsRoutes } from './modules/giftCards/giftCards.routes';
 import { notFoundHandler } from './shared/middlewares/notFound';
 import { errorHandler } from './shared/middlewares/errorHandler';
 
@@ -31,6 +32,7 @@ export function createApp(): Application {
   app.use('/entity', entitiesRoutes);
   app.use('/families', familiesRoutes);
   app.use('/admin', adminRoutes);
+  app.use('/admin', giftCardsRoutes);
 
   // 404 + erro global (sempre por último)
   app.use(notFoundHandler);
