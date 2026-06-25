@@ -12,6 +12,9 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('*'),
   // Banco — opcional na fundação; obrigatório a partir da Fase 1B em runtime real.
   DATABASE_URL: z.string().optional(),
+  // Auth (Fase 2) — opcional no schema; o jwt util exige em runtime quando usado.
+  JWT_SECRET: z.string().optional(),
+  JWT_EXPIRES_IN: z.string().default('7d'),
 });
 
 const parsed = envSchema.safeParse(process.env);

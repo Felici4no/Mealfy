@@ -10,6 +10,7 @@
  * anti-duplicidade na importação.
  */
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import {
   PrismaClient,
   GiftCardProvider,
@@ -18,21 +19,26 @@ import {
 
 const prisma = new PrismaClient();
 
+// Senha única de DEV para todas as contas seedadas (nunca usar em produção).
+const DEV_PASSWORD = '123456';
+
 const maskCode = (code: string): string => `****-${code.slice(-4)}`;
 const hashCode = (code: string): string => crypto.createHash('sha256').update(code).digest('hex');
 const devEncode = (code: string): string => Buffer.from(code).toString('base64'); // PLACEHOLDER (Fase 3)
 
 async function seedUsers() {
+  const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
+
   const admin = await prisma.user.upsert({
     where: { email: 'admin@mealfy.com' },
-    update: {},
-    create: { name: 'Admin Mealfy', email: 'admin@mealfy.com', role: 'admin', status: 'active' },
+    update: { passwordHash },
+    create: { name: 'Admin Mealfy', email: 'admin@mealfy.com', role: 'admin', status: 'active', passwordHash },
   });
 
   const entityUser = await prisma.user.upsert({
     where: { email: 'entidade@mealfy.com' },
-    update: {},
-    create: { name: 'ONG Exemplo', email: 'entidade@mealfy.com', role: 'entity', status: 'active' },
+    update: { passwordHash },
+    create: { name: 'ONG Exemplo', email: 'entidade@mealfy.com', role: 'entity', status: 'active', passwordHash },
   });
 
   const entity = await prisma.entity.upsert({
@@ -51,13 +57,14 @@ async function seedUsers() {
 
   const donorUser = await prisma.user.upsert({
     where: { email: 'doador@mealfy.com' },
-    update: {},
+    update: { passwordHash },
     create: {
       name: 'Alexandre Doador',
       email: 'doador@mealfy.com',
       role: 'donor',
       status: 'active',
       instagram: '@alexandre.doador',
+      passwordHash,
     },
   });
 
