@@ -15,6 +15,8 @@ const envSchema = z.object({
   // Auth (Fase 2) — opcional no schema; o jwt util exige em runtime quando usado.
   JWT_SECRET: z.string().optional(),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  // Gift cards (Fase 3) — 32 bytes em hex (64 chars); o crypto service valida o formato.
+  ENCRYPTION_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
