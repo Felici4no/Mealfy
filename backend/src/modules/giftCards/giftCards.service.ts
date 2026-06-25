@@ -7,7 +7,8 @@ import {
   maskGiftCardCode,
 } from '../../shared/crypto/crypto.service';
 import { createAuditLog } from '../auditLogs/auditLog.service';
-import type { ImportGiftCardsInput } from './giftCards.validator';
+import type { GiftCardProvider, GiftCardStatus } from '@prisma/client';
+import type { ImportGiftCardsInput, ListGiftCardsQuery } from './giftCards.validator';
 
 /**
  * Importação manual de códigos pelo admin. Faz limpeza, dedupe (no payload e
@@ -109,4 +110,44 @@ export async function importGiftCards(actorUserId: string, input: ImportGiftCard
     importedCount: toImport.length,
     warnings,
   };
+}
+
+const PROVIDERS: GiftCardProvider[] = ['ifood', 'ninetynine', 'carrefour'];
+const STATUSES: GiftCardStatus[] = ['available', 'reserved', 'used', 'expired', 'invalid'];
+
+/** Estoque por provider: contagem de cada status + total. */
+export async function getStock() {
+  const grouped = await prisma.giftCard.groupBy({ by: ['provider', 'status'], _count: true });
+  return PROVIDERS.map((provider) => {
+    const row: Record<string, number | string> = { provider, total: 0 };
+    for (const s of STATUSES) row[s] = 0;
+    for (const g of grouped.filter((x) => x.provider === provider)) {
+      row[g.status] = g._count;
+      row.total = (row.total as number) + g._count;
+    }
+    return row;
+  });
+}
+
+/** Lista paginada (mascarada) com filtros. */
+export async function listGiftCards(filters: ListGiftCardsQuery) {
+  const where = {
+    provider: filters.provider,
+    status: filters.status,
+    batchId: filters.batchId,
+  };
+  const [total, items] = await Promise.all([
+    prisma.giftCard.count({ where }),
+    prisma.giftCard.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (filters.page - 1) * filters.limit,
+      take: filters.limit,
+    }),
+  ]);
+  return { items, total, page: filters.page, limit: filters.limit };
+}
+
+export async function listBatches() {
+  return prisma.giftCardBatch.findMany({ orderBy: { createdAt: 'desc' } });
 }
