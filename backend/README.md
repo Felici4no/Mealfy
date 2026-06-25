@@ -153,6 +153,57 @@ No app (`Mealfy-repo/.env`): `VITE_API_URL=https://sua-api...` e rebuild do APK.
 
 ---
 
+## API — rotas (Fase 2)
+
+Todas as rotas (exceto `/auth/*` e `/health`) exigem `Authorization: Bearer <token>`.
+
+**Usuários seedados** (senha `123456`): `admin@mealfy.com` (admin) · `entidade@mealfy.com` (entity) · `doador@mealfy.com` (donor).
+
+**Obter token:**
+```bash
+TOKEN=$(curl -s -X POST localhost:3000/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@mealfy.com","password":"123456"}' | jq -r .token)
+curl localhost:3000/me -H "Authorization: Bearer $TOKEN"
+```
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/auth/register` | público | `{name,email,password,role}` — role `donor`\|`entity` (admin/beneficiary recusados) |
+| POST | `/auth/login` | público | `{email,password}` → `{token,user}` |
+| GET | `/me` | autenticado | usuário atual (sem hash) |
+| PATCH | `/me` | autenticado | atualiza name/avatarUrl/instagram/phone |
+| GET | `/entity/dashboard` | entity | resumo das famílias da entidade |
+| GET | `/entity/families` | entity | famílias da própria entidade |
+| POST | `/entity/families` | entity | cria família (`>=1` dependente) |
+| PATCH | `/entity/families/:id` | entity | edita família da própria entidade |
+| GET | `/families` | autenticado | role-aware (admin/entity=gestão; demais=aprovadas) |
+| GET | `/families/map` | autenticado | só aprovadas + localização; **sem PII** |
+| GET | `/families/:id` | autenticado | serialização por papel |
+| POST | `/families` | entity·admin | cria família |
+| PATCH | `/families/:id` | entity·admin | edita (entity só a sua) |
+| POST | `/families/:id/approve` | admin | aprova (exige dependente 0–17) |
+| POST | `/families/:id/reject` | admin | reprova |
+| POST | `/families/:id/block` | admin | bloqueia |
+| POST | `/families/:id/request-daily-support` | entity·admin | `{provider}` do dia |
+| GET | `/admin/audit-logs` | admin | ações críticas |
+| POST | `/admin/entities/:id/approve` | admin | aprova entidade |
+| POST | `/admin/entities/:id/block` | admin | bloqueia entidade |
+
+**Exemplo — entidade cria família e admin aprova:**
+```bash
+ET=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' -d '{"email":"entidade@mealfy.com","password":"123456"}' | jq -r .token)
+AD=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@mealfy.com","password":"123456"}' | jq -r .token)
+FID=$(curl -s -X POST localhost:3000/entity/families -H "Authorization: Bearer $ET" -H 'Content-Type: application/json' \
+  -d '{"responsibleName":"Joao","displayName":"Familia X","city":"Sao Paulo","state":"SP","latitude":-23.5,"longitude":-46.6,"dependents":[{"name":"Kid","age":10}]}' | jq -r .family.id)
+curl -s -X POST localhost:3000/families/$FID/approve -H "Authorization: Bearer $AD" | jq .family.approvalStatus
+curl -s localhost:3000/families/map -H "Authorization: Bearer $AD" | jq '.families[].id'
+```
+
+> **Regras garantidas no backend:** senha com bcrypt (nunca em claro) · `/me` sem hash ·
+> aprovação exige dependente 0–17 · doador nunca recebe CPF/NIS/endereço · entidade só
+> gerencia as suas famílias · approve/reject/block auditados.
+
 ## Status das fases
 - **Fase 1A** ✅ Fundação da API (Express + TS + `/health` + env Zod).
 - **Fase 1B** ✅ Prisma + PostgreSQL (client singleton + status no health).
@@ -161,6 +212,8 @@ No app (`Mealfy-repo/.env`): `VITE_API_URL=https://sua-api...` e rebuild do APK.
 - **Fase 1E** ✅ Preparação de deploy Railway/Render (build/start/Dockerfile).
 - **Fase 1F** ✅ Esta documentação.
 - **Fase 1G** ✅ Validação em **PostgreSQL real** (ver abaixo).
+- **Fase 2** ✅ Auth (bcrypt+JWT) · /me · entidades · famílias + dependentes ·
+  regra 0–17 · aprovação manual · mapa/ficha · provider diário · audit logs.
 
 ### Validação em PostgreSQL real (Fase 1G)
 Fluxo provado de ponta a ponta contra um Postgres 17 real:
@@ -181,11 +234,11 @@ Dados conferidos no banco (e **idempotentes** — re-seed não duplica):
 > Sem Postgres à mão? Dá para reproduzir com um Postgres local/cloud em `DATABASE_URL`,
 > ou com um Postgres embarcado de dev (ex.: pacote `embedded-postgres`).
 
-### Próximos passos — Fase 2 (Famílias & Entidade)
-- `auth` (register/login, bcrypt + JWT) substituindo o header `x-user-id`.
-- Módulos `users`, `entities`, `families` (CRUD + aprovação manual).
-- **Regra 0–17** autoritativa no backend (família só aprovável com dependente elegível).
-- Endpoints de mapa (`GET /families/map`) e listagem filtrada.
+### Próximos passos — Fase 3 (Gift cards)
+- Tabelas `gift_cards`/`gift_card_batches` já no schema — falta o fluxo:
+- Importação manual pelo admin (`POST /admin/gift-cards/import`) + estoque por provider.
+- **Criptografia real** (AES-256-GCM com `ENCRYPTION_KEY`) substituindo o placeholder do seed.
+- Reserva/liberação **transacional** e segura (sem reuso de código) — preparando a Fase 4 (doações) e 5 (Pix).
 
 Plano completo: [`../docs/BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md`](../docs/BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md).
 
