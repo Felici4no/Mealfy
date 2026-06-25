@@ -1,0 +1,42 @@
+// Mealfy MVP — Prisma schema
+// Fase 1B: datasource + generator + primeiro modelo (User).
+// Fase 1C: completa o schema (enums + demais tabelas) e cria a migration inicial.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  donor
+  entity
+  beneficiary
+  admin
+}
+
+enum UserStatus {
+  active
+  pending
+  suspended
+  blocked
+}
+
+model User {
+  id           String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  passwordHash String?
+  role         UserRole
+  avatarUrl    String?
+  instagram    String?
+  phone        String?
+  status       UserStatus @default(active)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("users")
+}
