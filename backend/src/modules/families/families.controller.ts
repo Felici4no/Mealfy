@@ -7,6 +7,7 @@ import {
   updateFamilySchema,
   rejectSchema,
   listFamiliesQuerySchema,
+  requestDailySupportSchema,
 } from './families.validator';
 
 function actorOf(req: Request) {
@@ -68,5 +69,12 @@ export async function block(req: Request, res: Response): Promise<Response> {
   const actor = actorOf(req);
   const { reason } = rejectSchema.parse(req.body ?? {});
   const family = await familiesService.blockFamily(actor, req.params.id, reason);
+  return res.json({ family: toManagedFamily(family) });
+}
+
+export async function requestDailySupport(req: Request, res: Response): Promise<Response> {
+  const actor = actorOf(req);
+  const { provider } = requestDailySupportSchema.parse(req.body);
+  const family = await familiesService.requestDailySupport(actor, req.params.id, provider);
   return res.json({ family: toManagedFamily(family) });
 }

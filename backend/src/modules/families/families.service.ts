@@ -2,7 +2,7 @@ import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { maskTail } from '../../shared/utils/mask';
 import { createAuditLog } from '../auditLogs/auditLog.service';
-import type { UserRole } from '@prisma/client';
+import type { UserRole, GiftCardProvider } from '@prisma/client';
 import type { CreateFamilyInput, UpdateFamilyInput, ListFamiliesQuery } from './families.validator';
 
 export interface Actor {
@@ -188,6 +188,28 @@ export async function blockFamily(actor: Actor, id: string, reason?: string) {
   });
   await createAuditLog({ actorUserId: actor.userId, action: 'block_family', entityType: 'family', entityId: id, metadata: reason ? { reason } : undefined });
   return updated;
+}
+
+/**
+ * Provider do dia: a família (ou a entidade responsável) informa o vale mais útil hoje.
+ * Apenas grava `todayRequestedProvider` — NÃO libera gift card nem cria doação.
+ * Sem provider do dia, o fallback é `preferredGiftCardProvider` (usado na doação).
+ */
+export async function requestDailySupport(actor: Actor, id: string, provider: GiftCardProvider) {
+  await loadOwnedFamily(actor, id); // entity dona ou admin; doador => 403
+  const family = await prisma.family.update({
+    where: { id },
+    data: { todayRequestedProvider: provider },
+    include: familyInclude,
+  });
+  await createAuditLog({
+    actorUserId: actor.userId,
+    action: 'request_daily_provider',
+    entityType: 'family',
+    entityId: id,
+    metadata: { provider },
+  });
+  return family;
 }
 
 /** Mapa público: só famílias aprovadas e com localização. Serializado p/ doador. */
