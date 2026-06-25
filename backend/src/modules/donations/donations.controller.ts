@@ -61,3 +61,9 @@ export async function confirmPaymentMock(req: Request, res: Response): Promise<R
     message: 'Pagamento confirmado (mock). Gift card liberado para a família.',
   });
 }
+
+export async function cancelDonation(req: Request, res: Response): Promise<Response> {
+  const actor = actorOf(req);
+  const donation = await donationsService.cancelDonation(actor, req.params.id);
+  return res.json({ donation: toAdminDonation(donation), message: 'Doação cancelada.' });
+}
