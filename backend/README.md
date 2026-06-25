@@ -204,6 +204,60 @@ curl -s localhost:3000/families/map -H "Authorization: Bearer $AD" | jq '.famili
 > aprovação exige dependente 0–17 · doador nunca recebe CPF/NIS/endereço · entidade só
 > gerencia as suas famílias · approve/reject/block auditados.
 
+## Gift cards (Fase 3)
+
+Domínio de gift cards: importação manual pelo admin, estoque, criptografia e reserva.
+Todas as rotas são **admin** (montadas em `/admin`).
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/admin/gift-cards/import` | importa um lote de códigos |
+| GET | `/admin/gift-cards/stock` | estoque por provider (available/reserved/used/expired/invalid/total) |
+| GET | `/admin/gift-cards` | lista (filtros `provider`/`status`/`batchId`, `page`/`limit`) |
+| GET | `/admin/gift-card-batches` | lotes importados |
+| POST | `/admin/gift-cards/:id/invalidate` | invalida um código (available/reserved) |
+
+**Payload do import:**
+```json
+{
+  "provider": "ifood | ninetynine | carrefour",
+  "batchName": "Lote Maio/2026",
+  "amount": 2500,
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "codes": ["IFOOD-AAAA-0001", "IFOOD-BBBB-0002"]
+}
+```
+Limpa espaços, ignora linhas vazias, deduplica (no payload e contra o banco via `codeHash`).
+Resposta é só **resumo** (`batchId`, `totalReceived/Imported/Duplicated/Invalid`, `warnings`) — **nunca** o código.
+
+**Exemplos (curl):**
+```bash
+AD=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@mealfy.com","password":"123456"}' | jq -r .token)
+# importar
+curl -s -X POST localhost:3000/admin/gift-cards/import -H "Authorization: Bearer $AD" -H 'Content-Type: application/json' \
+  -d '{"provider":"ifood","batchName":"Maio","amount":2500,"codes":["IFOOD-AAAA-0001","IFOOD-BBBB-0002"]}' | jq
+# estoque / listagem / invalidar
+curl -s localhost:3000/admin/gift-cards/stock -H "Authorization: Bearer $AD" | jq
+curl -s "localhost:3000/admin/gift-cards?provider=ifood&status=available&limit=20" -H "Authorization: Bearer $AD" | jq
+curl -s -X POST localhost:3000/admin/gift-cards/<ID>/invalidate -H "Authorization: Bearer $AD" -H 'Content-Type: application/json' -d '{"reason":"lote vencido"}' | jq
+```
+
+**Criptografia** (`src/shared/crypto/crypto.service.ts`):
+- `codeEncrypted`: **AES-256-GCM** com `ENCRYPTION_KEY` (formato `iv.tag.cipher` em base64);
+- `codeHash`: **SHA-256** (determinístico, para anti-duplicidade);
+- `codeMasked`: só o final (`****-1234`).
+
+**Campos que NUNCA aparecem em resposta:** `codeEncrypted`, `codeHash` e o **código em claro**.
+O código puro só é decifrado no DTO do **beneficiário** (`toBeneficiaryGiftCard`), preparado para a Fase 4 e **ainda sem endpoint**.
+
+**Reserva/liberação (service interno, sem endpoint ainda):**
+`reserveAvailableCard` (available→reserved), `releaseReservedCard` (reserved→used) e
+`releaseAvailableCardForDonation` (available→used) usam `UPDATE ... WHERE id = (SELECT ... FOR UPDATE SKIP LOCKED)`
+para impedir que dois processos peguem o mesmo código. Código `used` nunca volta a `available`; sem estoque → `409 no_stock`.
+
+> ⚠️ Os gift cards do **seed** usam `codeEncrypted` placeholder (base64 — Fase 1). Os reais, via
+> `import`, são **AES-256-GCM**. Em produção, importe via o endpoint (nunca dependa do seed).
+
 ## Status das fases
 - **Fase 1A** ✅ Fundação da API (Express + TS + `/health` + env Zod).
 - **Fase 1B** ✅ Prisma + PostgreSQL (client singleton + status no health).
@@ -214,6 +268,8 @@ curl -s localhost:3000/families/map -H "Authorization: Bearer $AD" | jq '.famili
 - **Fase 1G** ✅ Validação em **PostgreSQL real** (ver abaixo).
 - **Fase 2** ✅ Auth (bcrypt+JWT) · /me · entidades · famílias + dependentes ·
   regra 0–17 · aprovação manual · mapa/ficha · provider diário · audit logs.
+- **Fase 3** ✅ Gift cards reais: crypto AES-256-GCM, importação admin, estoque/listagem
+  segura (só `codeMasked`), invalidação e reserva/liberação transacional (`FOR UPDATE SKIP LOCKED`).
 - **Fase 2H** ✅ Validado **ao vivo no Supabase cloud** (projeto `mealfy-staging`, PostgreSQL 17, us-west-2):
   - schema (14 tabelas/13 enums) + seed idempotente (users 3 · entities 1 · families 4 · dependents 5 · gift_card_batches 3 · gift_cards 15);
   - **API local conectada ao Supabase**: `GET /health` → `database: "connected"`;
@@ -250,11 +306,11 @@ Dados conferidos no banco (e **idempotentes** — re-seed não duplica):
 > Sem Postgres à mão? Dá para reproduzir com um Postgres local/cloud em `DATABASE_URL`,
 > ou com um Postgres embarcado de dev (ex.: pacote `embedded-postgres`).
 
-### Próximos passos — Fase 3 (Gift cards)
-- Tabelas `gift_cards`/`gift_card_batches` já no schema — falta o fluxo:
-- Importação manual pelo admin (`POST /admin/gift-cards/import`) + estoque por provider.
-- **Criptografia real** (AES-256-GCM com `ENCRYPTION_KEY`) substituindo o placeholder do seed.
-- Reserva/liberação **transacional** e segura (sem reuso de código) — preparando a Fase 4 (doações) e 5 (Pix).
+### Próximos passos — Fase 4 (Doações) e Fase 5 (Pix)
+- `donations` com máquina de estados; bloqueio de **1 doação/família/dia** no backend.
+- Liberar o gift card **só após o pagamento confirmado** (usando `releaseAvailableCardForDonation`).
+- Endpoint do **beneficiário** para ver o código (usa `toBeneficiaryGiftCard`, já preparado).
+- Fase 5: `payments` + `PaymentProvider` (MockPix) + webhook idempotente.
 
 Plano completo: [`../docs/BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md`](../docs/BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md).
 

@@ -687,7 +687,7 @@ Além de `npx tsc --noEmit` (front e backend) e `npm run build` verdes.
 | **0** ✅ | Auditoria + `BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md` + `COMO-FUNCIONA.md`; mapa de mocks e de endpoints | **este documento** |
 | **1** ✅ | Backend isolado em `/backend` (Express+TS), **Prisma/PostgreSQL** (substitui `mock-db`); `/health` com status do banco; `.env.example`; schema (14 tabelas/13 enums) + migration inicial; seed idempotente; Dockerfile + deploy Railway/Render | API sobe; `/health` ok; `prisma validate`/`generate`/`build` verdes; `migrate`/`seed` rodam ao apontar p/ um Postgres |
 | **2** ✅ | Auth (bcrypt+JWT) + RBAC; `/me`; entidades; famílias + dependentes; **regra 0–17**; aprovação manual (approve/reject/block); mapa/ficha sem PII; provider diário; audit logs | Testes 1–3, 15 ✅ |
-| **3** | `gift_cards`/`batches`; import admin; estoque; **criptografia/mascaramento**; reserva/liberação transacional | Testes 4, 5, 13 |
+| **3** ✅ | `gift_cards`/`batches`; **import admin** (dedupe via codeHash); **estoque** + listagem mascarada; **AES-256-GCM** + SHA-256 + mask; **invalidação**; **reserva/liberação transacional** (`FOR UPDATE SKIP LOCKED`). Validado no Supabase. | Testes 4, 5, 13 ✅ |
 | **4** | `donations` com máquina de estados; **bloqueio diário no backend**; "alimentada por"; histórico real | Testes 11, 12 |
 | **5** | `payments` + `PaymentProvider` + **MockPix** + webhook idempotente + `simulate-paid` | Testes 6, 7, 8, 14 |
 | **6** | Conectar front/admin à API (substituir mocks por API com fallback controlado); favoritos; ranking; e-mail | Testes 9, 10, 16, 17 |
