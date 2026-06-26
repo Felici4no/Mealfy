@@ -299,6 +299,40 @@ curl -s localhost:3000/beneficiary/gift-cards -H "Authorization: Bearer $BN" | j
 
 > ⚠️ `confirm-payment-mock` é **dev/staging** (bloqueado em produção). O Pix real + webhook chegam na **Fase 5**.
 
+## Pagamentos Pix (Fase 5)
+
+Camada de pagamento abstrata (`PaymentProvider`) com **MockPix** (dev/staging). Ao criar
+a doação, gera-se a **cobrança Pix**; o vale só é liberado quando o **pagamento é confirmado
+pelo webhook** (ou pela simulação dev). Webhook **idempotente** e assinado.
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/donations` | donor | cria doação **+ cobrança Pix** (retorna `pixQrCode`/`pixCopyPaste`/`expiresAt`) |
+| GET | `/payments/:id` | doador dono · admin | status da cobrança |
+| POST | `/payments/webhook` | **público** (assinatura) | confirma pagamento (idempotente) → libera vale |
+| POST | `/payments/:id/simulate-paid` | admin (dev/staging) | gera um webhook `paid` assinado |
+| POST | `/payments/expire-overdue` | admin | expira cobranças vencidas (cron em produção) |
+
+**Segurança / regras:**
+- webhook autenticado por **HMAC-SHA256** (`PAYMENT_WEBHOOK_SECRET`, header `x-webhook-signature`); assinatura inválida → **401**;
+- **idempotência**: `PaymentEvent.externalEventId` é único — evento repetido → `duplicate_ignored` (sem dupla liberação);
+- vale **só liberado após `paid`** (a finalização é a mesma transação atômica da Fase 4: guarda diária → libera vale → completa);
+- cobrança **expirada** não pode ser paga (`ignored_not_payable`); doação vira `failed`;
+- nenhuma resposta expõe o código do gift card.
+
+**Trocar para um gateway real:** implementar `RealPixProvider implements PaymentProvider`
+(`src/modules/payments/providers/`) e selecionar via `PAYMENT_PROVIDER`. Nada mais muda.
+
+**Exemplo (curl):**
+```bash
+DN=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' -d '{"email":"doador@mealfy.com","password":"123456"}' | jq -r .token)
+AD=$(curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@mealfy.com","password":"123456"}' | jq -r .token)
+RESP=$(curl -s -X POST localhost:3000/donations -H "Authorization: Bearer $DN" -H 'Content-Type: application/json' -d '{"familyId":"seed-fam-approved-sp","amount":2500}')
+echo "$RESP" | jq '{donation:.donation.status, pix:.payment.pixCopyPaste}'
+PID=$(echo "$RESP" | jq -r .payment.id)
+curl -s -X POST localhost:3000/payments/$PID/simulate-paid -H "Authorization: Bearer $AD" | jq   # processed_paid
+```
+
 ## Status das fases
 - **Fase 1A** ✅ Fundação da API (Express + TS + `/health` + env Zod).
 - **Fase 1B** ✅ Prisma + PostgreSQL (client singleton + status no health).
@@ -309,6 +343,8 @@ curl -s localhost:3000/beneficiary/gift-cards -H "Authorization: Bearer $BN" | j
 - **Fase 1G** ✅ Validação em **PostgreSQL real** (ver abaixo).
 - **Fase 2** ✅ Auth (bcrypt+JWT) · /me · entidades · famílias + dependentes ·
   regra 0–17 · aprovação manual · mapa/ficha · provider diário · audit logs.
+- **Fase 5** ✅ Pagamentos Pix: `PaymentProvider` abstrato + **MockPix**, cobrança na doação,
+  **webhook idempotente assinado**, simulate-paid (dev), expiração. Vale só após `paid`.
 - **Fase 4** ✅ Doações: máquina de estados, **bloqueio diário** (reset 08h SP), confirmação
   mock → liberação de vale, "alimentada por", histórico do doador (sem código) e
   **endpoint do beneficiário** (vê o código). Validado ao vivo no Supabase.
@@ -350,11 +386,10 @@ Dados conferidos no banco (e **idempotentes** — re-seed não duplica):
 > Sem Postgres à mão? Dá para reproduzir com um Postgres local/cloud em `DATABASE_URL`,
 > ou com um Postgres embarcado de dev (ex.: pacote `embedded-postgres`).
 
-### Próximos passos — Fase 5 (Pix real)
-- `payments` + `PaymentProvider` abstrato + **MockPixPaymentProvider** (QR/copia-e-cola).
-- `POST /payments/webhook` **idempotente** (assinatura + `PaymentEvent.externalEventId` único).
-- Substituir o `confirm-payment-mock` pelo fluxo Pix assíncrono (estados intermediários
-  `payment_confirmed`/`gift_card_released`); expiração de cobrança.
+### Próximos passos — Fase 6 (Front/Admin + extras)
+- Conectar app mobile e painel admin à API real (substituir mocks/localStorage com fallback controlado).
+- **Gateway Pix real** (`RealPixProvider`) quando escolhido; e-mail real (credenciais/notificações).
+- Favoritos, ranking/badges derivados de doações, recorrência (lembrete).
 
 Plano completo: [`../docs/BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md`](../docs/BACKEND_AUDIT_AND_IMPLEMENTATION_PLAN.md).
 

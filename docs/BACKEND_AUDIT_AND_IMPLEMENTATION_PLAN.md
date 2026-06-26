@@ -689,7 +689,7 @@ Além de `npx tsc --noEmit` (front e backend) e `npm run build` verdes.
 | **2** ✅ | Auth (bcrypt+JWT) + RBAC; `/me`; entidades; famílias + dependentes; **regra 0–17**; aprovação manual (approve/reject/block); mapa/ficha sem PII; provider diário; audit logs | Testes 1–3, 15 ✅ |
 | **3** ✅ | `gift_cards`/`batches`; **import admin** (dedupe via codeHash); **estoque** + listagem mascarada; **AES-256-GCM** + SHA-256 + mask; **invalidação**; **reserva/liberação transacional** (`FOR UPDATE SKIP LOCKED`). Validado no Supabase. | Testes 4, 5, 13 ✅ |
 | **4** ✅ | `donations` com máquina de estados; **bloqueio diário** (reset 08h SP, UPDATE condicional atômico); liberação de vale **só após confirmação** (mock dev/admin); "alimentada por"; histórico do doador (sem código); **endpoint do beneficiário** (vê o código). Validado no Supabase. | Testes 11, 12 ✅ |
-| **5** | `payments` + `PaymentProvider` + **MockPix** + webhook idempotente + `simulate-paid` | Testes 6, 7, 8, 14 |
+| **5** ✅ | `payments` + `PaymentProvider` abstrato + **MockPix** (QR/copia-e-cola); cobrança na doação; **webhook idempotente assinado** (HMAC + `externalEventId` único); `simulate-paid` (dev); expiração; vale só após `paid`. Validado no Supabase. | Testes 6, 7, 8, 14 ✅ |
 | **6** | Conectar front/admin à API (substituir mocks por API com fallback controlado); favoritos; ranking; e-mail | Testes 9, 10, 16, 17 |
 | **7** | Deploy (API + Postgres + migrations + seed); APK apontando para API real | App real ponta a ponta |
 
