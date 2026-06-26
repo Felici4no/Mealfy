@@ -17,6 +17,10 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   // Gift cards (Fase 3) — 32 bytes em hex (64 chars); o crypto service valida o formato.
   ENCRYPTION_KEY: z.string().optional(),
+  // Pagamentos Pix (Fase 5)
+  PAYMENT_PROVIDER: z.enum(['mock']).default('mock'),
+  PAYMENT_WEBHOOK_SECRET: z.string().optional(),
+  PIX_EXPIRATION_MINUTES: z.coerce.number().int().positive().default(30),
 });
 
 const parsed = envSchema.safeParse(process.env);
