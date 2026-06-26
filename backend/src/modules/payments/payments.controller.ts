@@ -43,6 +43,12 @@ export async function simulatePaid(req: Request, res: Response): Promise<Respons
   return res.json({ simulated: true, ...result });
 }
 
+/** Expira cobranças vencidas (admin; em produção seria um cron). */
+export async function expireOverdue(_req: Request, res: Response): Promise<Response> {
+  const result = await paymentsService.expireOverduePayments();
+  return res.json(result);
+}
+
 export async function getPayment(req: Request, res: Response): Promise<Response> {
   if (!req.auth) throw new AppError('Não autenticado', 401, 'unauthenticated');
   const payment = await paymentsService.getPaymentForActor(

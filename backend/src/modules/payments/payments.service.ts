@@ -76,6 +76,10 @@ export async function processWebhookEvent(evt: WebhookEvent) {
   }
 
   if (evt.status === 'paid') {
+    // Não paga cobrança expirada/cancelada/falha (evita liberar vale fora de validade).
+    if (payment.status === 'expired' || payment.status === 'canceled' || payment.status === 'failed') {
+      return { status: 'ignored_not_payable' as const };
+    }
     await finalizeDonationAfterPayment(payment.donationId, null);
     await createAuditLog({
       action: 'payment_webhook_paid',
@@ -92,4 +96,28 @@ export async function processWebhookEvent(evt: WebhookEvent) {
   }
 
   return { status: 'processed_noop' as const };
+}
+
+/**
+ * Expira cobranças Pix vencidas (status `pending` com `expiresAt` no passado) e
+ * marca as doações correspondentes como `failed`. Em produção, chamar via cron.
+ */
+export async function expireOverduePayments() {
+  const now = new Date();
+  const overdue = await prisma.payment.findMany({
+    where: { status: 'pending', expiresAt: { lt: now } },
+    select: { id: true, donationId: true },
+  });
+  if (overdue.length === 0) return { expired: 0 };
+
+  const paymentIds = overdue.map((o) => o.id);
+  const donationIds = overdue.map((o) => o.donationId);
+  await prisma.$transaction([
+    prisma.payment.updateMany({ where: { id: { in: paymentIds } }, data: { status: 'expired' } }),
+    prisma.donation.updateMany({
+      where: { id: { in: donationIds }, status: 'pending_payment' },
+      data: { status: 'failed', failureReason: 'payment_expired' },
+    }),
+  ]);
+  return { expired: overdue.length };
 }
