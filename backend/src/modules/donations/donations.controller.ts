@@ -4,6 +4,8 @@ import { env } from '../../config/env';
 import { createDonationSchema } from './donations.validator';
 import * as donationsService from './donations.service';
 import { toDonorDonation, toAdminDonation } from './donations.dto';
+import * as paymentsService from '../payments/payments.service';
+import { toPaymentDto } from '../payments/payments.dto';
 
 function actorOf(req: Request) {
   if (!req.auth) throw new AppError('Não autenticado', 401, 'unauthenticated');
@@ -14,9 +16,11 @@ export async function createDonation(req: Request, res: Response): Promise<Respo
   const actor = actorOf(req);
   const data = createDonationSchema.parse(req.body);
   const { donation, family } = await donationsService.createDonationIntent(actor.userId, data);
+  const payment = await paymentsService.createPixChargeForDonation(donation.id, donation.amount);
   return res.status(201).json({
     donation: toDonorDonation(donation, family, actor.userId),
-    message: 'Doação criada. Aguardando confirmação de pagamento.',
+    payment: toPaymentDto(payment),
+    message: 'Doação criada. Pague o Pix para liberar o apoio à família.',
   });
 }
 

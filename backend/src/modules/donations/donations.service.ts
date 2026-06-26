@@ -87,15 +87,26 @@ export async function createDonationIntent(donorUserId: string, input: CreateDon
  *   3) completa a doação.
  * Nunca libera vale antes desta confirmação.
  */
-export async function confirmDonationPaymentMock(adminUserId: string, donationId: string) {
+/**
+ * Finaliza a doação APÓS pagamento confirmado (idempotente). Usado pela confirmação
+ * mock (Fase 4/5) e pelo webhook do Pix (Fase 5). Atômico e na ordem certa:
+ *   1) guarda diária (marca família alimentada se não foi no ciclo — senão aborta);
+ *   2) libera 1 gift card available do provider (available → used);
+ *   3) completa a doação e marca o pagamento como pago.
+ */
+export async function finalizeDonationAfterPayment(donationId: string, actorUserId?: string | null) {
   const donation = await prisma.donation.findUnique({ where: { id: donationId } });
   if (!donation) throw new AppError('Doação não encontrada', 404, 'donation_not_found');
+
+  const familySelect = { id: true, displayName: true, city: true, state: true } as const;
+
+  // Idempotência (webhook pode chegar repetido): já completa => no-op.
+  if (donation.status === 'completed') {
+    const family = await prisma.family.findUnique({ where: { id: donation.familyId }, select: familySelect });
+    return { donation, family, alreadyCompleted: true };
+  }
   if (donation.status !== 'pending_payment') {
-    throw new AppError(
-      `Só é possível confirmar doações com pagamento pendente (status atual: ${donation.status}).`,
-      409,
-      'invalid_state',
-    );
+    throw new AppError(`Doação em estado inválido para finalizar (${donation.status}).`, 409, 'invalid_state');
   }
 
   const donor = await prisma.user.findUnique({
@@ -132,15 +143,42 @@ export async function confirmDonationPaymentMock(adminUserId: string, donationId
     }
     const giftCardId = gc[0].id;
 
-    // 3) completa a doação
+    // 3) completa a doação + marca pagamento pago
     const updated = await tx.donation.update({
       where: { id: donationId },
       data: { status: 'completed', giftCardId, completedAt: new Date() },
     });
+    if (donation.paymentId) {
+      await tx.payment.update({ where: { id: donation.paymentId }, data: { status: 'paid', paidAt: new Date() } });
+    }
     await tx.giftCardEvent.create({ data: { giftCardId, eventType: 'released', donationId } });
     return { donation: updated, giftCardId };
   });
 
+  await createAuditLog({
+    actorUserId: actorUserId ?? null,
+    action: 'release_gift_card',
+    entityType: 'gift_card',
+    entityId: result.giftCardId,
+    metadata: { donationId },
+  });
+
+  const family = await prisma.family.findUnique({ where: { id: donation.familyId }, select: familySelect });
+  return { donation: result.donation, family, alreadyCompleted: false };
+}
+
+/** Confirmação MOCK (dev/admin). Só confirma `pending_payment`; delega a finalização. */
+export async function confirmDonationPaymentMock(adminUserId: string, donationId: string) {
+  const donation = await prisma.donation.findUnique({ where: { id: donationId } });
+  if (!donation) throw new AppError('Doação não encontrada', 404, 'donation_not_found');
+  if (donation.status !== 'pending_payment') {
+    throw new AppError(
+      `Só é possível confirmar doações com pagamento pendente (status atual: ${donation.status}).`,
+      409,
+      'invalid_state',
+    );
+  }
+  const result = await finalizeDonationAfterPayment(donationId, adminUserId);
   await createAuditLog({
     actorUserId: adminUserId,
     action: 'confirm_payment_mock',
@@ -148,19 +186,7 @@ export async function confirmDonationPaymentMock(adminUserId: string, donationId
     entityId: donationId,
     metadata: { provider: donation.provider },
   });
-  await createAuditLog({
-    actorUserId: adminUserId,
-    action: 'release_gift_card',
-    entityType: 'gift_card',
-    entityId: result.giftCardId,
-    metadata: { donationId },
-  });
-
-  const family = await prisma.family.findUnique({
-    where: { id: donation.familyId },
-    select: { id: true, displayName: true, city: true, state: true },
-  });
-  return { donation: result.donation, family };
+  return result;
 }
 
 export async function cancelDonation(actor: Actor, donationId: string) {
