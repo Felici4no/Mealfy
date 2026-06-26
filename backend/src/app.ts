@@ -12,6 +12,7 @@ import { adminRoutes } from './modules/admin/admin.routes';
 import { giftCardsRoutes } from './modules/giftCards/giftCards.routes';
 import { donationsRoutes } from './modules/donations/donations.routes';
 import { beneficiaryRoutes } from './modules/beneficiary/beneficiary.routes';
+import { paymentsRoutes } from './modules/payments/payments.routes';
 import { notFoundHandler } from './shared/middlewares/notFound';
 import { errorHandler } from './shared/middlewares/errorHandler';
 
@@ -25,7 +26,8 @@ export function createApp(): Application {
   const corsOrigin =
     env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map((o) => o.trim());
   app.use(cors({ origin: corsOrigin }));
-  app.use(express.json());
+  // captura o body cru p/ verificação de assinatura de webhook
+  app.use(express.json({ verify: (req, _res, buf) => { (req as express.Request).rawBody = buf; } }));
 
   // Módulos
   app.use('/health', healthRoutes);
@@ -34,6 +36,7 @@ export function createApp(): Application {
   app.use('/entity', entitiesRoutes);
   app.use('/families', familiesRoutes);
   app.use('/donations', donationsRoutes);
+  app.use('/payments', paymentsRoutes);
   app.use('/beneficiary', beneficiaryRoutes);
   app.use('/admin', adminRoutes);
   app.use('/admin', giftCardsRoutes);
