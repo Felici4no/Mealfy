@@ -21,171 +21,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Mock families data representing the four neighborhoods with coordinates
-const MOCK_MAP_FAMILIES: Family[] = [
-  {
-    id: 'f1',
-    communityId: 'c1',
-    representativeName: 'Maria Silva',
-    neighborhood: 'Heliópolis',
-    city: 'São Paulo',
-    state: 'SP',
-    shortAddress: 'Viela 3, Setor B',
-    description: 'Mãe solo, desempregada temporariamente com 2 filhos em idade de creche.',
-    childrenCount: 2,
-    children: [
-      { id: 'ch1', name: 'Lucas', age: 7, school: 'EMEF Campos' },
-      { id: 'ch2', name: 'Ana', age: 4, school: 'Creche Local' }
-    ],
-    mainNeed: 'Alimentação infantil e fraldas',
-    supportStatus: 'needs_help',
-    distanceToUser: '1.2 km',
-    priorityLevel: 5, // Urgent
-    latitude: -23.6151,
-    longitude: -46.5912,
-    sourceEntityName: 'Coletivo Heliópolis Solidário'
-  },
-  {
-    id: 'f2',
-    communityId: 'c1',
-    representativeName: 'Dona Cida',
-    neighborhood: 'Heliópolis',
-    city: 'São Paulo',
-    state: 'SP',
-    shortAddress: 'Rua do Sol, 45',
-    description: 'Aposentada que cuida sozinha de 3 netos após o falecimento da filha.',
-    childrenCount: 3,
-    children: [
-      { id: 'ch3', name: 'Pedro', age: 10, school: 'EMEF Campos' },
-      { id: 'ch4', name: 'Carla', age: 8, school: 'EMEF Campos' },
-      { id: 'ch5', name: 'Júlia', age: 5, school: 'Creche Local' }
-    ],
-    mainNeed: 'Cesta de alimentos frescos',
-    supportStatus: 'needs_help',
-    distanceToUser: '1.4 km',
-    priorityLevel: 4,
-    latitude: -23.6180,
-    longitude: -46.5940,
-    sourceEntityName: 'Coletivo Heliópolis Solidário'
-  },
-  {
-    id: 'f3',
-    communityId: 'c3',
-    representativeName: 'Roberto e Sônia',
-    neighborhood: 'Cidade Tiradentes',
-    city: 'São Paulo',
-    state: 'SP',
-    shortAddress: 'Setor G, Prédio 3',
-    description: 'Casal com 3 filhos. Ambos faziam bicos mas perderam renda nas últimas semanas.',
-    childrenCount: 3,
-    children: [
-      { id: 'ch6', name: 'Tiago', age: 12, school: 'EE Tiradentes' },
-      { id: 'ch7', name: 'Mateus', age: 9, school: 'EE Tiradentes' },
-      { id: 'ch8', name: 'Lia', age: 6, school: 'EMEF Local' }
-    ],
-    mainNeed: 'Suplementação alimentar para crianças',
-    supportStatus: 'needs_help',
-    distanceToUser: '8.1 km',
-    priorityLevel: 4,
-    latitude: -23.5855,
-    longitude: -46.4011,
-    sourceEntityName: 'Associação Tiradentes Viva'
-  },
-  {
-    id: 'f4',
-    communityId: 'c2',
-    representativeName: 'Joana Prado',
-    neighborhood: 'Paraisópolis',
-    city: 'São Paulo',
-    state: 'SP',
-    shortAddress: 'Beco da Esperança, 12',
-    description: 'Atualmente trabalha em faxinas mas o salário não cobre alimentação e aluguel.',
-    childrenCount: 1,
-    children: [
-      { id: 'ch9', name: 'Miguel', age: 2, school: 'Creche Municipal' }
-    ],
-    mainNeed: 'Leite especial e papinhas',
-    supportStatus: 'fed', // Supported / Fed
-    distanceToUser: '3.6 km',
-    priorityLevel: 2,
-    latitude: -23.6145,
-    longitude: -46.7289,
-    sourceEntityName: 'União Paraisópolis'
-  },
-  {
-    id: 'f5',
-    communityId: 'c2',
-    representativeName: 'Alice Rocha',
-    neighborhood: 'Paraisópolis',
-    city: 'São Paulo',
-    state: 'SP',
-    shortAddress: 'Rua Central, 88',
-    description: 'Família em extrema vulnerabilidade com 4 filhos pequenos.',
-    childrenCount: 4,
-    children: [
-      { id: 'ch10', name: 'Guilherme', age: 9, school: 'EMEF Paraisópolis' },
-      { id: 'ch11', name: 'Bruno', age: 7, school: 'EMEF Paraisópolis' },
-      { id: 'ch12', name: 'Yasmin', age: 5, school: 'Creche' },
-      { id: 'ch13', name: 'Alice', age: 3, school: 'Creche' }
-    ],
-    mainNeed: 'Alimentação infantil diária',
-    supportStatus: 'needs_help',
-    distanceToUser: '3.3 km',
-    priorityLevel: 5, // Urgent
-    latitude: -23.6110,
-    longitude: -46.7260,
-    sourceEntityName: 'União Paraisópolis'
-  },
-  {
-    id: 'f6',
-    communityId: 'c4',
-    representativeName: 'Regina Santos',
-    neighborhood: 'Brasilândia',
-    city: 'São Paulo',
-    state: 'SP',
-    shortAddress: 'Rua do Morro, 102',
-    description: 'Mãe solo, diarista desempregada cuidando de 3 crianças.',
-    childrenCount: 3,
-    children: [
-      { id: 'ch14', name: 'Enzo', age: 8, school: 'EMEF Brasilândia' },
-      { id: 'ch15', name: 'Valentina', age: 6, school: 'Creche' },
-      { id: 'ch16', name: 'Gabriel', age: 2, school: 'Creche' }
-    ],
-    mainNeed: 'Alimento básico e leite',
-    supportStatus: 'needs_help',
-    distanceToUser: '12.4 km',
-    priorityLevel: 5, // Urgent
-    latitude: -23.4688,
-    longitude: -46.6997,
-    sourceEntityName: 'Brasilândia Unida'
-  },
-  {
-    id: 'f7',
-    communityId: 'c4',
-    representativeName: 'Francisca Lima',
-    neighborhood: 'Brasilândia',
-    city: 'São Paulo',
-    state: 'SP',
-    shortAddress: 'Viela da Paz, 9',
-    description: 'Família numerosa, apoiada ativamente pela cozinha comunitária local.',
-    childrenCount: 5,
-    children: [
-      { id: 'ch17', name: 'Mariana', age: 14, school: 'EE Brasilândia' },
-      { id: 'ch18', name: 'Samuel', age: 12, school: 'EE Brasilândia' },
-      { id: 'ch19', name: 'Ester', age: 9, school: 'EMEF Brasilândia' },
-      { id: 'ch20', name: 'Rafaela', age: 7, school: 'EMEF Brasilândia' },
-      { id: 'ch21', name: 'Daví', age: 4, school: 'Creche' }
-    ],
-    mainNeed: 'Cesta básica completa',
-    supportStatus: 'fed', // Fed / Supported
-    distanceToUser: '12.8 km',
-    priorityLevel: 1,
-    latitude: -23.4710,
-    longitude: -46.7020,
-    sourceEntityName: 'Brasilândia Unida'
-  }
-];
-
 // Centros aproximados por cidade (para o filtro SP/RJ)
 const CITY_CENTERS: Record<string, [number, number]> = {
   SP: [-23.5900, -46.6200],
@@ -220,17 +55,19 @@ const MapView: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5900, -46.6200]); // SP Center roughly
   const [selectedFamilyPreview, setSelectedFamilyPreview] = useState<Family | null>(null);
 
-  // Famílias vêm da MESMA fonte da ficha (families_db via familyService)
+  // Famílias vêm do backend (GET /families/map) via familyService.
   const [families, setFamilies] = useState<Family[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [cityFilter, setCityFilter] = useState<'all' | 'SP' | 'RJ'>('all');
 
-  useEffect(() => {
-    let active = true;
+  const loadFamilies = useCallback(() => {
+    setLoadError(null);
     familyService.getMapFamilies()
-      .then(f => { if (active) setFamilies(f.length ? f : MOCK_MAP_FAMILIES); })
-      .catch(() => { if (active) setFamilies(MOCK_MAP_FAMILIES); });
-    return () => { active = false; };
+      .then(f => setFamilies(f))
+      .catch((err) => setLoadError(err?.message || 'Não foi possível carregar o mapa.'));
   }, []);
+
+  useEffect(() => { loadFamilies(); }, [loadFamilies]);
 
   // ── Localização do usuário (Android/web) com fallback ──
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -282,8 +119,8 @@ const MapView: React.FC = () => {
   const filteredFamilies = families.filter(fam => {
     if (cityFilter !== 'all' && fam.state !== cityFilter) return false;
     if (bairroFilter !== 'all' && fam.neighborhood.toLowerCase() !== bairroFilter.toLowerCase()) return false;
-    if (statusFilter === 'needs_help' && fam.supportStatus !== 'needs_help') return false;
-    if (statusFilter === 'fed' && fam.supportStatus !== 'fed') return false;
+    if (statusFilter === 'needs_help' && !isBeneficiaryEligible(fam)) return false;
+    if (statusFilter === 'fed' && isBeneficiaryEligible(fam)) return false;
     if (urgencyFilter === 'high' && fam.priorityLevel < 4) return false;
     if (highlightSaved && !savedFamilyIds.includes(fam.id)) return false;
     return true;
@@ -304,7 +141,7 @@ const MapView: React.FC = () => {
 
   const handleMarkerClick = (fam: Family) => {
     if (isSelectionMode) {
-      if (fam.supportStatus === 'needs_help') {
+      if (isBeneficiaryEligible(fam)) {
         toggleSelection(fam.id);
       }
     } else {
@@ -328,8 +165,8 @@ const MapView: React.FC = () => {
   // Custom DivIcons with Glowing Shadows
   const createMarkerIcon = (fam: Family) => {
     const isSelected = selectedIds.includes(fam.id);
-    const isUrgent = fam.priorityLevel >= 4 && fam.supportStatus === 'needs_help';
-    const isFed = fam.supportStatus === 'fed';
+    const isFed = !isBeneficiaryEligible(fam);
+    const isUrgent = fam.priorityLevel >= 4 && !isFed;
     const isSaved = savedFamilyIds.includes(fam.id);
 
     let markerClass = 'marker-pin';
@@ -401,6 +238,16 @@ const MapView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ── Erro ao carregar famílias do backend ── */}
+      {loadError && (
+        <div className="map-geo-banner map-geo-banner--warn">
+          <span>{loadError}</span>
+          <div className="map-geo-actions">
+            <button onClick={loadFamilies}>Tentar novamente</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Banner de localização ── */}
       {geoStatus === 'loading' && (

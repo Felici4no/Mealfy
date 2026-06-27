@@ -3,19 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import type { Family } from '../backend/types';
-import { Heart, MapPin, AlertCircle, Building2, CheckCircle2, Loader as Loader2, ShieldCheck, Wallet } from 'lucide-react';
+import { Heart, MapPin, AlertCircle, CheckCircle2, Loader as Loader2, Wallet } from 'lucide-react';
 import { isBeneficiaryEligible } from '../backend/utils/timeUtils';
 import { familyService } from '../backend/services/familyService';
 import { PROVIDER_LABELS } from '../backend/mockData/giftCardInventory';
 import './FamilyDetails.css';
-
-// NIS mascarado: mostra só os 3 primeiros e 2 últimos dígitos.
-const maskNis = (nis?: string) => {
-  if (!nis) return 'Não informado';
-  const d = nis.replace(/\D/g, '');
-  if (d.length < 6) return '•••';
-  return `${d.slice(0, 3)}.•••.•••-${d.slice(-2)}`;
-};
 
 const FamilyDetails: React.FC = () => {
   const { id } = useParams();
@@ -23,18 +15,22 @@ const FamilyDetails: React.FC = () => {
 
   const [family, setFamily] = useState<Family | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Fonte de verdade única: familyService (families_db). Reflete o estado atual
-  // (ex.: "alimentada hoje") inclusive após recarregar a página.
+  // Fonte de verdade única: backend (GET /families/:id via familyService).
   useEffect(() => {
     let active = true;
     const load = async () => {
       if (!id) return;
       setLoading(true);
-      const found = await familyService.getFamilyById(id);
-      if (active) {
-        setFamily(found);
-        setLoading(false);
+      setLoadError(null);
+      try {
+        const found = await familyService.getFamilyById(id);
+        if (active) setFamily(found);
+      } catch (err: any) {
+        if (active) setLoadError(err?.message || 'Não foi possível carregar esta família.');
+      } finally {
+        if (active) setLoading(false);
       }
     };
     load();
@@ -45,6 +41,18 @@ const FamilyDetails: React.FC = () => {
     return (
       <div className="p-4 flex items-center justify-center" style={{ height: '70vh' }}>
         <Loader2 className="animate-spin text-primary" size={36} />
+      </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <div className="family-details-page">
+        <AppHeader title="Ficha de Apoio" showBack onBack={() => navigate('/map')} />
+        <main className="content p-4 flex flex-col items-center justify-center text-center gap-4" style={{ minHeight: '60vh' }}>
+          <AlertCircle size={40} className="text-outline" />
+          <p className="text-sm text-text-main font-semibold">{loadError}</p>
+          <Button variant="primary" onClick={() => navigate('/map')}>Voltar para o mapa</Button>
+        </main>
       </div>
     );
   }
@@ -61,8 +69,8 @@ const FamilyDetails: React.FC = () => {
     );
   }
 
-  const isUrgent = family.priorityLevel >= 4 && family.supportStatus === 'needs_help';
-  const canDonate = family.supportStatus === 'needs_help' && isBeneficiaryEligible(family);
+  const canDonate = isBeneficiaryEligible(family);
+  const isUrgent = family.priorityLevel >= 4 && canDonate;
 
   const handleDonateToFamily = () => {
     // Leva a família exata para o fluxo de doação
@@ -93,26 +101,6 @@ const FamilyDetails: React.FC = () => {
           {family.referencePoint && <p className="text-sm text-text-main"><strong>Referência:</strong> {family.referencePoint}</p>}
           <p className="text-[10px] text-outline mt-1 italic">Por segurança, o endereço residencial completo não é exibido publicamente.</p>
         </section>
-
-        {/* ── Validação / Entidade ── */}
-        <div className="bg-surface-highest p-4 rounded-md border border-outline/10 mb-6 flex flex-col gap-2">
-           <h3 className="text-[10px] font-bold text-outline uppercase tracking-wider">Validação</h3>
-
-           <p className="text-sm font-semibold text-text-main flex items-center gap-2">
-             <Building2 size={16} className="text-secondary" />
-             {family.sourceEntityName || 'Parceiro Oficial Credenciado'}
-           </p>
-           <div className="text-xs text-outline flex flex-col gap-1 mt-1">
-             <p>NIS: <strong className="font-mono">{maskNis(family.nis)}</strong></p>
-             <p>Origem dos dados: <strong>{family.dataSource === 'gov' ? 'Validado pelo governo (CadÚnico/Gov.br)' : 'Informado manualmente'}</strong></p>
-             <p className="flex items-center gap-1">
-               {family.verificationStatus === 'verified'
-                 ? <><ShieldCheck size={13} className="text-success" /> Identidade verificada</>
-                 : <>Verificação: <strong>{family.verificationStatus || 'pendente'}</strong></>}
-             </p>
-             <p>Aprovação: <strong>{family.approvalStatus === 'approved' ? 'Aprovada' : (family.approvalStatus || 'pendente')}</strong></p>
-           </div>
-        </div>
 
         {/* ── Context ── */}
         <section className="family-description mb-6">
@@ -172,7 +160,7 @@ const FamilyDetails: React.FC = () => {
         {/* ── Alimentada por ── */}
         <section className="mb-6">
           <h3 className="text-[10px] font-bold text-outline uppercase tracking-wider mb-2">Alimentada por</h3>
-          {(family.supportStatus === 'fed' || family.supportStatus === 'supported') && family.lastFedByName ? (
+          {!canDonate && family.lastFedByName ? (
             <div className="flex items-center gap-3 p-3 bg-surface rounded-md border border-outline/10">
               <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold flex-shrink-0">
                 {family.lastFedByAvatar?.startsWith('http')

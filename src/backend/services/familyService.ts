@@ -3,15 +3,79 @@ import { mockFamilies } from '../mockData/families';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
 import { normalizeString } from '../utils/normalizeUtils';
+import { toFrontendProvider, type BackendGiftCardProvider } from '../utils/giftCardProvider';
 
 import { familiesApi } from '../../api/familiesApi';
 import { indicationsApi } from '../../api/indicationsApi';
 import { handleApiError } from '../utils/fallback';
+import { ApiError, ApiNetworkError } from '../../api/apiClient';
 
 const FAMILIES_KEY = 'families_db';
 const INDICATIONS_KEY = 'donor_indications_db';
 const SEED_VERSION_KEY = 'families_seed_version';
 const SEED_VERSION = 3; // bump para re-semear (fonte única SP + RJ com localização segura)
+
+/** Fallback mock só vale em DEV — nunca em build de staging/produção (inclusive o APK). */
+function isDevFallbackAllowed(): boolean {
+  return import.meta.env.DEV && import.meta.env.VITE_DISABLE_LOCAL_FALLBACK !== 'true';
+}
+
+interface BackendDonorFamily {
+  id: string;
+  displayName: string;
+  city: string;
+  state: string;
+  neighborhood: string | null;
+  community: string | null;
+  approximateAddress: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  supportStatus: 'needs_help' | 'supported' | 'fed';
+  requestedProvider: BackendGiftCardProvider | null;
+  childrenCount: number;
+  socialDescription: string | null;
+  needToday: boolean;
+  lastFedAt: string | null;
+  lastGiftCardProvider: BackendGiftCardProvider | null;
+  lastDonorName: string | null;
+  lastDonorInstagram: string | null;
+}
+
+/**
+ * Backend -> Family do front. Só recebe a "visão doador" (sem PII): nunca
+ * inclui CPF/NIS/endereço completo/nomes de dependentes — o backend já garante
+ * isso (rotas /families/map e /families/:id servem essa view pra role donor).
+ * priorityLevel não existe no backend; aproximado a partir de needToday (sinal
+ * real, controlado pela entidade) só para manter a linguagem visual do mapa.
+ */
+function mapDonorFamily(f: BackendDonorFamily): Family {
+  return {
+    id: f.id,
+    communityId: f.community || f.neighborhood || f.city,
+    representativeName: f.displayName,
+    neighborhood: f.neighborhood || '',
+    city: f.city,
+    state: f.state,
+    shortAddress: f.approximateAddress || f.neighborhood || '',
+    description: f.socialDescription || '',
+    childrenCount: f.childrenCount,
+    children: [],
+    mainNeed: f.socialDescription || 'Apoio alimentar',
+    supportStatus: f.supportStatus,
+    distanceToUser: '',
+    priorityLevel: f.needToday ? 4 : 2,
+    latitude: f.latitude ?? 0,
+    longitude: f.longitude ?? 0,
+    preferredGiftCardProvider: toFrontendProvider(f.requestedProvider),
+    lastFedAt: f.lastFedAt ?? undefined,
+    lastGiftCardProvider: toFrontendProvider(f.lastGiftCardProvider),
+    lastFedByName: f.lastDonorName ?? undefined,
+    lastFedByInstagram: f.lastDonorInstagram ?? undefined,
+    community: f.community ?? undefined,
+    approximateAddress: f.approximateAddress ?? undefined,
+    approvalStatus: 'approved', // estas rotas só entregam família já aprovada
+  };
+}
 
 export const familyService = {
   initDB: () => {
@@ -26,17 +90,31 @@ export const familyService = {
   },
 
   /**
-   * Famílias para o mapa do doador — mesma fonte (families_db) usada pela ficha.
-   * Retorna apenas as publicamente visíveis (aprovadas) com coordenadas.
+   * Famílias para o mapa do doador. Backend é a fonte de verdade: já filtra
+   * só aprovadas + com coordenadas (GET /families/map). Fallback mock só em
+   * DEV e só se a API estiver inalcançável — nunca em produção/staging, e
+   * nunca para mascarar uma lista vazia legítima.
    */
-  getMapFamilies: async (): Promise<Family[]> => {
-    familyService.initDB();
-    const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
-    return families.filter(f =>
-      typeof f.latitude === 'number' &&
-      typeof f.longitude === 'number' &&
-      f.status !== 'pending' && f.status !== 'rejected' && f.status !== 'suspended'
-    );
+  getMapFamilies: async (filters?: { state?: string }): Promise<Family[]> => {
+    try {
+      const data = await familiesApi.getMapFamilies(filters);
+      return (data.families as BackendDonorFamily[]).map(mapDonorFamily);
+    } catch (err) {
+      if (err instanceof ApiNetworkError && isDevFallbackAllowed()) {
+        console.warn('[FAMILIES FALLBACK - DEV ONLY] API indisponível, usando famílias mock locais.', err);
+        familyService.initDB();
+        const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+        return families.filter(f =>
+          typeof f.latitude === 'number' &&
+          typeof f.longitude === 'number' &&
+          f.status !== 'pending' && f.status !== 'rejected' && f.status !== 'suspended'
+        );
+      }
+      if (err instanceof ApiError) {
+        throw new Error(err.message);
+      }
+      throw new Error('Não foi possível carregar o mapa. Verifique sua conexão e tente novamente.');
+    }
   },
 
   /**
@@ -118,17 +196,30 @@ export const familyService = {
     return families.filter(f => f.communityId === communityId);
   },
 
+  /**
+   * Ficha de uma família. Backend é a fonte de verdade — para role donor, a
+   * rota GET /families/:id já só responde para famílias aprovadas (404 se
+   * pending/blocked/rejected) e nunca inclui CPF/NIS/endereço completo.
+   */
   getFamilyById: async (id: string): Promise<Family | null> => {
     try {
-      const family = await familiesApi.getFamilyById(id);
-      if (family) return family;
-    } catch (e) {
-      handleApiError(e, 'Get Family by ID');
+      const data = await familiesApi.getFamilyById(id);
+      return mapDonorFamily(data.family as BackendDonorFamily);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        return null;
+      }
+      if (err instanceof ApiNetworkError && isDevFallbackAllowed()) {
+        console.warn('[FAMILIES FALLBACK - DEV ONLY] API indisponível, usando família mock local.', err);
+        await randomDelay(100, 200);
+        const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
+        return families.find(f => f.id === id) || null;
+      }
+      if (err instanceof ApiError) {
+        throw new Error(err.message);
+      }
+      throw new Error('Não foi possível carregar esta família. Verifique sua conexão e tente novamente.');
     }
-
-    await randomDelay(100, 200);
-    const families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
-    return families.find(f => f.id === id) || null;
   },
 
   updateFamilyStatus: async (familyId: string, newStatus: 'needs_help' | 'supported'): Promise<Family> => {

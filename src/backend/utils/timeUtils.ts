@@ -1,51 +1,37 @@
 import type { Family } from '../types';
 
 /**
- * Checks if a beneficiary is eligible to receive a donation.
- * Rules:
- * - Must be approved.
- * - Must not have been fed in the last 24h OR if it's past 08:00 AM of the next day.
- * - For simplicity in this mock, we use a strict 24h rule OR the "next day at 8am" logic.
+ * Ciclo diário de alimentação: reset às 08:00 America/Sao_Paulo, que é fixo em
+ * UTC-3 (Brasil não usa horário de verão desde 2019) — por isso o boundary é
+ * 11:00 UTC, e não a hora local do dispositivo. Mesma regra do backend
+ * (`shared/utils/feedCycle.ts`), para a UI nunca mostrar disponível quando o
+ * backend vai recusar a doação (e vice-versa).
+ */
+const RESET_HOUR_UTC = 11; // 08:00 America/Sao_Paulo
+
+function getCurrentCycleStart(now: Date = new Date()): Date {
+  const cycle = new Date(now);
+  cycle.setUTCHours(RESET_HOUR_UTC, 0, 0, 0);
+  if (now.getTime() < cycle.getTime()) {
+    cycle.setUTCDate(cycle.getUTCDate() - 1);
+  }
+  return cycle;
+}
+
+/**
+ * Checks if a beneficiary is eligible to receive a donation today.
+ * Aprovação é garantida pelo backend antes de a família chegar até aqui —
+ * esta função só decide a regra diária (1 doação por ciclo).
  */
 export const isBeneficiaryEligible = (beneficiary: Family): boolean => {
-  // If not approved, not eligible
-  if (beneficiary.status && beneficiary.status !== 'approved' && beneficiary.status !== 'needs_help') {
-    // Note: 'needs_help' is the legacy status, treating it as approved for existing data
-    if (beneficiary.supportStatus === 'supported' || beneficiary.supportStatus === 'fed') {
-       // continue to time check
-    } else {
-       return beneficiary.supportStatus === 'needs_help';
-    }
-  }
-
   if (!beneficiary.lastFedAt) return true;
-
-  const lastFed = new Date(beneficiary.lastFedAt);
-  const now = new Date();
-
-  // Rule: Reset at 08:00 AM
-  const resetTime = new Date(now);
-  resetTime.setHours(8, 0, 0, 0);
-
-  // If we are currently past 8 AM today
-  if (now >= resetTime) {
-    // If they were fed BEFORE 8 AM today, they are eligible now
-    return lastFed < resetTime;
-  } else {
-    // If we are BEFORE 8 AM today, we check if they were fed BEFORE 8 AM yesterday
-    const yesterdayReset = new Date(resetTime);
-    yesterdayReset.setDate(yesterdayReset.getDate() - 1);
-    return lastFed < yesterdayReset;
-  }
+  return new Date(beneficiary.lastFedAt).getTime() < getCurrentCycleStart().getTime();
 };
 
 export const getNextEligibilityTime = (beneficiary: Family): string => {
   if (isBeneficiaryEligible(beneficiary)) return "Agora";
 
-  const now = new Date();
-  const tomorrow8am = new Date(now);
-  tomorrow8am.setDate(tomorrow8am.getDate() + 1);
-  tomorrow8am.setHours(8, 0, 0, 0);
-
-  return tomorrow8am.toISOString();
+  const nextCycle = new Date(getCurrentCycleStart());
+  nextCycle.setUTCDate(nextCycle.getUTCDate() + 1);
+  return nextCycle.toISOString();
 };
