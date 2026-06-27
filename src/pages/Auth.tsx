@@ -3,10 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
-import { authService } from '../backend/services/authService';
 import { AuthError } from '../backend/services/authProvider';
-import type { User } from '../backend/types';
-import GoogleMockModal from '../components/ui/GoogleMockModal';
 import GovBrMockModal, { type GovBrMockData } from '../components/ui/GovBrMockModal';
 import './Auth.css';
 
@@ -21,6 +18,7 @@ function mapAuthError(err: unknown): string {
       case 'admin_blocked':       return 'Esta conta não possui acesso ao aplicativo Mealfy.';
       case 'account_pending':     return 'Sua conta ainda está em análise.';
       case 'account_suspended':   return 'Sua conta foi suspensa. Contate o suporte.';
+      case 'network_error':       return 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.';
       default:                    return 'Não foi possível entrar agora. Tente novamente.';
     }
   }
@@ -41,7 +39,7 @@ const DEV_PASSWORD = '123456';
 const Auth: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signInWithGoogle, isAuthenticated, user } = useAppContext();
+  const { signIn, isAuthenticated, user } = useAppContext();
   const { showToast } = useToast();
 
   // ─── Form state ─────────────────────────────────────────────────────────
@@ -55,11 +53,6 @@ const Auth: React.FC = () => {
   const [touched, setTouched]     = useState({ email: false, password: false });
   const emailError   = touched.email   && !isValidEmail(email)   ? 'Informe um e-mail válido.'              : '';
   const passwordError= touched.password&& password.length < 6    ? 'A senha deve ter pelo menos 6 caracteres.' : '';
-
-  // ─── Google mock modal ───────────────────────────────────────────────────
-  const [showGoogleModal, setShowGoogleModal]   = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading]   = useState(false);
-  const mockGoogleUsers: User[] = authService.getActiveMockUsers();
 
   // ─── Meta mock login ──────────────────────────────────────────────────────
   const [isMetaLoading, setIsMetaLoading] = useState(false);
@@ -97,32 +90,6 @@ const Auth: React.FC = () => {
       await signIn(email.trim().toLowerCase(), password);
       const from = (location.state as any)?.from?.pathname || '/dashboard-redirect';
       navigate(from, { replace: true });
-    } catch (err) {
-      setFormError(mapAuthError(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ─── Google (mock em DEV, desabilitado em produção) ──────────────────────
-  const handleGoogleClick = async () => {
-    if (import.meta.env.DEV) {
-      setIsGoogleLoading(true);
-      // Pequeno delay antes de abrir o modal
-      await new Promise<void>((r) => setTimeout(r, 700));
-      setIsGoogleLoading(false);
-      setShowGoogleModal(true);
-    }
-    // Em produção: botão desabilitado — não faz nada
-  };
-
-  const handleGoogleSelect = async (selectedUser: User) => {
-    setShowGoogleModal(false);
-    setIsLoading(true);
-    setFormError('');
-    try {
-      await signInWithGoogle(selectedUser);
-      navigate('/dashboard-redirect', { replace: true });
     } catch (err) {
       setFormError(mapAuthError(err));
     } finally {
@@ -178,7 +145,7 @@ const Auth: React.FC = () => {
             const t = e.currentTarget;
             if (!t.dataset.fallback) {
               t.dataset.fallback = '1';
-              t.src = 'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+              t.src = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
             }
           }}
         />
@@ -293,40 +260,17 @@ const Auth: React.FC = () => {
           <div className="auth-separator-line" />
         </div>
 
-        {/* Botão Google */}
-        {import.meta.env.DEV ? (
-          <button
-            type="button"
-            className="auth-btn-google"
-            onClick={handleGoogleClick}
-            disabled={isGoogleLoading}
-            aria-busy={isGoogleLoading}
-          >
-            {isGoogleLoading ? (
-              <span className="auth-spinner auth-spinner--dark" aria-hidden="true" />
-            ) : (
-              <>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.78h5.4a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.74 3-4.3 3-7.3z" fill="#4285F4"/>
-                  <path d="M10 20c2.7 0 4.97-.89 6.63-2.42l-3.23-2.5c-.9.6-2.05.96-3.4.96-2.6 0-4.82-1.76-5.6-4.12H1.07v2.58A10 10 0 0 0 10 20z" fill="#34A853"/>
-                  <path d="M4.4 11.92A5.99 5.99 0 0 1 4.08 10c0-.67.12-1.32.32-1.92V5.5H1.07A10 10 0 0 0 0 10c0 1.61.38 3.14 1.07 4.5l3.33-2.58z" fill="#FBBC04"/>
-                  <path d="M10 3.96c1.47 0 2.79.51 3.83 1.5l2.86-2.86C14.97.9 12.7 0 10 0A10 10 0 0 0 1.07 5.5l3.33 2.58C5.18 5.72 7.4 3.96 10 3.96z" fill="#EA4335"/>
-                </svg>
-                Continuar com Google
-              </>
-            )}
-          </button>
-        ) : (
-          <button type="button" className="auth-btn-google auth-btn-google--disabled" disabled>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.78h5.4a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.74 3-4.3 3-7.3z" fill="#ccc"/>
-              <path d="M10 20c2.7 0 4.97-.89 6.63-2.42l-3.23-2.5c-.9.6-2.05.96-3.4.96-2.6 0-4.82-1.76-5.6-4.12H1.07v2.58A10 10 0 0 0 10 20z" fill="#ccc"/>
-              <path d="M4.4 11.92A5.99 5.99 0 0 1 4.08 10c0-.67.12-1.32.32-1.92V5.5H1.07A10 10 0 0 0 0 10c0 1.61.38 3.14 1.07 4.5l3.33-2.58z" fill="#ccc"/>
-              <path d="M10 3.96c1.47 0 2.79.51 3.83 1.5l2.86-2.86C14.97.9 12.7 0 10 0A10 10 0 0 0 1.07 5.5l3.33 2.58C5.18 5.72 7.4 3.96 10 3.96z" fill="#ccc"/>
-            </svg>
-            Google — Em breve
-          </button>
-        )}
+        {/* Botão Google — desativado: não há OAuth real no backend ainda, e um
+            login mock aqui geraria uma sessão sem token válido para a API. */}
+        <button type="button" className="auth-btn-google auth-btn-google--disabled" disabled>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.78h5.4a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.74 3-4.3 3-7.3z" fill="#ccc"/>
+            <path d="M10 20c2.7 0 4.97-.89 6.63-2.42l-3.23-2.5c-.9.6-2.05.96-3.4.96-2.6 0-4.82-1.76-5.6-4.12H1.07v2.58A10 10 0 0 0 10 20z" fill="#ccc"/>
+            <path d="M4.4 11.92A5.99 5.99 0 0 1 4.08 10c0-.67.12-1.32.32-1.92V5.5H1.07A10 10 0 0 0 0 10c0 1.61.38 3.14 1.07 4.5l3.33-2.58z" fill="#ccc"/>
+            <path d="M10 3.96c1.47 0 2.79.51 3.83 1.5l2.86-2.86C14.97.9 12.7 0 10 0A10 10 0 0 0 1.07 5.5l3.33 2.58C5.18 5.72 7.4 3.96 10 3.96z" fill="#ccc"/>
+          </svg>
+          Google — Em breve
+        </button>
 
         {/* Botão Meta (mock visual) */}
         <button
@@ -402,15 +346,6 @@ const Auth: React.FC = () => {
           </div>
         )}
       </main>
-
-      {/* ── Google mock modal (DEV only) ── */}
-      {showGoogleModal && (
-        <GoogleMockModal
-          users={mockGoogleUsers}
-          onSelect={handleGoogleSelect}
-          onClose={() => setShowGoogleModal(false)}
-        />
-      )}
 
       {/* ── Gov.br mock modal ── */}
       {showGovModal && (

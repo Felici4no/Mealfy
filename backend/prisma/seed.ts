@@ -74,7 +74,19 @@ async function seedUsers() {
     create: { userId: donorUser.id, publicSlug: 'alexandre-doador' },
   });
 
-  return { admin, entity, donorUser };
+  const beneficiaryUser = await prisma.user.upsert({
+    where: { email: 'beneficiario@mealfy.com' },
+    update: { passwordHash },
+    create: {
+      name: 'Família Silva (beneficiário)',
+      email: 'beneficiario@mealfy.com',
+      role: 'beneficiary',
+      status: 'active',
+      passwordHash,
+    },
+  });
+
+  return { admin, entity, donorUser, beneficiaryUser };
 }
 
 async function upsertFamily(
@@ -243,9 +255,16 @@ async function seedGiftCards(adminUserId: string) {
 
 async function main() {
   console.log('[seed] iniciando…');
-  const { admin, entity } = await seedUsers();
+  const { admin, entity, beneficiaryUser } = await seedUsers();
   await seedFamilies(entity.id);
   await seedGiftCards(admin.id);
+
+  // Vincula o beneficiário de teste à família aprovada (SP) — permite testar
+  // GET /beneficiary/gift-cards de ponta a ponta após uma doação nessa família.
+  await prisma.family.update({
+    where: { id: 'seed-fam-approved-sp' },
+    data: { beneficiaryUserId: beneficiaryUser.id },
+  });
 
   const counts = {
     users: await prisma.user.count(),
