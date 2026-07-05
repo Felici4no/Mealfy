@@ -1,9 +1,9 @@
-.family-header-card {
+﻿.family-header-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: var(--spacing-4) 0;
-  border-bottom: 1px solid var(--color-surface-highest);
+  border-bottom: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: white;
 }
@@ -44,7 +44,7 @@
 
 .child-card {
   padding: var(--spacing-3);
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: rgba(0,0,0,0.01);
 }

@@ -1,4 +1,4 @@
-/* Beneficiary Dashboard Styles */
+﻿/* Beneficiary Dashboard Styles */
 .beneficiary-dashboard-page {
   background-color: var(--color-background);
   min-height: 100vh;
@@ -66,7 +66,7 @@
 
 .dev-btn {
   background-color: #ffffff;
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-outline);
   font-weight: 700;

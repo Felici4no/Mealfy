@@ -1,6 +1,6 @@
-.community-hero {
+﻿.community-hero {
   background-color: #ffffff;
-  border-bottom: 1px solid var(--color-surface-highest);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .big-donation-card {
@@ -12,7 +12,7 @@
 }
 
 .family-card {
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--spacing-3);
   background-color: #ffffff;

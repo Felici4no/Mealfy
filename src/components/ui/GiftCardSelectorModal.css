@@ -1,4 +1,4 @@
-@import './GoogleMockModal.css';
+﻿@import './GoogleMockModal.css';
 
 .giftcard-sheet {
   max-height: 90vh;
@@ -27,7 +27,7 @@
   gap: var(--spacing-3);
   width: 100%;
   padding: var(--spacing-3);
-  border: 2px solid var(--color-surface-highest);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: #fff;
   cursor: pointer;

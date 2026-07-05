@@ -1,4 +1,4 @@
-/* Support & FAQ Styles */
+﻿/* Support & FAQ Styles */
 .support-page {
   background-color: var(--color-background);
   min-height: 100vh;
@@ -36,7 +36,7 @@
 
 .faq-item-wrapper {
   background-color: #ffffff;
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
 }

@@ -11,7 +11,7 @@
   align-items: center;
   text-align: center;
   background-color: #ffffff;
-  border-bottom: 1px solid var(--color-surface-highest);
+  border-bottom: 1px solid var(--color-border);
   /* Bottom reduzido + folga p/ o card de impacto que sobrepõe (margin-top negativo).
      Mantém o e-mail visível, sem ser coberto nem colado na borda. */
   padding: var(--spacing-4) var(--spacing-4) var(--spacing-5);
@@ -99,7 +99,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
 }
 
 .shadow-glow-soft {
@@ -131,13 +131,13 @@
 .impact-divider {
   width: 1px;
   height: 30px;
-  background-color: var(--color-surface-highest);
+  background-color: var(--color-border);
 }
 
 /* Achievement Progress CSS */
 .achievement-card {
   background-color: #ffffff;
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-4);
   margin: var(--spacing-4);
@@ -194,7 +194,7 @@
 .wikipedia-infobox-container {
   margin: var(--spacing-4);
   background-color: #ffffff;
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-4);
 }
@@ -346,8 +346,8 @@
   background-color: #ffffff;
   border-radius: var(--radius-md);
   padding: var(--spacing-3);
-  border: 1px solid var(--color-surface-highest);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   margin-bottom: var(--spacing-2);
 }
 
@@ -402,9 +402,9 @@
   font-weight: 600;
   height: 52px;
   background-color: #ffffff;
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
@@ -430,7 +430,7 @@
   align-items: center;
   padding: var(--spacing-3);
   background-color: var(--color-background);
-  border: 1px solid var(--color-surface-highest);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   text-align: center;
 }
