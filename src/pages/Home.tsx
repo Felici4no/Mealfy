@@ -7,6 +7,7 @@ import type { Family } from '../backend/types';
 import { Loader as Loader2, Share2, AtSign, Copy, MessageCircle, Mail } from 'lucide-react';
 import StoriesRanking from '../components/ui/StoriesRanking';
 import FaithCarousel from '../components/ui/FaithCarousel';
+import InstagramSection from '../components/ui/InstagramSection';
 import BottomSheet from '../components/ui/BottomSheet';
 import { useToast } from '../context/ToastContext';
 import './Home.css';
@@ -208,7 +209,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* ── Impact Quote ── */}
-      <div className="surface-card impact-quote-card mx-4 mt-4">
+      <div className="surface-card impact-quote-card mx-4 mt-4 mb-6">
         <p className="impact-quote-text">
           Cada prato que chega à mesa de uma criança é uma vitória contra a invisibilidade da fome.
         </p>
@@ -235,6 +236,8 @@ const Home: React.FC = () => {
         </Button>
       </div>
       
+      <InstagramSection />
+
       <div className="bottom-spacing"></div>
 
       {/* ── Platform Support BottomSheet (Free numeric amount) ── */}

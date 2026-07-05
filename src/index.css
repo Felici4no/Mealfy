@@ -22,7 +22,7 @@
   --color-secondary: var(--brand-secondary);
   --color-secondary-container: var(--brand-secondary-soft);
 
-  --color-background: #f6f7f9;        /* app canvas */
+  --color-background: #f5f5f3;        /* app canvas */
   --color-surface: #ffffff;           /* cards / sheets */
   --color-surface-2: #f1f3f6;         /* subtly elevated alt surface */
   --color-surface-highest: #e7e9ee;   /* highest neutral fill / hairline fill */
@@ -32,7 +32,7 @@
   --color-text-tertiary: #8b929c;     /* captions / placeholders */
   --color-text-inverted: #ffffff;
 
-  --color-border: #e4e7ec;            /* hairline borders */
+  --color-border: #d0d5dd;            /* hairline borders */
   --color-outline: #5b636e;           /* legacy: now a readable neutral */
   --color-outline-variant: #d7dbe2;   /* legacy: subtle border */
   --color-outline-low: #eef0f3;       /* very subtle fill/dots */
@@ -40,8 +40,8 @@
   /* Status */
   --color-success: #1f9d57;
   --color-success-rgb: 31, 157, 87;
-  --color-warning: #c7920f;
-  --color-warning-rgb: 199, 146, 15;
+  --color-warning: #e07b10;
+  --color-warning-rgb: 224, 123, 16;
   --color-error: #d64550;
   --color-error-rgb: 214, 69, 80;
   --color-info: var(--brand-primary);
@@ -94,8 +94,8 @@
   --radius-pill: var(--radius-full);
 
   /* Elevation — soft, neutral, layered (prefer contrast over heavy shadow) */
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
-  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.06), 0 2px 4px rgba(16, 24, 40, 0.04);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.07), 0 1px 3px rgba(16, 24, 40, 0.10);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.10), 0 2px 4px rgba(16, 24, 40, 0.08);
   --shadow-lg: 0 12px 28px rgba(16, 24, 40, 0.10), 0 4px 10px rgba(16, 24, 40, 0.05);
   --shadow-xl: 0 24px 48px rgba(16, 24, 40, 0.14), 0 8px 16px rgba(16, 24, 40, 0.06);
   --elevation-1: var(--shadow-sm);
