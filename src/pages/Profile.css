@@ -1,4 +1,4 @@
-.profile-page {
+﻿.profile-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -10,7 +10,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   /* Bottom reduzido + folga p/ o card de impacto que sobrepõe (margin-top negativo).
      Mantém o e-mail visível, sem ser coberto nem colado na borda. */
@@ -92,7 +92,7 @@
 }
 
 .impact-summary {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border-radius: var(--radius-lg);
   /* Padding reduzido — bloco de ranking/estatísticas mais compacto */
   padding: var(--spacing-3);
@@ -136,7 +136,7 @@
 
 /* Achievement Progress CSS */
 .achievement-card {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-4);
@@ -193,7 +193,7 @@
 /* Wikipedia-Style Infobox Card */
 .wikipedia-infobox-container {
   margin: var(--spacing-4);
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-4);
@@ -343,7 +343,7 @@
 .history-card {
   display: flex;
   align-items: center;
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border-radius: var(--radius-md);
   padding: var(--spacing-3);
   border: 1px solid var(--color-border);
@@ -401,7 +401,7 @@
   color: var(--color-text-main);
   font-weight: 600;
   height: 52px;
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);

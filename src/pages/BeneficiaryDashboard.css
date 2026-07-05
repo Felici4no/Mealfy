@@ -65,7 +65,7 @@
 }
 
 .dev-btn {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-outline);
@@ -83,7 +83,7 @@
 /* Status Banner */
 .status-banner {
   box-shadow: var(--shadow-sm);
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border-radius: var(--radius-lg);
 }
 
@@ -130,7 +130,7 @@
   background-color: var(--color-background);
 }
 .bg-white {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
 }
 .rounded-lg {
   border-radius: var(--radius-lg);

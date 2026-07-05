@@ -1,4 +1,4 @@
-.donation-choice-page {
+﻿.donation-choice-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -20,7 +20,7 @@
 .region-card {
   display: flex;
   align-items: center;
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border-radius: var(--radius-md);
   padding: var(--spacing-3);
   box-shadow: var(--shadow-sm);
@@ -76,7 +76,7 @@
 }
 
 .amount-card {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-4);
@@ -138,7 +138,7 @@
 }
 
 .toggle-btn.active {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   color: var(--color-text-main);
   box-shadow: var(--shadow-sm);
 }
@@ -180,7 +180,7 @@
 
 .stepper-container {
   border-radius: var(--radius-lg);
-  background: white;
+  background: var(--color-surface);
 }
 
 .stepper-btn {
@@ -210,7 +210,7 @@
 }
 
 .tier-option-card {
-  background-color: white;
+  background-color: var(--color-surface);
   border-radius: var(--radius-lg);
   cursor: pointer;
   width: 100%;
@@ -221,7 +221,7 @@
 }
 
 .summary-details-card {
-  background-color: white;
+  background-color: var(--color-surface);
   border-radius: var(--radius-lg);
 }
 

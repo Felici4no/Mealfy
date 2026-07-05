@@ -1,4 +1,4 @@
-.map-view-page {
+﻿.map-view-page {
   height: 100dvh;
   width: 100%;
   max-width: 100%;
@@ -184,7 +184,7 @@
   gap: 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--color-surface);
   padding: 8px 12px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -256,7 +256,7 @@
   height: 36px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-outline);
   cursor: pointer;
   transition: all 0.15s;
