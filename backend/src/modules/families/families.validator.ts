@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { validateNis } from '../../shared/utils/nisValidator';
 
 export const providerEnum = z.enum(['ifood', 'ninetynine', 'carrefour']);
 
@@ -19,7 +20,10 @@ export const createFamilySchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   cpf: z.string().optional(), // mascarado antes de salvar; completo NÃO é armazenado
-  nis: z.string().optional(),
+  nis: z
+    .string()
+    .refine((v) => validateNis(v), { message: 'NIS inválido — verifique o dígito verificador' })
+    .optional(),
   preferredGiftCardProvider: providerEnum.optional(),
   socialDescription: z.string().max(500).optional(),
   entityId: z.string().uuid().optional(), // apenas admin pode definir

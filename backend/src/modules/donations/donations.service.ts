@@ -1,7 +1,8 @@
 import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { createAuditLog } from '../auditLogs/auditLog.service';
-import { wasFedThisCycle, getCurrentCycleStart } from '../../shared/utils/feedCycle';
+import { wasFedThisCycle } from '../../shared/utils/feedCycle';
+import { fulfillPaidDonation } from './donationFulfillment.service';
 import type { GiftCardProvider, UserRole, Family } from '@prisma/client';
 import type { CreateDonationInput } from './donations.validator';
 
@@ -80,94 +81,11 @@ export async function createDonationIntent(donorUserId: string, input: CreateDon
 }
 
 /**
- * Confirmação MOCK de pagamento (dev/admin) — Fase 4. O Pix real vem na Fase 5.
- * Tudo numa transação atômica e na ordem certa:
- *   1) guarda diária: marca a família alimentada SE não foi neste ciclo (senão aborta — nenhum vale é gasto);
- *   2) libera 1 gift card `available` do provider (available → used, FOR UPDATE SKIP LOCKED);
- *   3) completa a doação.
- * Nunca libera vale antes desta confirmação.
+ * Confirmação MOCK de pagamento (dev/staging) — simula o pagamento Pix
+ * confirmado e delega ao mesmo orquestrador que o webhook real usa
+ * (`donationFulfillment.service.ts`), incluindo a compra/emissão do gift
+ * card via `GiftCardProvider`. Só confirma doações `pending_payment`.
  */
-/**
- * Finaliza a doação APÓS pagamento confirmado (idempotente). Usado pela confirmação
- * mock (Fase 4/5) e pelo webhook do Pix (Fase 5). Atômico e na ordem certa:
- *   1) guarda diária (marca família alimentada se não foi no ciclo — senão aborta);
- *   2) libera 1 gift card available do provider (available → used);
- *   3) completa a doação e marca o pagamento como pago.
- */
-export async function finalizeDonationAfterPayment(donationId: string, actorUserId?: string | null) {
-  const donation = await prisma.donation.findUnique({ where: { id: donationId } });
-  if (!donation) throw new AppError('Doação não encontrada', 404, 'donation_not_found');
-
-  const familySelect = { id: true, displayName: true, city: true, state: true } as const;
-
-  // Idempotência (webhook pode chegar repetido): já completa => no-op.
-  if (donation.status === 'completed') {
-    const family = await prisma.family.findUnique({ where: { id: donation.familyId }, select: familySelect });
-    return { donation, family, alreadyCompleted: true };
-  }
-  if (donation.status !== 'pending_payment') {
-    throw new AppError(`Doação em estado inválido para finalizar (${donation.status}).`, 409, 'invalid_state');
-  }
-
-  const donor = await prisma.user.findUnique({
-    where: { id: donation.donorId },
-    select: { name: true, instagram: true },
-  });
-  const cycleStart = getCurrentCycleStart();
-
-  const result = await prisma.$transaction(async (tx) => {
-    // 1) guarda diária atômica
-    const fed = await tx.$queryRaw<Array<{ id: string }>>`
-      UPDATE "families" SET "lastFedAt" = now(), "supportStatus" = 'fed',
-        "lastDonationId" = ${donationId}, "lastDonorId" = ${donation.donorId},
-        "lastDonorName" = ${donor?.name ?? null}, "lastDonorInstagram" = ${donor?.instagram ?? null},
-        "lastGiftCardProvider" = ${donation.provider}::"GiftCardProvider", "updatedAt" = now()
-      WHERE "id" = ${donation.familyId} AND ("lastFedAt" IS NULL OR "lastFedAt" < ${cycleStart})
-      RETURNING "id";`;
-    if (fed.length === 0) {
-      throw new AppError('Esta família já foi alimentada hoje.', 409, 'already_fed_today');
-    }
-
-    // 2) libera 1 gift card available do provider
-    const gc = await tx.$queryRaw<Array<{ id: string }>>`
-      UPDATE "gift_cards" SET "status" = 'used', "usedAt" = now(),
-        "donationId" = ${donationId}, "familyId" = ${donation.familyId}, "updatedAt" = now()
-      WHERE "id" = (
-        SELECT "id" FROM "gift_cards"
-        WHERE "provider" = ${donation.provider}::"GiftCardProvider" AND "status" = 'available'
-        ORDER BY "createdAt" ASC LIMIT 1 FOR UPDATE SKIP LOCKED
-      )
-      RETURNING "id";`;
-    if (gc.length === 0) {
-      throw new AppError(`Sem códigos disponíveis para ${donation.provider}.`, 409, 'no_stock');
-    }
-    const giftCardId = gc[0].id;
-
-    // 3) completa a doação + marca pagamento pago
-    const updated = await tx.donation.update({
-      where: { id: donationId },
-      data: { status: 'completed', giftCardId, completedAt: new Date() },
-    });
-    if (donation.paymentId) {
-      await tx.payment.update({ where: { id: donation.paymentId }, data: { status: 'paid', paidAt: new Date() } });
-    }
-    await tx.giftCardEvent.create({ data: { giftCardId, eventType: 'released', donationId } });
-    return { donation: updated, giftCardId };
-  });
-
-  await createAuditLog({
-    actorUserId: actorUserId ?? null,
-    action: 'release_gift_card',
-    entityType: 'gift_card',
-    entityId: result.giftCardId,
-    metadata: { donationId },
-  });
-
-  const family = await prisma.family.findUnique({ where: { id: donation.familyId }, select: familySelect });
-  return { donation: result.donation, family, alreadyCompleted: false };
-}
-
-/** Confirmação MOCK (dev/admin). Só confirma `pending_payment`; delega a finalização. */
 export async function confirmDonationPaymentMock(adminUserId: string, donationId: string) {
   const donation = await prisma.donation.findUnique({ where: { id: donationId } });
   if (!donation) throw new AppError('Doação não encontrada', 404, 'donation_not_found');
@@ -178,13 +96,13 @@ export async function confirmDonationPaymentMock(adminUserId: string, donationId
       'invalid_state',
     );
   }
-  const result = await finalizeDonationAfterPayment(donationId, adminUserId);
+  const result = await fulfillPaidDonation(donationId, adminUserId);
   await createAuditLog({
     actorUserId: adminUserId,
     action: 'confirm_payment_mock',
     entityType: 'donation',
     entityId: donationId,
-    metadata: { provider: donation.provider },
+    metadata: { provider: donation.provider, outcome: result.outcome },
   });
   return result;
 }

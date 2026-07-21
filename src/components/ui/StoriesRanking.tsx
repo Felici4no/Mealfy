@@ -1,5 +1,6 @@
 import React from 'react';
 import { User } from 'lucide-react';
+import { isImageSrc } from '../../utils/image';
 import './StoriesRanking.css';
 
 interface Donor {
@@ -48,7 +49,7 @@ const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor, 
           >
             <div className="story-avatar-ring self-ring">
               <div className="story-avatar">
-                {currentUser.avatar?.startsWith('http') ? (
+                {isImageSrc(currentUser.avatar) ? (
                   <img src={currentUser.avatar} alt={currentUser.name} />
                 ) : (
                   currentUser.name?.[0]?.toUpperCase() || 'V'
@@ -74,7 +75,7 @@ const StoriesRanking: React.FC<StoriesRankingProps> = ({ donors, onSelectDonor, 
                 <div className="story-avatar">
                   {isAnon ? (
                     <User size={30} className="text-outline/40" />
-                  ) : donor.avatar?.startsWith('http') ? (
+                  ) : isImageSrc(donor.avatar) ? (
                     <img src={donor.avatar} alt={donor.name} />
                   ) : (
                     donor.avatar || donor.name[0]

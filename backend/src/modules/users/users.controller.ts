@@ -23,3 +23,16 @@ export async function updateMe(req: Request, res: Response): Promise<Response> {
   const user = await usersService.updateUser(req.auth.userId, data);
   return res.json({ user: toPublicUser(user) });
 }
+
+const updatePrivacySchema = z.object({
+  showOnRanking: z.boolean().optional(),
+  showInstagram: z.boolean().optional(),
+  anonymousMode: z.boolean().optional(),
+});
+
+export async function updatePrivacy(req: Request, res: Response): Promise<Response> {
+  if (!req.auth) throw new AppError('Não autenticado', 401, 'unauthenticated');
+  const data = updatePrivacySchema.parse(req.body);
+  const user = await usersService.updatePrivacy(req.auth.userId, data);
+  return res.json({ user: toPublicUser(user) });
+}

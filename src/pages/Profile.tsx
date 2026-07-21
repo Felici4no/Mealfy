@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import BottomSheet from '../components/ui/BottomSheet';
-import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings, QrCode, Share2, Award, User as UserIcon, AtSign, Lock } from 'lucide-react';
+import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings, QrCode, Share2, Award, User as UserIcon, AtSign, Lock, Camera, Trash2 } from 'lucide-react';
+import { isImageSrc, fileToAvatarDataUrl } from '../utils/image';
 import { useAppContext } from '../context/AppContext';
 import { donationService } from '../backend/services/donationService';
 import { rankingService } from '../backend/services/rankingService';
@@ -42,6 +43,13 @@ const Profile: React.FC = () => {
   useEffect(() => {
     setPersonalMessageDraft(user?.personalMessage || '');
   }, [user?.personalMessage]);
+
+  // ── Foto de perfil ──
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+
+  // ── Instagram: rascunho do handle digitado quando ainda não conectado ──
+  const [instagramDraft, setInstagramDraft] = useState('');
 
   // Load user data & history
   useEffect(() => {
@@ -150,6 +158,65 @@ const Profile: React.FC = () => {
     updateUserProfile({ personalMessage: value });
   };
 
+  // ── Foto de perfil ──
+  const handlePhotoPick = () => photoInputRef.current?.click();
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permite re-selecionar o mesmo arquivo
+    if (!file) return;
+    setIsProcessingPhoto(true);
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      await updateUserProfile({ avatar: dataUrl });
+      showToast('Foto de perfil atualizada!', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Não foi possível usar essa imagem.', 'error');
+    } finally {
+      setIsProcessingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    await updateUserProfile({ avatar: undefined });
+    showToast('Foto de perfil removida.', 'info');
+  };
+
+  // ── Instagram (handle real digitado pelo usuário) ──
+  const normalizeHandle = (raw: string): string => {
+    // Aceita "@nome", "nome" ou uma URL do instagram; devolve "@nome" limpo.
+    const fromUrl = raw.trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
+    const cleaned = fromUrl.replace(/[^a-zA-Z0-9._]/g, '').toLowerCase();
+    return cleaned ? `@${cleaned}` : '';
+  };
+
+  const handleConnectInstagram = () => {
+    const handle = normalizeHandle(instagramDraft);
+    if (handle.length < 3) {
+      showToast('Digite um @ de usuário válido do Instagram.', 'error');
+      return;
+    }
+    // Uma única atualização: chamar updateUserProfile e updateUserPrivacy em
+    // sequência leria o mesmo `user` do closure e o segundo setUser sobrescreveria
+    // o primeiro (perdendo o instagram). Por isso mesclamos tudo aqui.
+    updateUserProfile({
+      instagram: handle,
+      privacySettings: {
+        showOnRanking: false,
+        anonymousMode: false,
+        ...user.privacySettings,
+        showInstagram: true,
+      },
+    });
+    setInstagramDraft('');
+    showToast('Instagram conectado!', 'success');
+  };
+
+  const handleDisconnectInstagram = () => {
+    updateUserProfile({ instagram: undefined });
+    showToast('Instagram desconectado.', 'info');
+  };
+
   return (
     <div className="profile-page">
       <AppHeader
@@ -173,7 +240,7 @@ const Profile: React.FC = () => {
             <div className="avatar">
               {isAnonymousView ? (
                 <UserIcon size={32} />
-              ) : displayAvatar?.startsWith('http') ? (
+              ) : isImageSrc(displayAvatar) ? (
                 <img src={displayAvatar} alt={displayName} />
               ) : (
                 displayAvatar || displayName.charAt(0)
@@ -455,6 +522,49 @@ const Profile: React.FC = () => {
       {/* ── Settings BottomSheet ── */}
       <BottomSheet isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Configurações da Conta">
          <div className="flex flex-col gap-4">
+           {/* ── Foto de perfil (todos os papéis) ── */}
+           <div className="bg-surface-highest/60 rounded-lg border border-outline/10 p-4 flex items-center gap-4">
+              <div className="settings-avatar bg-primary/15 text-primary">
+                 {isImageSrc(user.avatar)
+                   ? <img src={user.avatar} alt="Sua foto de perfil" />
+                   : (user.name?.charAt(0) || 'U')}
+              </div>
+              <div className="flex flex-col flex-1 gap-2">
+                 <span className="font-semibold text-sm">Foto de perfil</span>
+                 <div className="flex gap-2 flex-wrap">
+                    <Button
+                      variant="primary"
+                      size="small"
+                      className="shrink-0 whitespace-nowrap"
+                      icon={<Camera size={16} />}
+                      onClick={handlePhotoPick}
+                      disabled={isProcessingPhoto}
+                    >
+                      {isProcessingPhoto ? 'Processando...' : (isImageSrc(user.avatar) ? 'Trocar foto' : 'Adicionar foto')}
+                    </Button>
+                    {isImageSrc(user.avatar) && (
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        className="text-error shrink-0 whitespace-nowrap"
+                        icon={<Trash2 size={16} />}
+                        onClick={handleRemovePhoto}
+                        disabled={isProcessingPhoto}
+                      >
+                        Remover
+                      </Button>
+                    )}
+                 </div>
+              </div>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+           </div>
+
            {user.role === 'donor' && (
               <div className="bg-surface-highest/60 rounded-lg border border-outline/10 p-4 flex flex-col gap-4">
                  <div className="flex justify-between items-center">
@@ -479,31 +589,44 @@ const Profile: React.FC = () => {
                     />
                  </div>
                  
-                 {/* Conectar rede social (cria/atualiza o dado) — separado da visibilidade */}
-                 <div className="flex justify-between items-center border-t border-outline/10 pt-4">
-                    <div className="flex flex-col">
-                       <span className="font-semibold text-sm">Conta social</span>
-                       <span className="text-xs text-outline">
-                         {user.instagram ? `Conectado: ${user.instagram}` : 'Conecte Instagram/Meta para ganhar destaque'}
-                       </span>
+                 {/* Conectar Instagram — handle digitado pelo usuário (separado da visibilidade) */}
+                 <div className="flex flex-col gap-2 border-t border-outline/10 pt-4">
+                    <div className="flex items-center gap-2">
+                       <AtSign size={16} className="text-outline" />
+                       <span className="font-semibold text-sm">Instagram</span>
                     </div>
-                    <Button
-                      variant={user.instagram ? 'outline' : 'primary'}
-                      size="small"
-                      onClick={() => {
-                        if (user.instagram) {
-                          updateUserProfile({ instagram: undefined });
-                          showToast('Conta social desconectada.', 'info');
-                        } else {
-                          const handle = '@' + (user.name || 'usuario').toLowerCase().trim().replace(/\s+/g, '.').replace(/[^a-z0-9._]/g, '');
-                          updateUserProfile({ instagram: handle });
-                          updateUserPrivacy({ showInstagram: true });
-                          showToast('Instagram/Meta conectado!', 'success');
-                        }
-                      }}
-                    >
-                      {user.instagram ? 'Desconectar' : 'Conectar Instagram/Meta'}
-                    </Button>
+                    {user.instagram ? (
+                      <div className="flex justify-between items-center gap-2">
+                         <span className="text-xs text-outline truncate">
+                           Conectado: <strong className="text-primary">{user.instagram}</strong>
+                         </span>
+                         <Button variant="outline" size="small" onClick={handleDisconnectInstagram}>
+                           Desconectar
+                         </Button>
+                      </div>
+                    ) : (
+                      <>
+                         <span className="text-xs text-outline">Conecte seu @ para ganhar destaque na sua ficha pública.</span>
+                         <div className="flex gap-2 items-center">
+                            <div className="flex items-center flex-1 bg-white border border-outline/20 rounded-lg px-3">
+                               <span className="text-outline text-sm">@</span>
+                               <input
+                                 className="flex-1 py-2 pl-1 bg-transparent outline-none text-sm"
+                                 placeholder="seu.usuario"
+                                 value={instagramDraft.replace(/^@/, '')}
+                                 onChange={(e) => setInstagramDraft(e.target.value)}
+                                 onKeyDown={(e) => { if (e.key === 'Enter') handleConnectInstagram(); }}
+                                 autoCapitalize="none"
+                                 autoCorrect="off"
+                                 aria-label="Nome de usuário do Instagram"
+                               />
+                            </div>
+                            <Button variant="primary" size="small" onClick={handleConnectInstagram}>
+                              Conectar
+                            </Button>
+                         </div>
+                      </>
+                    )}
                  </div>
 
                  <div className="flex justify-between items-center">

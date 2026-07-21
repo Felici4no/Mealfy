@@ -7,6 +7,15 @@ export async function getUserById(userId: string) {
   return user;
 }
 
+/** Atualiza preferências de visibilidade no ranking. */
+export async function updatePrivacy(
+  userId: string,
+  settings: { showOnRanking?: boolean; showInstagram?: boolean; anonymousMode?: boolean },
+) {
+  await getUserById(userId);
+  return prisma.user.update({ where: { id: userId }, data: settings });
+}
+
 /** Atualiza apenas campos simples e seguros do próprio perfil. */
 export async function updateUser(
   userId: string,

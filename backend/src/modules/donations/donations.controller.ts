@@ -59,11 +59,14 @@ export async function confirmPaymentMock(req: Request, res: Response): Promise<R
   if (env.NODE_ENV === 'production') {
     throw new AppError('Confirmação mock indisponível em produção.', 403, 'mock_disabled_in_prod');
   }
-  const { donation, family } = await donationsService.confirmDonationPaymentMock(actor.userId, req.params.id);
-  return res.json({
-    donation: toAdminDonation(donation, family),
-    message: 'Pagamento confirmado (mock). Gift card liberado para a família.',
-  });
+  const { donation, family, outcome } = await donationsService.confirmDonationPaymentMock(actor.userId, req.params.id);
+  const message =
+    outcome === 'completed'
+      ? 'Pagamento confirmado (mock). Gift card liberado para a família.'
+      : outcome === 'manual_review'
+        ? 'Pagamento confirmado (mock). Emissão do gift card pendente de revisão manual.'
+        : 'Pagamento já estava confirmado para esta doação.';
+  return res.json({ donation: toAdminDonation(donation, family), message });
 }
 
 export async function cancelDonation(req: Request, res: Response): Promise<Response> {

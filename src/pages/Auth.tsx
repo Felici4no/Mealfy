@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ShieldCheck, Apple } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { AuthError } from '../backend/services/authProvider';
@@ -57,6 +57,9 @@ const Auth: React.FC = () => {
   // ─── Meta mock login ──────────────────────────────────────────────────────
   const [isMetaLoading, setIsMetaLoading] = useState(false);
 
+  // ─── Apple mock login ──────────────────────────────────────────────────────
+  const [isAppleLoading, setIsAppleLoading] = useState(false);
+
   // ─── Gov.br mock login/verificação ────────────────────────────────────────
   const [isGovLoading, setIsGovLoading]   = useState(false);
   const [showGovModal, setShowGovModal]   = useState(false);
@@ -98,12 +101,28 @@ const Auth: React.FC = () => {
   };
 
   // ─── Meta (mock, visual apenas — sem chamada real) ───────────────────────
+  // TODO(social-login): trocar o mock por authService.signInWithOAuth('facebook', token)
+  // quando o plugin nativo (@capacitor-community/facebook-login) e o FACEBOOK_APP_ID
+  // estiverem configurados. O backend (/auth/oauth/facebook) já está pronto.
   const handleMetaClick = async () => {
     if (isMetaLoading) return;
     setIsMetaLoading(true);
     await new Promise<void>((r) => setTimeout(r, 1200));
     setIsMetaLoading(false);
     showToast('Login via Meta realizado com sucesso', 'success');
+  };
+
+  // ─── Apple (mock, visual apenas — sem chamada real) ──────────────────────
+  // TODO(social-login): trocar o mock por authService.signInWithOAuth('apple', idToken, name)
+  // quando o "Sign in with Apple" nativo e o APPLE_CLIENT_ID estiverem configurados.
+  // Obrigatório no iOS sempre que Google/Facebook forem oferecidos (App Store 4.8).
+  // O backend (/auth/oauth/apple) já está pronto.
+  const handleAppleClick = async () => {
+    if (isAppleLoading) return;
+    setIsAppleLoading(true);
+    await new Promise<void>((r) => setTimeout(r, 1200));
+    setIsAppleLoading(false);
+    showToast('Login via Apple realizado com sucesso', 'success');
   };
 
   // ─── Gov.br (mock, visual apenas — sem chamada real) ─────────────────────
@@ -289,6 +308,24 @@ const Auth: React.FC = () => {
                 <path d="M13.58 12.8l.35-2.74h-2.68V8.28c0-.77.22-1.3 1.34-1.3h1.42v-2.4c-.25-.03-1.1-.1-2.08-.1-2.09 0-3.49 1.26-3.49 3.54v1.74H6.13v2.74h2.31v6.7c.49.06.99.1 1.5.1.43 0 .85-.03 1.26-.08v-6.72h2.38z" fill="#fff"/>
               </svg>
               Continuar com Meta
+            </>
+          )}
+        </button>
+
+        {/* Botão Apple (mock visual) */}
+        <button
+          type="button"
+          className="auth-btn-apple"
+          onClick={handleAppleClick}
+          disabled={isAppleLoading}
+          aria-busy={isAppleLoading}
+        >
+          {isAppleLoading ? (
+            <span className="auth-spinner" aria-hidden="true" />
+          ) : (
+            <>
+              <Apple size={20} fill="currentColor" aria-hidden="true" />
+              Continuar com Apple
             </>
           )}
         </button>

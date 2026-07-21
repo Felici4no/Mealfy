@@ -9,6 +9,7 @@ import { useToast } from '../context/ToastContext';
 import { useAdminData } from '../hooks/useAdminData';
 import type { ModerationStatus } from '../hooks/useAdminData';
 import type { PublicDonorProfile } from '../backend/types';
+import StoriesRanking from '../components/ui/StoriesRanking';
 import './AdminDashboard.css';
 
 type Section = 'overview' | 'stories' | 'entities' | 'families' | 'users';
@@ -130,17 +131,27 @@ const AdminDashboard: React.FC = () => {
         <div className="admin-content">
           {/* ===== OVERVIEW ===== */}
           {section === 'overview' && (
-            <div className="admin-stats-grid">
-              <StatCard label="Usuários" value={admin.stats.usersTotal} />
-              <StatCard label="Doadores" value={admin.stats.usersByRole.donors} />
-              <StatCard label="Entidades" value={admin.stats.usersByRole.entities} />
-              <StatCard label="Beneficiários" value={admin.stats.usersByRole.beneficiaries} />
-              <StatCard label="Entidades pendentes" value={admin.stats.entitiesPending} tone="warning" />
-              <StatCard label="Famílias pendentes" value={admin.stats.familiesPending} tone="warning" />
-              <StatCard label="Contas suspensas" value={admin.stats.usersSuspended} tone="error" />
-              <StatCard label="Total doado" value={`R$ ${admin.stats.donationsTotal.toLocaleString('pt-BR')}`} tone="success" />
-              <StatCard label="Stories ativos" value={stories.length} />
-            </div>
+            <>
+              <div className="admin-stats-grid">
+                <StatCard label="Usuários" value={admin.stats.usersTotal} />
+                <StatCard label="Doadores" value={admin.stats.usersByRole.donors} />
+                <StatCard label="Entidades" value={admin.stats.usersByRole.entities} />
+                <StatCard label="Beneficiários" value={admin.stats.usersByRole.beneficiaries} />
+                <StatCard label="Entidades pendentes" value={admin.stats.entitiesPending} tone="warning" />
+                <StatCard label="Famílias pendentes" value={admin.stats.familiesPending} tone="warning" />
+                <StatCard label="Contas suspensas" value={admin.stats.usersSuspended} tone="error" />
+                <StatCard label="Total doado" value={`R$ ${admin.stats.donationsTotal.toLocaleString('pt-BR')}`} tone="success" />
+                <StatCard label="Stories ativos" value={stories.length} />
+              </div>
+              <div className="mt-6">
+                <p className="text-xs text-outline mb-2 font-semibold uppercase tracking-wide">Prévia do carrossel</p>
+                <StoriesRanking
+                  donors={stories}
+                  currentUser={null}
+                  onSelectDonor={(donor: any) => { if (!donor.isSorteio) navigate(`/profile/${donor.id}`); }}
+                />
+              </div>
+            </>
           )}
 
           {/* ===== STORIES ===== */}

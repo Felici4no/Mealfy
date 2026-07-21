@@ -8,6 +8,10 @@ const donorMessage = (status: Donation['status']): string | null => {
       return 'Família recebeu o apoio.';
     case 'pending_payment':
       return 'Pagamento pendente.';
+    case 'gift_card_purchase_pending':
+      return 'Pagamento confirmado. Estamos processando seu apoio.';
+    case 'manual_review':
+      return 'Estamos finalizando seu apoio. Em breve a família será alimentada.';
     case 'canceled':
       return 'Doação cancelada.';
     case 'failed':

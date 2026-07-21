@@ -7,6 +7,8 @@ import {
   listGiftCards,
   listBatches,
   invalidateGiftCard,
+  listGiftCardOrders,
+  retryGiftCardOrder,
 } from './giftCards.controller';
 
 // Montado em /admin — somente admin.
@@ -19,3 +21,7 @@ giftCardsRoutes.get('/gift-cards/stock', getStock);
 giftCardsRoutes.get('/gift-cards', listGiftCards);
 giftCardsRoutes.get('/gift-card-batches', listBatches);
 giftCardsRoutes.post('/gift-cards/:id/invalidate', invalidateGiftCard);
+
+// Fase 7 — pendências de emissão (manual_review/failed) e retry manual.
+giftCardsRoutes.get('/gift-card-orders', listGiftCardOrders);
+giftCardsRoutes.post('/gift-card-orders/:id/retry', retryGiftCardOrder);

@@ -9,12 +9,19 @@ export interface BackendPublicUser {
   instagram: string | null;
   phone: string | null;
   status: 'active' | 'pending' | 'suspended' | 'blocked';
+  privacySettings?: { showOnRanking: boolean; showInstagram: boolean; anonymousMode: boolean };
   createdAt: string;
 }
 
 export interface AuthResponse {
   user: BackendPublicUser;
   token: string;
+}
+
+export type OAuthProvider = 'google' | 'facebook' | 'apple';
+
+export interface OAuthResponse extends AuthResponse {
+  isNew: boolean;
 }
 
 export const authApi = {
@@ -25,4 +32,12 @@ export const authApi = {
     apiRequest<AuthResponse>('/auth/login', 'POST', { email, password }),
 
   getMe: () => apiRequest<{ user: BackendPublicUser }>('/me', 'GET'),
+
+  /**
+   * Login social baseado em token. O app nativo obtém o token via SDK do provedor
+   * (Google/Apple = ID token; Facebook = access token) e o backend o verifica.
+   * `name` só é útil no primeiro login Apple (Apple não reenvia o nome depois).
+   */
+  oauth: (provider: OAuthProvider, token: string, name?: string) =>
+    apiRequest<OAuthResponse>(`/auth/oauth/${provider}`, 'POST', { token, name }),
 };

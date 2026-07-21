@@ -234,25 +234,3 @@ export async function releaseReservedCard(giftCardId: string, donationId: string
   await prisma.giftCardEvent.create({ data: { giftCardId, eventType: 'released', donationId } });
   return prisma.giftCard.findUnique({ where: { id: giftCardId } });
 }
-
-/** Atômico: pega 1 `available` do provider e marca `used` direto (para a doação confirmada). */
-export async function releaseAvailableCardForDonation(
-  provider: GiftCardProvider,
-  donationId: string,
-  familyId: string,
-) {
-  const rows = await prisma.$queryRaw<Array<{ id: string }>>`
-    UPDATE "gift_cards" SET "status" = 'used', "usedAt" = now(),
-      "donationId" = ${donationId}, "familyId" = ${familyId}, "updatedAt" = now()
-    WHERE "id" = (
-      SELECT "id" FROM "gift_cards"
-      WHERE "provider" = ${provider}::"GiftCardProvider" AND "status" = 'available'
-      ORDER BY "createdAt" ASC
-      LIMIT 1 FOR UPDATE SKIP LOCKED
-    )
-    RETURNING "id";`;
-  if (rows.length === 0) throw new AppError(`Sem códigos disponíveis para ${provider}.`, 409, 'no_stock');
-  const id = rows[0].id;
-  await prisma.giftCardEvent.create({ data: { giftCardId: id, eventType: 'released', donationId } });
-  return prisma.giftCard.findUnique({ where: { id } });
-}

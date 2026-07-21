@@ -26,3 +26,9 @@ dist-ssr
 
 # Local tooling (preview server config)
 .claude/
+
+# Android signing — NUNCA commitar a keystore nem suas senhas
+*.jks
+*.keystore
+android/keystore.properties
+android/app/google-services.json

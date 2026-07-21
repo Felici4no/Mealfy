@@ -226,8 +226,15 @@ const Home: React.FC = () => {
         <div className="py-3 mb-3 border-t border-b border-outline/10">
           <span className="sponsor-eyebrow">Parceiros de tecnologia</span>
           <div className="sponsor-logos">
-            <div className="sponsor-logo">Owl4tech</div>
-            <div className="sponsor-logo">Talon Intelligence</div>
+            {[
+              { name: 'Owl4tech', initial: 'O' },
+              { name: 'Talon Intelligence', initial: 'T' },
+            ].map((s) => (
+              <div key={s.name} className="sponsor-chip">
+                <span className="sponsor-chip-mark" aria-hidden="true">{s.initial}</span>
+                <span className="sponsor-chip-name">{s.name}</span>
+              </div>
+            ))}
           </div>
         </div>
 

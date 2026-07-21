@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
+import StoriesRanking from '../components/ui/StoriesRanking';
+import InstagramSection from '../components/ui/InstagramSection';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
@@ -17,7 +20,8 @@ const GIFT_CARD_CODE_PREFIX: Record<string, string> = {
 };
 
 const BeneficiaryDashboard: React.FC = () => {
-  const { user } = useAppContext();
+  const navigate = useNavigate();
+  const { user, stories } = useAppContext();
   const { showToast } = useToast();
   
   const [family, setFamily] = useState<Family | null>(null);
@@ -89,6 +93,13 @@ const BeneficiaryDashboard: React.FC = () => {
   return (
     <div className="beneficiary-dashboard-page">
       <AppHeader title="Meu Painel" />
+
+      {/* ── Carrossel de maiores doadores da plataforma ── */}
+      <StoriesRanking
+        donors={stories}
+        currentUser={null}
+        onSelectDonor={(donor: any) => { if (!donor.isSorteio) navigate(`/profile/${donor.id}`); }}
+      />
 
       {/* ── DEV Mode State Switcher ── */}
       {import.meta.env.DEV && (
@@ -287,6 +298,8 @@ const BeneficiaryDashboard: React.FC = () => {
           </div>
         )}
       </main>
+
+      <InstagramSection />
 
       {/* ── Gift card selector modal ── */}
       {showGiftCardSelector && (

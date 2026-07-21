@@ -4,6 +4,7 @@ import { storage } from '../backend/utils/storage';
 import type { User, Community, PrivacySettings, PublicDonorProfile } from '../backend/types';
 import { authService } from '../backend/services/authService';
 import { communityService } from '../backend/services/communityService';
+import { rankingService } from '../backend/services/rankingService';
 import { usersApi } from '../api/usersApi';
 import SplashScreen from '../components/ui/SplashScreen';
 import { mockDonors } from '../backend/mockData/users';
@@ -76,6 +77,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const comms = await communityService.getCommunities();
         setCommunities(comms);
         setSelectedCommunity(comms[0] || null);
+
+        // Atualiza stories a partir do backend (não-bloqueante — falha silenciosa)
+        rankingService.getTopDonors().then((donors) => {
+          if (donors.length > 0) updateStories(donors);
+        }).catch(() => {});
       } catch (err) {
         console.error('Erro inicializando app', err);
       } finally {
@@ -160,18 +166,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateUserPrivacy = async (settings: Partial<PrivacySettings>): Promise<void> => {
     if (!user) return;
-    const newUser = {
-      ...user,
-      privacySettings: { ...user.privacySettings!, ...settings },
-    };
+    const newSettings = { ...user.privacySettings!, ...settings };
+    const newUser = { ...user, privacySettings: newSettings };
+    // Atualiza local imediatamente (otimista)
     setUser(newUser);
-    const users = storage.get<User[]>('users_db', []);
-    const idx = users.findIndex((u) => u.id === user.id);
-    if (idx !== -1) {
-      users[idx] = newUser;
-      storage.set('users_db', users);
-    }
     storage.set('current_user', newUser);
+    // Persiste no backend
+    try {
+      await usersApi.updatePrivacy(newSettings);
+    } catch (e) {
+      console.warn('[AppContext] Falha ao salvar privacidade no backend:', e);
+    }
   };
 
   const updateUserProfile = async (updates: Partial<User>): Promise<void> => {

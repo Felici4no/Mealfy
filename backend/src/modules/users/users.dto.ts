@@ -14,6 +14,11 @@ export function toPublicUser(u: User) {
     instagram: u.instagram,
     phone: u.phone,
     status: u.status,
+    privacySettings: {
+      showOnRanking: u.showOnRanking,
+      showInstagram: u.showInstagram,
+      anonymousMode: u.anonymousMode,
+    },
     createdAt: u.createdAt,
   };
 }

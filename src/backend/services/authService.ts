@@ -3,7 +3,7 @@ import { mockAuthProvider, AuthError, type RegisterData } from './authProvider';
 import { mockEntities } from '../mockData/users';
 import { storage } from '../utils/storage';
 import { randomDelay } from '../utils/delay';
-import { authApi, type BackendPublicUser } from '../../api/authApi';
+import { authApi, type BackendPublicUser, type OAuthProvider } from '../../api/authApi';
 import { ApiError, ApiNetworkError } from '../../api/apiClient';
 import { getToken, setToken, clearToken } from '../../api/tokenStorage';
 
@@ -24,9 +24,9 @@ function mapBackendStatus(status: BackendPublicUser['status']): User['status'] {
 }
 
 /**
- * O backend é a fonte de verdade pra identidade (id/nome/e-mail/role/status).
- * Preferências que o backend ainda não modela (savedFamilyIds, privacySettings,
- * impactPreferences, totalDonated/ranking) continuam vindo do cache local.
+ * O backend é a fonte de verdade pra identidade (id/nome/e-mail/role/status/privacySettings).
+ * Preferências que o backend ainda não modela (savedFamilyIds, impactPreferences,
+ * totalDonated/ranking) continuam vindo do cache local.
  */
 function mapBackendUser(backendUser: BackendPublicUser): User {
   const sessionCache = storage.get<User | null>(SESSION_KEY, null);
@@ -48,9 +48,10 @@ function mapBackendUser(backendUser: BackendPublicUser): User {
     rankingPosition: cached?.rankingPosition ?? 0,
     rankingPercentile: cached?.rankingPercentile ?? '',
     savedFamilyIds: cached?.savedFamilyIds,
-    privacySettings: cached?.privacySettings ?? {
-      showOnRanking: true,
-      showInstagram: true,
+    // Backend é autoritativo para privacySettings; cache como fallback (usuários antigos)
+    privacySettings: backendUser.privacySettings ?? cached?.privacySettings ?? {
+      showOnRanking: false,
+      showInstagram: false,
       anonymousMode: false,
     },
     impactPreferences: cached?.impactPreferences,
@@ -91,6 +92,29 @@ export const authService = {
       if (err instanceof ApiNetworkError && isDevFallbackAllowed()) {
         console.warn('[AUTH FALLBACK - DEV ONLY] API indisponível, usando login mock local.', err);
         return mockAuthProvider.signInWithEmail(email, password);
+      }
+      throw new AuthError('network_error', 'Não foi possível conectar ao servidor. Tente novamente.');
+    }
+  },
+
+  /**
+   * Login social real (Google/Facebook/Apple). Recebe o token que o SDK nativo
+   * do provedor devolveu, envia ao backend para verificação e persiste a sessão.
+   * Sem fallback mock: login social só faz sentido contra a API real.
+   */
+  signInWithOAuth: async (provider: OAuthProvider, token: string, name?: string): Promise<User> => {
+    try {
+      const { user, token: jwt } = await authApi.oauth(provider, token, name);
+      await setToken(jwt);
+      const mapped = mapBackendUser(user);
+      persistSession(mapped);
+      return mapped;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        throw new AuthError(
+          err.code === 'account_unavailable' ? 'account_suspended' : 'invalid_credentials',
+          err.message,
+        );
       }
       throw new AuthError('network_error', 'Não foi possível conectar ao servidor. Tente novamente.');
     }

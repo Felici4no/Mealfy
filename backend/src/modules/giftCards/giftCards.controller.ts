@@ -4,9 +4,12 @@ import {
   importGiftCardsSchema,
   listGiftCardsQuerySchema,
   invalidateGiftCardSchema,
+  listGiftCardOrdersQuerySchema,
 } from './giftCards.validator';
 import * as giftCardsService from './giftCards.service';
+import * as giftCardOrdersService from './giftCardOrders.service';
 import { toAdminGiftCard } from './giftCards.dto';
+import { retryFulfillment } from '../donations/donationFulfillment.service';
 
 function adminId(req: Request): string {
   if (!req.auth) throw new AppError('Não autenticado', 401, 'unauthenticated');
@@ -37,4 +40,16 @@ export async function invalidateGiftCard(req: Request, res: Response): Promise<R
   const { reason } = invalidateGiftCardSchema.parse(req.body ?? {});
   const gc = await giftCardsService.invalidateGiftCard(adminId(req), req.params.id, reason);
   return res.json({ giftCard: toAdminGiftCard(gc) });
+}
+
+/** Pendências de emissão pro admin — filtra por status (ex.: manual_review). */
+export async function listGiftCardOrders(req: Request, res: Response): Promise<Response> {
+  const filters = listGiftCardOrdersQuerySchema.parse(req.query);
+  return res.json(await giftCardOrdersService.listOrders(filters));
+}
+
+/** Reprocessa uma doação em manual_review — sempre cria uma nova tentativa de emissão. */
+export async function retryGiftCardOrder(req: Request, res: Response): Promise<Response> {
+  const result = await retryFulfillment(req.params.id, adminId(req));
+  return res.json({ outcome: result.outcome, donation: result.donation });
 }

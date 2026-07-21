@@ -70,12 +70,32 @@ enum LocationPrecision {
 enum DonationStatus {
   pending_payment
   payment_confirmed
+  gift_card_purchase_pending
   gift_card_reserved
   gift_card_released
   completed
+  manual_review
   failed
   canceled
   refunded
+}
+
+enum GiftCardProviderName {
+  manual_inventory
+  todo_incomm // pendência comercial — fornecedor ainda não escolhido
+  incentive_me // pendência comercial — fornecedor ainda não escolhido
+  ding_connect // pendência comercial — fornecedor ainda não escolhido
+  ifood_card // pendência comercial — fornecedor ainda não escolhido
+  stub
+}
+
+enum GiftCardOrderStatus {
+  pending
+  processing
+  issued
+  failed
+  manual_review
+  canceled
 }
 
 enum PaymentStatus {
@@ -105,6 +125,13 @@ enum RecurringStatus {
   canceled
 }
 
+enum OAuthProvider {
+  google
+  facebook
+  apple
+  govbr
+}
+
 // ─────────────────────────── MODELS ───────────────────────────
 
 model User {
@@ -116,7 +143,13 @@ model User {
   avatarUrl    String?
   instagram    String?
   phone        String?
+  // CPF verificado pelo Gov.br (só preenchido em login social Gov.br). Único quando presente.
+  cpf          String?    @unique
   status       UserStatus @default(active)
+  // Preferências de visibilidade no ranking — opt-in explícito (default: não aparece)
+  showOnRanking Boolean   @default(false)
+  showInstagram Boolean   @default(false)
+  anonymousMode Boolean   @default(false)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -124,8 +157,28 @@ model User {
   entity              Entity?
   favorites           Favorite[]
   beneficiaryFamilies Family[]      @relation("FamilyBeneficiary")
+  oauthAccounts       OAuthAccount[]
 
   @@map("users")
+}
+
+/// Identidade social vinculada a um usuário. Um usuário pode ter vários provedores
+/// (Google, Facebook, Apple, Gov.br) apontando para a mesma conta Mealfy.
+model OAuthAccount {
+  id             String        @id @default(uuid())
+  provider       OAuthProvider
+  // ID do usuário no provedor (`sub` do ID token / id do Graph). Estável por provedor.
+  providerUserId String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  // E-mail retornado pelo provedor no momento do vínculo (pode divergir do e-mail da conta).
+  email          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("oauth_accounts")
 }
 
 model DonorProfile {
@@ -282,8 +335,8 @@ model GiftCard {
   codeHash      String           @unique // anti-duplicidade na importação
   amount        Int
   status        GiftCardStatus   @default(available)
-  batchId       String
-  batch         GiftCardBatch    @relation(fields: [batchId], references: [id])
+  batchId       String? // opcional: cards de fornecedor externo não têm batch de import manual
+  batch         GiftCardBatch?   @relation(fields: [batchId], references: [id])
   reservedAt    DateTime?
   usedAt        DateTime?
   expiresAt     DateTime?
@@ -309,6 +362,33 @@ model GiftCardBatch {
   giftCards GiftCard[]
 
   @@map("gift_card_batches")
+}
+
+// Histórico de tentativas de emissão de gift card (1 doação pode ter várias
+// linhas — uma por tentativa — até chegar em `issued` ou ficar em
+// `manual_review`). `provider` é a MARCA do cartão (enum existente);
+// `externalProvider` é o FORNECEDOR/integração que tentou emitir.
+model GiftCardOrder {
+  id                  String               @id @default(uuid())
+  donationId          String
+  familyId            String
+  provider            GiftCardProvider
+  externalProvider    GiftCardProviderName @default(manual_inventory)
+  externalOrderId     String?
+  idempotencyKey      String               @unique
+  amount              Int
+  currency            String               @default("BRL")
+  status              GiftCardOrderStatus  @default(pending)
+  failureReason       String?
+  rawRequestMetadata  Json?
+  rawResponseMetadata Json?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([donationId])
+  @@index([familyId])
+  @@index([status])
+  @@map("gift_card_orders")
 }
 
 model GiftCardEvent {

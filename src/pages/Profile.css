@@ -45,6 +45,27 @@
   border-radius: var(--radius-lg);
 }
 
+/* Preview de avatar dentro das Configurações da Conta.
+   Tamanho explícito porque o projeto não expõe as utilidades w-14/h-14. */
+.settings-avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.settings-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .ranking-badge {
   position: absolute;
   bottom: -6px;

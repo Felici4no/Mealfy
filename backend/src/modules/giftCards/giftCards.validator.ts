@@ -21,5 +21,21 @@ export const listGiftCardsQuerySchema = z.object({
 
 export const invalidateGiftCardSchema = z.object({ reason: z.string().max(300).optional() });
 
+export const giftCardOrderStatusEnum = z.enum([
+  'pending',
+  'processing',
+  'issued',
+  'failed',
+  'manual_review',
+  'canceled',
+]);
+
+export const listGiftCardOrdersQuerySchema = z.object({
+  status: giftCardOrderStatusEnum.optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(200).default(50),
+});
+
 export type ImportGiftCardsInput = z.infer<typeof importGiftCardsSchema>;
 export type ListGiftCardsQuery = z.infer<typeof listGiftCardsQuerySchema>;
+export type ListGiftCardOrdersQuery = z.infer<typeof listGiftCardOrdersQuerySchema>;

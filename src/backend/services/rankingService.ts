@@ -48,14 +48,16 @@ export const rankingService = {
 
   getTopDonors: async (): Promise<PublicDonorProfile[]> => {
     try {
-      const apiRanking = await rankingApi.getRanking();
-      if (apiRanking) return apiRanking;
+      const res = await rankingApi.getRanking();
+      // Backend retorna { donors: [...] }
+      const donors = res?.donors ?? res;
+      if (Array.isArray(donors) && donors.length > 0) return donors as PublicDonorProfile[];
     } catch (e) {
       handleApiError(e, 'Get Ranking');
     }
 
+    // DEV fallback — só alcançável se o backend não estiver disponível
     await randomDelay(300, 700);
-    // In a real app, this would filter by privacySettings.showOnRanking
-    return mockDonors.filter((d) => d.privacySettings?.showOnRanking).slice(0, 5);
+    return mockDonors.filter((d) => d.privacySettings?.showOnRanking);
   }
 };

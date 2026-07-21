@@ -189,23 +189,49 @@
   text-align: center;
 }
 
-/* Partner wordmarks — intentional, uniform, muted */
+/* Partner chips — pílulas consistentes com monograma */
 .sponsor-logos {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
   background: transparent;
 }
 
-.sponsor-logo {
+.sponsor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 5px;
+  border-radius: 999px;
+  background: var(--color-surface-highest);
+  border: 1px solid var(--color-border);
+}
+
+.sponsor-chip-mark {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-container));
+  color: #fff;
   font-family: var(--font-family-heading);
-  font-size: 0.8rem !important;
+  font-size: 0.72rem;
+  font-weight: var(--weight-extrabold);
+  line-height: 1;
+}
+
+.sponsor-chip-name {
+  font-family: var(--font-family-heading);
+  font-size: 0.78rem;
   font-weight: var(--weight-bold);
-  letter-spacing: 0.08em;
-  color: var(--color-text-tertiary);
-  font-style: normal !important;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .sponsor-eyebrow {

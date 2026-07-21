@@ -2,7 +2,7 @@ import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { env } from '../../config/env';
 import { paymentProvider } from './providers';
-import { finalizeDonationAfterPayment } from '../donations/donations.service';
+import { fulfillPaidDonation } from '../donations/donationFulfillment.service';
 import { createAuditLog } from '../auditLogs/auditLog.service';
 import type { UserRole } from '@prisma/client';
 import type { WebhookEvent } from './providers';
@@ -80,14 +80,18 @@ export async function processWebhookEvent(evt: WebhookEvent) {
     if (payment.status === 'expired' || payment.status === 'canceled' || payment.status === 'failed') {
       return { status: 'ignored_not_payable' as const };
     }
-    await finalizeDonationAfterPayment(payment.donationId, null);
+    const fulfillment = await fulfillPaidDonation(payment.donationId, null);
     await createAuditLog({
       action: 'payment_webhook_paid',
       entityType: 'payment',
       entityId: payment.id,
-      metadata: { donationId: payment.donationId, externalEventId: evt.externalEventId },
+      metadata: {
+        donationId: payment.donationId,
+        externalEventId: evt.externalEventId,
+        fulfillmentOutcome: fulfillment.outcome,
+      },
     });
-    return { status: 'processed_paid' as const };
+    return { status: 'processed_paid' as const, fulfillmentOutcome: fulfillment.outcome };
   }
 
   if (evt.status === 'expired' || evt.status === 'failed' || evt.status === 'canceled') {

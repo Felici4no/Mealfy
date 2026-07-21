@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
+import StoriesRanking from '../components/ui/StoriesRanking';
+import InstagramSection from '../components/ui/InstagramSection';
 import { useAppContext } from '../context/AppContext';
 import { familyService } from '../backend/services/familyService';
 import { entityService } from '../backend/services/entityService';
@@ -13,7 +15,7 @@ import type { Family, DonorIndication, AuthorizingEntity } from '../backend/type
 import './EntityDashboard.css';
 
 const EntityDashboard: React.FC = () => {
-  const { user } = useAppContext();
+  const { user, stories } = useAppContext();
   const navigate = useNavigate();
   const { showToast } = useToast();
   
@@ -96,7 +98,14 @@ const EntityDashboard: React.FC = () => {
   return (
     <div className="entity-dashboard-page">
       <AppHeader title="Painel da Entidade" />
-      
+
+      {/* ── Carrossel de maiores doadores da plataforma ── */}
+      <StoriesRanking
+        donors={stories}
+        currentUser={null}
+        onSelectDonor={(donor: any) => { if (!donor.isSorteio) navigate(`/profile/${donor.id}`); }}
+      />
+
       <main className="content p-4">
         {/* ── Header Row ── */}
         <section className="entity-summary mb-5">
@@ -286,6 +295,8 @@ const EntityDashboard: React.FC = () => {
            )}
         </section>
       </main>
+
+      <InstagramSection />
     </div>
   );
 };
