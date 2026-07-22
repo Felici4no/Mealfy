@@ -1,8 +1,63 @@
 import { apiRequest } from './apiClient';
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Contrato REAL do backend (backend/src/modules/donations + payments):
+//   POST   /donations                        → 201 { donation, payment, message }
+//   GET    /donations/:id                    → { donation }
+//   POST   /donations/:id/cancel             → { donation, message }
+//   POST   /donations/:id/confirm-payment-mock (admin, dev/staging)
+//   GET    /me/donations                     → { donations: [...] } (doador, sem código)
+//   GET    /families/:id/donations           → { family, donations } (admin/entidade)
+//   GET    /payments/:id                     → { payment }
+//   POST   /payments/:id/simulate-paid       (admin, dev/staging)
+//
+// ⚠️ O fluxo real é Pix: criar a doação retorna a cobrança (pixQrCode/pixCopyPaste/
+// expiresAt) e o vale só é liberado APÓS o pagamento confirmar. Não existe doação
+// instantânea na API — os métodos batch/regional abaixo são SOMENTE mock (o backend
+// não tem essas rotas; manter até decidirmos se viram feature real — ver roadmap).
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateDonationResponse {
+  donation: any;
+  payment: {
+    id: string;
+    status: string;
+    amount: number;
+    pixQrCode?: string | null;
+    pixCopyPaste?: string | null;
+    expiresAt?: string | null;
+  };
+  message: string;
+}
+
 export const donationsApi = {
-  createDonation: (data: any) => apiRequest('/donations', 'POST', data),
+  /** Cria intenção de doação + cobrança Pix (doador autenticado). */
+  createDonation: (data: { familyId: string; amount: number; provider?: string }) =>
+    apiRequest('/donations', 'POST', data) as Promise<CreateDonationResponse>,
+
+  /** Detalhe de uma doação (role-aware: doador a sua; admin/entidade conforme posse). */
+  getDonation: (id: string) => apiRequest(`/donations/${id}`, 'GET'),
+
+  /** Cancela uma doação pending_payment (doador dono ou admin). */
+  cancelDonation: (id: string) => apiRequest(`/donations/${id}/cancel`, 'POST'),
+
+  /** Histórico do doador autenticado (sem código do vale). */
+  getMyDonations: () => apiRequest('/me/donations', 'GET'),
+
+  /** Doações de uma família (admin ou entidade dona). */
+  getFamilyDonations: (familyId: string) => apiRequest(`/families/${familyId}/donations`, 'GET'),
+
+  // ─── Somente mock (sem rota real no backend — TODO produto/backend) ───
+  /** MOCK-ONLY: o backend não implementa doação em lote. */
   createBatchDonation: (familyIds: string[]) => apiRequest('/donations/batch', 'POST', { familyIds }),
-  createRegionalDonation: (communityId: string, totalAmount: number) => apiRequest('/donations/regional', 'POST', { communityId, totalAmount }),
-  getMyDonations: () => apiRequest('/donations/me', 'GET'),
+  /** MOCK-ONLY: o backend não implementa doação regional. */
+  createRegionalDonation: (communityId: string, totalAmount: number) =>
+    apiRequest('/donations/regional', 'POST', { communityId, totalAmount }),
+};
+
+export const paymentsApi = {
+  /** Status da cobrança Pix (doador dono ou admin). */
+  getPayment: (id: string) => apiRequest(`/payments/${id}`, 'GET'),
+  /** DEV/STAGING: simula webhook paid (admin; bloqueado em produção). */
+  simulatePaid: (id: string) => apiRequest(`/payments/${id}/simulate-paid`, 'POST'),
 };

@@ -5,25 +5,58 @@ import { Check, Share2, History, HeartHandshake, Copy, MessageCircle, AtSign, Ma
 import BottomSheet from '../components/ui/BottomSheet';
 import { useToast } from '../context/ToastContext';
 import { PROVIDER_LABELS } from '../backend/mockData/giftCardInventory';
+import { paymentsApi } from '../api/donationsApi';
 import './Success.css';
 
 const Success: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
-  
+
   const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isCheckingPix, setIsCheckingPix] = useState(false);
 
   // Read data passed from DonationChoice or BigDonation
   const donationResult = location.state?.donationResult as any;
+  const pixResult = location.state?.pixResult as any;
   const totalAmount = location.state?.totalAmount as number | undefined;
 
   // If user accesses /success directly, send back
-  if (!donationResult) {
+  if (!donationResult && !pixResult) {
     navigate('/');
     return null;
   }
+
+  const pixPayment = pixResult?.payment;
+  const pixExpiresAt = pixPayment?.expiresAt ? new Date(pixPayment.expiresAt) : null;
+
+  const copyPixCode = () => {
+    if (!pixPayment?.pixCopyPaste) return;
+    navigator.clipboard.writeText(pixPayment.pixCopyPaste);
+    showToast('Código Pix copiado! Cole no app do seu banco.', 'success');
+  };
+
+  const checkPixStatus = async () => {
+    if (!pixPayment?.id) return;
+    setIsCheckingPix(true);
+    try {
+      const resp = await paymentsApi.getPayment(pixPayment.id);
+      const status = resp?.payment?.status ?? resp?.status;
+      if (status === 'paid') {
+        showToast('Pagamento confirmado! O vale foi enviado para a família. 💚', 'success');
+        navigate('/map');
+      } else if (status === 'expired' || status === 'failed' || status === 'canceled') {
+        showToast('Esta cobrança não está mais disponível. Tente doar novamente.', 'error');
+      } else {
+        showToast('Pagamento ainda não identificado. Assim que o banco confirmar, o vale é liberado.', 'info');
+      }
+    } catch {
+      showToast('Não foi possível verificar agora. Tente novamente.', 'error');
+    } finally {
+      setIsCheckingPix(false);
+    }
+  };
 
   const messages = [
     "Você não está sozinho.",
@@ -45,38 +78,101 @@ const Success: React.FC = () => {
             <Check size={48} color="white" />
           </div>
         </div>
-        <h1 className="success-title text-primary mb-2">Muito obrigado!</h1>
-        
-        <p className="success-subtitle text-outline mb-6">
-          Seu apoio foi transformado imediatamente no <strong>{donationResult.giftCard.label}</strong> e designado para a família de <strong>{donationResult.familyAssigned.representativeName}</strong>.
-        </p>
+        <h1 className="success-title text-primary mb-2">{pixResult ? 'Quase lá!' : 'Muito obrigado!'}</h1>
 
-        <div className="receipt-card mb-6">
-          <div className="receipt-row">
-            <span className="receipt-label">Valor do Apoio</span>
-            <span className="receipt-value text-secondary">R$ {totalAmount ? totalAmount.toFixed(2) : '35,00'}</span>
+        {pixResult ? (
+          <p className="success-subtitle text-outline mb-6">
+            Pague o Pix abaixo para concluir. Assim que o banco confirmar, o vale é enviado
+            direto para a família de <strong>{pixResult.familyName}</strong> — você acompanha
+            tudo pelo mapa.
+          </p>
+        ) : (
+          <p className="success-subtitle text-outline mb-6">
+            Seu apoio foi transformado imediatamente no <strong>{donationResult.giftCard.label}</strong> e designado para a família de <strong>{donationResult.familyAssigned.representativeName}</strong>.
+          </p>
+        )}
+
+        {pixResult ? (
+          <div className="receipt-card mb-6">
+            <div className="receipt-row">
+              <span className="receipt-label">Valor do Pix</span>
+              <span className="receipt-value text-secondary">R$ {totalAmount ? totalAmount.toFixed(2) : '35,00'}</span>
+            </div>
+            <div className="receipt-divider"></div>
+            <div className="receipt-row">
+              <span className="receipt-label">Família</span>
+              <span className="receipt-value">{pixResult.familyName}</span>
+            </div>
+            <div className="receipt-divider"></div>
+            {pixExpiresAt && (
+              <>
+                <div className="receipt-row">
+                  <span className="receipt-label">Válido até</span>
+                  <span className="receipt-value">{pixExpiresAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="receipt-divider"></div>
+              </>
+            )}
+            <div className="receipt-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+              <span className="receipt-label">Pix copia e cola</span>
+              <span className="receipt-value font-mono text-xs" style={{ wordBreak: 'break-all' }}>{pixPayment?.pixCopyPaste || 'Indisponível'}</span>
+            </div>
+            <div className="receipt-divider"></div>
+            <div className="receipt-row">
+              <span className="receipt-label">Status</span>
+              <span className="receipt-value text-secondary font-bold">Aguardando pagamento</span>
+            </div>
           </div>
-          <div className="receipt-divider"></div>
-          <div className="receipt-row">
-            <span className="receipt-label">Destinatário</span>
-            <span className="receipt-value">{donationResult.familyAssigned.representativeName}</span>
+        ) : (
+          <div className="receipt-card mb-6">
+            <div className="receipt-row">
+              <span className="receipt-label">Valor do Apoio</span>
+              <span className="receipt-value text-secondary">R$ {totalAmount ? totalAmount.toFixed(2) : '35,00'}</span>
+            </div>
+            <div className="receipt-divider"></div>
+            <div className="receipt-row">
+              <span className="receipt-label">Destinatário</span>
+              <span className="receipt-value">{donationResult.familyAssigned.representativeName}</span>
+            </div>
+            <div className="receipt-divider"></div>
+            <div className="receipt-row">
+              <span className="receipt-label">Plataforma</span>
+              <span className="receipt-value font-bold text-primary">{PROVIDER_LABELS[donationResult.giftCard.provider as 'ifood' | '99' | 'carrefour'] || donationResult.giftCard.provider}</span>
+            </div>
+            <div className="receipt-divider"></div>
+            <div className="receipt-row">
+              <span className="receipt-label">Código Vale</span>
+              <span className="receipt-value font-mono font-bold text-primary">{donationResult.giftCard.code}</span>
+            </div>
+            <div className="receipt-divider"></div>
+            <div className="receipt-row">
+              <span className="receipt-label">Status</span>
+              <span className="receipt-value text-success font-bold">Gerado & Disponível</span>
+            </div>
           </div>
-          <div className="receipt-divider"></div>
-          <div className="receipt-row">
-            <span className="receipt-label">Plataforma</span>
-            <span className="receipt-value font-bold text-primary">{PROVIDER_LABELS[donationResult.giftCard.provider as 'ifood' | '99' | 'carrefour'] || donationResult.giftCard.provider}</span>
+        )}
+
+        {pixResult && (
+          <div className="flex flex-col gap-3 w-full mb-4">
+            <Button
+              size="large"
+              fullWidth
+              icon={<Copy size={18} />}
+              onClick={copyPixCode}
+              disabled={!pixPayment?.pixCopyPaste}
+            >
+              Copiar código Pix
+            </Button>
+            <Button
+              variant="outline"
+              fullWidth
+              loading={isCheckingPix}
+              onClick={checkPixStatus}
+            >
+              Já paguei — verificar status
+            </Button>
           </div>
-          <div className="receipt-divider"></div>
-          <div className="receipt-row">
-            <span className="receipt-label">Código Vale</span>
-            <span className="receipt-value font-mono font-bold text-primary">{donationResult.giftCard.code}</span>
-          </div>
-          <div className="receipt-divider"></div>
-          <div className="receipt-row">
-            <span className="receipt-label">Status</span>
-            <span className="receipt-value text-success font-bold">Gerado & Disponível</span>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="message-section p-4">

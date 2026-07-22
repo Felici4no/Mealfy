@@ -6,6 +6,8 @@ import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { Users, Check, ChevronRight } from 'lucide-react';
 import { giftCardService } from '../backend/services/giftCardService';
+import { donationsApi } from '../api/donationsApi';
+import { ApiError, ApiNetworkError } from '../api/apiClient';
 import { familyService } from '../backend/services/familyService';
 import { PROVIDER_LABELS } from '../backend/mockData/giftCardInventory';
 import { isBeneficiaryEligible } from '../backend/utils/timeUtils';
@@ -87,6 +89,41 @@ const DonationChoice: React.FC = () => {
         }
       }
 
+      // ── Fluxo REAL (API): família direta → cria doação + cobrança Pix ──
+      // O vale só é liberado APÓS o pagamento confirmar (webhook) — nunca antes.
+      if (targetFamily) {
+        try {
+          const resp = await donationsApi.createDonation({
+            familyId: targetFamily.id,
+            amount: Math.round(totalAmount * 100), // backend trabalha em centavos
+          });
+          if (resp?.payment) {
+            navigate('/success', {
+              state: {
+                pixResult: {
+                  donation: resp.donation,
+                  payment: resp.payment,
+                  familyName: targetFamily.representativeName,
+                },
+                totalAmount,
+              }
+            });
+            return;
+          }
+        } catch (apiErr: any) {
+          // Erro de NEGÓCIO da API (família já alimentada hoje, sem estoque, etc.):
+          // NÃO cair no mock — a doação não aconteceu. Mostra o erro e aborta.
+          if (apiErr instanceof ApiError) {
+            showToast(apiErr.message || 'Não foi possível criar a doação.', 'error');
+            setIsProcessing(false);
+            return;
+          }
+          if (!(apiErr instanceof ApiNetworkError)) throw apiErr;
+          // ApiNetworkError → backend fora do ar (dev local): segue para o mock abaixo.
+        }
+      }
+
+      // ── Fluxo MOCK (somente dev, sem backend no ar): libera código do localStorage ──
       await new Promise(resolve => setTimeout(resolve, 1200));
       giftCardService.initInventory();
 

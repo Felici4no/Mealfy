@@ -14,6 +14,16 @@ export async function getAuditLogs(req: Request, res: Response): Promise<Respons
   return res.json({ logs });
 }
 
+export async function listEntities(_req: Request, res: Response): Promise<Response> {
+  const entities = await adminService.listEntities();
+  return res.json({ entities });
+}
+
+export async function listUsers(_req: Request, res: Response): Promise<Response> {
+  const users = await adminService.listUsers();
+  return res.json({ users });
+}
+
 export async function approveEntity(req: Request, res: Response): Promise<Response> {
   const entity = await adminService.setEntityStatus(adminId(req), req.params.id, 'active', 'approve_entity');
   return res.json({ entity });

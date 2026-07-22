@@ -1,18 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Star, Building2, Users2, UserCog, LogOut, ArrowLeft,
   ChevronUp, ChevronDown, Trash2, Plus, Check, X, Eye, EyeOff, ShieldCheck, Save, RotateCcw,
+  Gift, Upload, RefreshCw,
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { useAdminData } from '../hooks/useAdminData';
 import type { ModerationStatus } from '../hooks/useAdminData';
 import type { PublicDonorProfile } from '../backend/types';
+import { adminService } from '../backend/services/adminService';
+import type { ImportGiftCardsPayload } from '../api/adminApi';
 import StoriesRanking from '../components/ui/StoriesRanking';
 import './AdminDashboard.css';
 
-type Section = 'overview' | 'stories' | 'entities' | 'families' | 'users';
+type Section = 'overview' | 'stories' | 'entities' | 'families' | 'users' | 'giftcards';
 
 const NAV: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Visão geral', icon: <LayoutDashboard size={18} /> },
@@ -20,6 +23,7 @@ const NAV: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: 'entities', label: 'Entidades', icon: <Building2 size={18} /> },
   { id: 'families', label: 'Famílias', icon: <Users2 size={18} /> },
   { id: 'users',    label: 'Usuários', icon: <UserCog size={18} /> },
+  { id: 'giftcards', label: 'Gift Cards', icon: <Gift size={18} /> },
 ];
 
 const statusLabel: Record<ModerationStatus, string> = {
@@ -84,6 +88,76 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleLogout = async () => { await logout(); navigate('/auth'); };
+
+  // ── Gift Cards — operação manual de estoque (API real; fulfillment manual) ──
+  const PROVIDERS = [
+    { id: 'ifood', label: 'iFood' },
+    { id: 'ninetynine', label: '99 Mercado' },
+    { id: 'carrefour', label: 'Carrefour' },
+  ] as const;
+
+  const [gcStock, setGcStock] = useState<any>(null);
+  const [gcLoading, setGcLoading] = useState(false);
+  const [gcImporting, setGcImporting] = useState(false);
+  const [gcResult, setGcResult] = useState<any>(null);
+  const [gcForm, setGcForm] = useState({
+    provider: 'ifood' as ImportGiftCardsPayload['provider'],
+    batchName: '',
+    amountReais: '25',
+    expiresAt: '',
+    codesText: '',
+  });
+
+  const loadStock = async () => {
+    setGcLoading(true);
+    try {
+      const resp = await adminService.getGiftCardStock();
+      setGcStock(resp?.stock ?? resp ?? null);
+    } catch {
+      showToast('Não foi possível carregar o estoque.', 'error');
+    } finally {
+      setGcLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (section === 'giftcards' && gcStock === null && !gcLoading) loadStock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section]);
+
+  const stockOf = (provider: string): any => {
+    if (!gcStock) return null;
+    if (Array.isArray(gcStock)) return gcStock.find((s: any) => s.provider === provider);
+    return gcStock[provider] ?? null;
+  };
+
+  const handleImport = async () => {
+    const codes = gcForm.codesText.split('\n').map((c) => c.trim()).filter(Boolean);
+    const amount = Math.round(Number(gcForm.amountReais.replace(',', '.')) * 100);
+    if (!gcForm.batchName.trim()) { showToast('Informe o nome do lote.', 'error'); return; }
+    if (!amount || amount <= 0) { showToast('Valor inválido.', 'error'); return; }
+    if (codes.length === 0) { showToast('Cole ao menos um código.', 'error'); return; }
+
+    setGcImporting(true);
+    setGcResult(null);
+    try {
+      const summary = await adminService.importGiftCards({
+        provider: gcForm.provider,
+        batchName: gcForm.batchName.trim(),
+        amount,
+        expiresAt: gcForm.expiresAt ? new Date(gcForm.expiresAt).toISOString() : undefined,
+        codes,
+      });
+      setGcResult(summary);
+      showToast('Lote importado com sucesso!', 'success');
+      setGcForm((f) => ({ ...f, batchName: '', codesText: '' }));
+      loadStock();
+    } catch (e: any) {
+      showToast(e?.message || 'Falha ao importar lote. O backend está no ar?', 'error');
+    } finally {
+      setGcImporting(false);
+    }
+  };
 
   return (
     <div className="admin-page">
@@ -279,6 +353,110 @@ const AdminDashboard: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {/* ===== GIFT CARDS — operação manual de estoque ===== */}
+          {section === 'giftcards' && (
+            <div className="admin-giftcards">
+              <div className="flex items-center justify-between mb-4">
+                <p className="admin-hint" style={{ margin: 0 }}>
+                  Estoque real de vales (API). A importação criptografa os códigos no backend (AES-256-GCM) — eles nunca ficam salvos em claro.
+                </p>
+                <button className="admin-btn admin-btn--ghost" onClick={loadStock} disabled={gcLoading}>
+                  <RefreshCw size={16} /> {gcLoading ? 'Atualizando…' : 'Atualizar'}
+                </button>
+              </div>
+
+              {/* Estoque por provider */}
+              <div className="admin-stats-grid mb-6">
+                {PROVIDERS.map((p) => {
+                  const s = stockOf(p.id);
+                  return (
+                    <StatCard
+                      key={p.id}
+                      label={`${p.label} — disponíveis`}
+                      value={s ? (s.available ?? 0) : (gcLoading ? '…' : '—')}
+                      tone={s && (s.available ?? 0) === 0 ? 'error' : 'success'}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Formulário de importação de lote */}
+              <div className="admin-story-card">
+                <div className="admin-story-fields" style={{ width: '100%' }}>
+                  <h3 className="font-bold text-primary text-sm mb-2 flex items-center gap-2">
+                    <Upload size={16} /> Importar lote de códigos
+                  </h3>
+                  <div className="admin-field-row">
+                    <label>Parceiro
+                      <select
+                        className="admin-select"
+                        value={gcForm.provider}
+                        onChange={(e) => setGcForm((f) => ({ ...f, provider: e.target.value as any }))}
+                      >
+                        {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                      </select>
+                    </label>
+                    <label>Nome do lote
+                      <input
+                        value={gcForm.batchName}
+                        placeholder="Ex.: Lote Agosto/2026"
+                        onChange={(e) => setGcForm((f) => ({ ...f, batchName: e.target.value }))}
+                      />
+                    </label>
+                  </div>
+                  <div className="admin-field-row">
+                    <label>Valor por vale (R$)
+                      <input
+                        type="number"
+                        min="1"
+                        value={gcForm.amountReais}
+                        onChange={(e) => setGcForm((f) => ({ ...f, amountReais: e.target.value }))}
+                      />
+                    </label>
+                    <label>Validade (opcional)
+                      <input
+                        type="date"
+                        value={gcForm.expiresAt}
+                        onChange={(e) => setGcForm((f) => ({ ...f, expiresAt: e.target.value }))}
+                      />
+                    </label>
+                  </div>
+                  <label className="admin-field-full">Códigos (1 por linha)
+                    <textarea
+                      rows={6}
+                      style={{ width: '100%', fontFamily: 'monospace', fontSize: 12, padding: 8, border: '1px solid var(--color-outline-variant, #ddd)', borderRadius: 4 }}
+                      placeholder={'IFOOD-AAAA-0001\nIFOOD-BBBB-0002'}
+                      value={gcForm.codesText}
+                      onChange={(e) => setGcForm((f) => ({ ...f, codesText: e.target.value }))}
+                    />
+                  </label>
+                  <div className="admin-story-toggles">
+                    <button className="admin-btn admin-btn--primary" onClick={handleImport} disabled={gcImporting}>
+                      <Upload size={16} /> {gcImporting ? 'Importando…' : 'Importar lote'}
+                    </button>
+                  </div>
+
+                  {/* Resumo da importação (nunca mostra códigos) */}
+                  {gcResult && (
+                    <div className="admin-table-wrap mt-4">
+                      <table className="admin-table">
+                        <tbody>
+                          <tr><td><strong>Lote</strong></td><td className="admin-muted">{gcResult.batchId}</td></tr>
+                          <tr><td><strong>Recebidos</strong></td><td>{gcResult.totalReceived}</td></tr>
+                          <tr><td><strong>Importados</strong></td><td className="text-success font-bold">{gcResult.totalImported}</td></tr>
+                          <tr><td><strong>Duplicados</strong></td><td>{gcResult.totalDuplicated}</td></tr>
+                          <tr><td><strong>Inválidos</strong></td><td>{gcResult.totalInvalid}</td></tr>
+                          {Array.isArray(gcResult.warnings) && gcResult.warnings.length > 0 && (
+                            <tr><td><strong>Avisos</strong></td><td className="admin-muted">{gcResult.warnings.join(' · ')}</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

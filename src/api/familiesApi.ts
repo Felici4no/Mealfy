@@ -7,6 +7,14 @@ export const familiesApi = {
   },
   getFamilyById: (id: string) => apiRequest(`/families/${id}`, 'GET'),
 
+  /** Lista role-aware: admin/entidade recebem a visão de gestão (toManagedFamily). */
+  getManagedFamilies: () => apiRequest('/families', 'GET'),
+
+  // ─── Moderação (admin) — rotas reais do backend ───
+  approveFamily: (id: string) => apiRequest(`/families/${id}/approve`, 'POST'),
+  rejectFamily: (id: string) => apiRequest(`/families/${id}/reject`, 'POST'),
+  blockFamily: (id: string) => apiRequest(`/families/${id}/block`, 'POST'),
+
   /**
    * @deprecated Path não existe no backend (fora do escopo da Fase 6B —
    * usado só por familyService.getFamilies/getFamiliesByCommunity, que ainda

@@ -1,6 +1,8 @@
 import 'express-async-errors';
 import express, { type Application } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 
 import { env } from './config/env';
 import { healthRoutes } from './modules/health/health.routes';
@@ -24,6 +26,41 @@ import { errorHandler } from './shared/middlewares/errorHandler';
  */
 export function createApp(): Application {
   const app = express();
+
+  // ── Segurança HTTP ────────────────────────────────────────────────────────
+  // Railway/Render ficam atrás de proxy: necessário p/ IP correto no rate limit.
+  app.set('trust proxy', 1);
+  app.use(helmet());
+
+  // Rate limit global leve (anti-abuso geral)
+  app.use(rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Muitas requisições. Tente novamente em alguns minutos.', code: 'rate_limited' },
+  }));
+
+  // Rate limit agressivo em auth (anti brute-force de senha)
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Muitas tentativas de autenticação. Aguarde alguns minutos.', code: 'rate_limited' },
+  });
+  app.use('/auth/login', authLimiter);
+  app.use('/auth/register', authLimiter);
+
+  // Rate limit no webhook Pix (é público; a autenticação real é a assinatura HMAC)
+  const webhookLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Rate limit excedido.', code: 'rate_limited' },
+  });
+  app.use('/payments/webhook', webhookLimiter);
 
   const corsOrigin =
     env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map((o) => o.trim());

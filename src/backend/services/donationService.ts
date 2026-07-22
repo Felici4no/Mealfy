@@ -62,15 +62,17 @@ export const donationService = {
     donorId?: string; 
     familyId?: string; 
     message?: string;
-  }): Promise<{ donation: Donation, giftCard: GiftCard, familyAssigned: Family }> => {
+  }): Promise<{ donation: Donation, giftCard: GiftCard | null, familyAssigned: Family, payment?: any }> => {
     if (payload.familyId) {
       try {
+        // Contrato real: cria intenção + cobrança Pix. O vale NÃO é liberado aqui —
+        // só após o pagamento confirmar (webhook). `giftCard` vem null nesta fase.
         const response = await donationsApi.createDonation({ familyId: payload.familyId, amount: payload.amount });
         if (response && response.donation) {
-          // Sync local state if necessary
-          return { 
-            donation: response.donation, 
-            giftCard: response.giftCard, 
+          return {
+            donation: response.donation,
+            giftCard: null,
+            payment: response.payment,
             familyAssigned: { id: payload.familyId } as any // Simplified for callback
           };
         }
@@ -226,14 +228,16 @@ export const donationService = {
     return { donations, giftCards };
   },
 
-  getDonationHistoryByUser: async (userId: string): Promise<{donation: Donation, giftCard: GiftCard}[]> => {
+  getDonationHistoryByUser: async (userId: string): Promise<{donation: Donation, giftCard: GiftCard | null}[]> => {
     try {
+      // Contrato real: GET /me/donations → { donations: [dtoDonor] }.
+      // O DTO do doador NUNCA traz o código do vale (por design) — giftCard vem null.
       const history = await donationsApi.getMyDonations();
-      if (history) {
-        return history.map((h: any) => ({
-          donation: h,
-          giftCard: h.giftCard
-        })).reverse();
+      if (history && Array.isArray(history.donations)) {
+        return history.donations.map((dto: any) => ({
+          donation: dto,
+          giftCard: dto.giftCard ?? null
+        }));
       }
     } catch (e) {
       handleApiError(e, 'Get Donation History');

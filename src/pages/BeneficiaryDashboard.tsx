@@ -8,6 +8,7 @@ import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
 import { donationService } from '../backend/services/donationService';
+import { beneficiaryApi } from '../api/giftcardsApi';
 import { Gift, Calendar, Heart, Clock, AlertTriangle, QrCode, Copy, Phone, ShieldCheck, ShieldAlert, ChevronRight } from 'lucide-react';
 import type { Family, GiftCard, Donation } from '../backend/types';
 import GiftCardSelectorModal, { GIFT_CARD_PARTNERS } from '../components/ui/GiftCardSelectorModal';
@@ -19,14 +20,33 @@ const GIFT_CARD_CODE_PREFIX: Record<string, string> = {
   '99': '99FD',
 };
 
+/** Gift card real vindo da API (código decifrado — só o beneficiário vê). */
+interface ApiGiftCard {
+  id: string;
+  provider: string;
+  code: string;
+  amount: number; // centavos
+  status: string;
+  expiresAt?: string | null;
+  releasedAt?: string | null;
+  instructions?: string;
+}
+
+const apiProviderLabel = (p: string): string =>
+  p === 'ninetynine' ? '99 Mercado' : p === 'ifood' ? 'iFood' : 'Carrefour';
+
 const BeneficiaryDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, stories } = useAppContext();
   const { showToast } = useToast();
   
   const [family, setFamily] = useState<Family | null>(null);
-  const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard}[]>([]);
+  const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard | null}[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Vales reais da API. null = API indisponível ou usuário sem vínculo de beneficiário
+  // (mantém o fluxo local/mock de dev). Array (mesmo vazio) = API respondeu de verdade.
+  const [apiCards, setApiCards] = useState<ApiGiftCard[] | null>(null);
 
   // Simulated status switcher for testing in DEV mode
   const [simulatedStatus, setSimulatedStatus] = useState<'approved' | 'pending' | 'rejected'>('approved');
@@ -60,6 +80,17 @@ const BeneficiaryDashboard: React.FC = () => {
         setSimulatedStatus((fam.status as any) || 'approved');
       }
       setHistory(hist || []);
+
+      // ── API real: vales do beneficiário (código decifrado só aqui) ──
+      try {
+        const resp = await beneficiaryApi.getMyGiftCards();
+        if (resp && Array.isArray(resp.giftCards)) {
+          setApiCards(resp.giftCards);
+        }
+      } catch {
+        // 401/403 (sem vínculo de beneficiário) ou API fora do ar → fluxo local/mock.
+      }
+
       setLoading(false);
     };
     fetchData();
@@ -69,6 +100,15 @@ const BeneficiaryDashboard: React.FC = () => {
     navigator.clipboard.writeText(code);
     showToast('Código do vale-refeição copiado!', 'success');
   };
+
+  // ── Dados reais da API (quando disponíveis) ──────────────────────────────
+  const sortedApiCards = apiCards
+    ? [...apiCards].sort((a, b) => new Date(b.releasedAt ?? 0).getTime() - new Date(a.releasedAt ?? 0).getTime())
+    : null;
+  const latestApiCard = sortedApiCards && sortedApiCards.length > 0 ? sortedApiCards[0] : null;
+  const fedToday = latestApiCard?.releasedAt
+    ? new Date(latestApiCard.releasedAt).toDateString() === new Date().toDateString()
+    : false;
 
   const handleRequestReview = () => {
     showToast('Pedido de re-análise enviado à entidade Heliópolis Solidária!', 'success');
@@ -226,11 +266,17 @@ const BeneficiaryDashboard: React.FC = () => {
                   </div>
                   <div className="flex flex-col">
                      <span className="text-[10px] opacity-80 uppercase font-black tracking-wider">Cadastro Ativo</span>
-                     <span className="text-lg font-extrabold">Alimentado Hoje</span>
+                     <span className="text-lg font-extrabold">
+                       {apiCards !== null ? (fedToday ? 'Alimentado Hoje' : 'Aguardando Apoio') : 'Alimentado Hoje'}
+                     </span>
                   </div>
                </div>
                <p className="text-xs opacity-90 leading-relaxed">
-                 Sua família recebeu o apoio doado pela rede hoje! O código do vale-refeição iFood Alimentação de R$ 40,00 está liberado abaixo.
+                 {apiCards !== null
+                   ? (latestApiCard
+                      ? `Seu vale ${apiProviderLabel(latestApiCard.provider)} de R$ ${(latestApiCard.amount / 100).toFixed(2).replace('.', ',')} está liberado abaixo.`
+                      : 'Seu cadastro está ativo. Quando um apoiador doar para sua família, o vale aparece aqui automaticamente.')
+                   : 'Sua família recebeu o apoio doado pela rede hoje! O código do vale-refeição iFood Alimentação de R$ 40,00 está liberado abaixo.'}
                </p>
             </section>
 
@@ -246,6 +292,45 @@ const BeneficiaryDashboard: React.FC = () => {
                  </button>
                </div>
 
+               {apiCards !== null ? (
+                 /* ── Vale REAL da API (código decifrado — visível só para o beneficiário) ── */
+                 latestApiCard ? (
+                   <div className="gift-card-display p-5 bg-white border-2 border-dashed border-secondary rounded-lg text-center flex flex-col items-center">
+                      <div className="giftcard-partner-logo mb-2" style={{ background: selectedPartner.color }} aria-hidden="true">
+                        {apiProviderLabel(latestApiCard.provider).slice(0, 2).toUpperCase()}
+                      </div>
+                      <span className="text-[10px] text-outline block mb-1 uppercase font-bold tracking-wider">
+                        Código de Resgate {apiProviderLabel(latestApiCard.provider)} — R$ {(latestApiCard.amount / 100).toFixed(2).replace('.', ',')}
+                      </span>
+
+                      <div className="flex items-center gap-2 mb-4 bg-background px-4 py-2 rounded border border-outline-variant">
+                        <span className="text-xl font-mono font-black text-primary tracking-wider">{latestApiCard.code}</span>
+                        <button
+                          className="p-1 hover:text-secondary text-primary transition-all"
+                          onClick={() => handleCopyCode(latestApiCard.code)}
+                          aria-label="Copiar código"
+                        >
+                          <Copy size={16} />
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col items-center p-3 bg-background rounded border border-outline/10 w-full mb-3">
+                        <QrCode size={120} className="text-primary mb-2" />
+                        <span className="text-[10px] text-outline uppercase font-semibold">Apresente no caixa ou no app</span>
+                      </div>
+
+                      <p className="text-[10px] text-outline">
+                        {latestApiCard.instructions || 'Use o código acima no app do parceiro.'}
+                        {latestApiCard.releasedAt && <> Liberado em: {new Date(latestApiCard.releasedAt).toLocaleDateString('pt-BR')}.</>}
+                      </p>
+                   </div>
+                 ) : (
+                   <div className="p-6 bg-white rounded-lg border border-outline/10 text-center">
+                     <Gift size={32} className="text-outline mx-auto mb-2" />
+                     <p className="text-sm text-outline">Nenhum vale liberado ainda. Quando uma doação for confirmada, o código aparece aqui.</p>
+                   </div>
+                 )
+               ) : (
                <div className="gift-card-display p-5 bg-white border-2 border-dashed border-secondary rounded-lg text-center flex flex-col items-center">
                   <div className="giftcard-partner-logo mb-2" style={{ background: selectedPartner.color }} aria-hidden="true">
                     {selectedPartner.name.slice(0, 2).toUpperCase()}
@@ -272,12 +357,33 @@ const BeneficiaryDashboard: React.FC = () => {
                     Disponibilizado em: {new Date().toLocaleDateString('pt-BR')} • Válido por 30 dias.
                   </p>
                </div>
+               )}
             </section>
 
             {/* Receipt History preview */}
             <section className="history-preview">
                <h3 className="section-title mb-3">Recebimentos Anteriores</h3>
-               {history.length === 0 ? (
+               {sortedApiCards !== null ? (
+                 /* ── Histórico REAL da API (vales liberados para a família) ── */
+                 sortedApiCards.length === 0 ? (
+                   <p className="text-xs text-outline text-center py-4 bg-white rounded-lg border border-outline/5 italic">Ainda não há registros de apoios recebidos.</p>
+                 ) : (
+                   <div className="flex flex-col gap-2">
+                      {sortedApiCards.map((card) => (
+                        <div key={card.id} className="history-item p-3 bg-white rounded-lg border border-outline/10 flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                              <Calendar size={16} className="text-outline" />
+                              <span className="text-xs font-semibold text-outline">
+                                {card.releasedAt ? new Date(card.releasedAt).toLocaleDateString('pt-BR') : '—'}
+                                <span className="block text-[10px]">{apiProviderLabel(card.provider)}</span>
+                              </span>
+                          </div>
+                          <span className="text-sm font-extrabold text-success">R$ {(card.amount / 100).toFixed(2).replace('.', ',')}</span>
+                        </div>
+                      ))}
+                   </div>
+                 )
+               ) : history.length === 0 ? (
                  <p className="text-xs text-outline text-center py-4 bg-white rounded-lg border border-outline/5 italic">Ainda não há registros de apoios recebidos.</p>
                ) : (
                  <div className="flex flex-col gap-2">

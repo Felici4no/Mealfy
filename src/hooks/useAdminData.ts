@@ -1,9 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { storage } from '../backend/utils/storage';
+import { adminApi } from '../api/adminApi';
+import { familiesApi } from '../api/familiesApi';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Camada de dados do painel ADMIN — mock + localStorage (coerente com o app).
-// Não usa Supabase. Mutações (aprovar/rejeitar/suspender/role) persistem local.
+// Camada de dados do painel ADMIN — API-first com fallback localStorage (dev).
+// Entidades/usuários/famílias vêm da API real quando o backend está no ar;
+// mutações batem na API e atualizam o estado local. Sem backend → seeds locais.
 // ──────────────────────────────────────────────────────────────────────────────
 
 export type ModerationStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
@@ -100,21 +103,89 @@ export function useAdminData() {
     setUsers(next); storage.set(KEYS.users, next);
   }, []);
 
+  // ── API real: carrega entidades, usuários e famílias do backend ───────────
+  // Status backend (UserStatus/FamilyApprovalStatus) → status do painel.
+  const mapEntityStatus = (s: string): ModerationStatus =>
+    s === 'active' ? 'approved' : s === 'blocked' ? 'suspended' : (s as ModerationStatus);
+  const mapFamilyStatus = (s: string): ModerationStatus =>
+    s === 'blocked' ? 'suspended' : (s as ModerationStatus);
+  const mapUserStatus = (s: string): AccountStatus =>
+    s === 'blocked' || s === 'suspended' ? 'suspended' : s === 'pending' ? 'pending' : 'active';
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [entsRes, usersRes, famsRes] = await Promise.all([
+          adminApi.listEntities(),
+          adminApi.listUsers(),
+          familiesApi.getManagedFamilies(),
+        ]);
+        if (cancelled) return;
+
+        if (Array.isArray(entsRes?.entities)) {
+          setEntities(entsRes.entities.map((e: any) => ({
+            id: e.id, name: e.name, cnpj: e.cnpj, type: '—',
+            responsibleName: e.responsibleName, email: e.email, region: '—',
+            status: mapEntityStatus(e.status), createdAt: e.createdAt,
+          })));
+        }
+        if (Array.isArray(usersRes?.users)) {
+          setUsers(usersRes.users.map((u: any) => ({
+            id: u.id, name: u.name, email: u.email, role: u.role,
+            status: mapUserStatus(u.status), totalDonated: 0, createdAt: u.createdAt,
+          })));
+        }
+        const famList = famsRes?.families ?? famsRes;
+        if (Array.isArray(famList)) {
+          setFamilies(famList.map((f: any) => ({
+            id: f.id,
+            representativeName: f.responsibleName ?? f.displayName ?? '—',
+            neighborhood: f.neighborhood ?? '—',
+            city: f.city ?? '—',
+            childrenCount: f.childrenCount ?? (Array.isArray(f.dependents) ? f.dependents.length : 0),
+            entityName: f.entityName ?? '—',
+            status: mapFamilyStatus(f.approvalStatus ?? f.status),
+            createdAt: f.createdAt,
+          })));
+        }
+      } catch {
+        // Backend fora do ar → mantém seeds locais (dev).
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Dispara mutação na API sem bloquear a UI (estado local já foi atualizado). */
+  const fireAndForget = (fn: () => Promise<any>, label: string) => {
+    fn().catch((e) => console.warn(`[ADMIN] ${label} falhou na API (estado local mantido):`, e?.message ?? e));
+  };
+
   // ── Mutations ────────────────────────────────────────────────────────────
   const setEntityStatus = useCallback((id: string, status: ModerationStatus) => {
     persistEntities(entities.map(e => e.id === id ? { ...e, status } : e));
+    // API real: approve/block existem; "rejected"/"pending" não têm rota (local-only).
+    if (status === 'approved') fireAndForget(() => adminApi.approveEntity(id), 'approveEntity');
+    if (status === 'suspended') fireAndForget(() => adminApi.blockEntity(id), 'blockEntity');
   }, [entities, persistEntities]);
 
   const setFamilyStatus = useCallback((id: string, status: ModerationStatus) => {
     persistFamilies(families.map(f => f.id === id ? { ...f, status } : f));
+    // API real: approve/reject/block existem no backend.
+    if (status === 'approved') fireAndForget(() => familiesApi.approveFamily(id), 'approveFamily');
+    if (status === 'rejected') fireAndForget(() => familiesApi.rejectFamily(id), 'rejectFamily');
+    if (status === 'suspended') fireAndForget(() => familiesApi.blockFamily(id), 'blockFamily');
   }, [families, persistFamilies]);
 
   const setUserStatus = useCallback((id: string, status: AccountStatus) => {
     persistUsers(users.map(u => u.id === id ? { ...u, status } : u));
+    // API real: não há rota de status de usuário no backend (TODO) — local-only.
   }, [users, persistUsers]);
 
   const setUserRole = useCallback((id: string, role: AdminRole) => {
     persistUsers(users.map(u => u.id === id ? { ...u, role } : u));
+    // API real: não há rota de troca de papel no backend (TODO) — local-only.
   }, [users, persistUsers]);
 
   // ── Métricas ────────────────────────────────────────────────────────────

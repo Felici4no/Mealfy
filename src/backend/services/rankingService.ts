@@ -12,6 +12,22 @@ const TOTAL_DONOR_POOL = 1500;
 
 export const rankingService = {
   getUserRanking: async (userId: string): Promise<Pick<User, 'rankingPosition' | 'rankingPercentile' | 'totalDonated'>> => {
+    // ── API real: GET /ranking/me (posição calculada no backend sobre doações completed) ──
+    try {
+      const res = await rankingApi.getMyRanking();
+      if (res && typeof res.rankingPosition === 'number') {
+        return {
+          rankingPosition: res.rankingPosition,
+          rankingPercentile: res.rankingPercentile ?? '',
+          // Backend trabalha em centavos; o front exibe em reais.
+          totalDonated: (res.totalDonated ?? 0) / 100,
+        };
+      }
+    } catch (e) {
+      handleApiError(e, 'Get My Ranking');
+    }
+
+    // ── Fallback mock (somente dev, sem backend no ar) ──
     await randomDelay(300, 600);
     const sessionUser = storage.get<User>('current_user', {} as User);
     if (sessionUser && sessionUser.id === userId) {
