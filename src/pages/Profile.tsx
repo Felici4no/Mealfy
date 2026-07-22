@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader';
 import Button from '../components/ui/Button';
 import BottomSheet from '../components/ui/BottomSheet';
-import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings, QrCode, Share2, Award, User as UserIcon, AtSign, Lock, Camera, Trash2 } from 'lucide-react';
+import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings, QrCode, Share2, Award, User as UserIcon, AtSign, Lock, Camera, Trash2, ShieldCheck } from 'lucide-react';
 import { isImageSrc, fileToAvatarDataUrl } from '../utils/image';
 import { useAppContext } from '../context/AppContext';
 import { usersApi } from '../api/usersApi';
@@ -691,6 +691,15 @@ const Profile: React.FC = () => {
                 onChange={(e) => updateUserPrivacy({ anonymousMode: e.target.checked })}
               />
            </div>
+
+           <Button
+             variant="ghost"
+             className="menu-btn mt-2"
+             icon={<ShieldCheck size={20} className="text-outline" />}
+             onClick={() => { setIsSettingsOpen(false); navigate('/privacy'); }}
+           >
+             Política de Privacidade
+           </Button>
 
            <Button variant="outline" className="border-error text-error mt-4" fullWidth icon={<LogOut size={18} />} onClick={logout}>
               Sair da conta

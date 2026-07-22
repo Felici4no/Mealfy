@@ -362,6 +362,18 @@ const Auth: React.FC = () => {
           </button>
         </p>
 
+        {/* Política de Privacidade — exigida pela Play Store, acessível sem login */}
+        <p className="auth-register-prompt">
+          Ao continuar, você concorda com a nossa{' '}
+          <button
+            type="button"
+            className="auth-register-link"
+            onClick={() => navigate('/privacy')}
+          >
+            Política de Privacidade
+          </button>
+        </p>
+
         {/* ── Painel DEV (nunca aparece em produção) ── */}
         {import.meta.env.DEV && (
           <div className="auth-dev-panel" aria-label="Contas de teste (ambiente de desenvolvimento)">

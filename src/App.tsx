@@ -27,6 +27,7 @@ import Register from './pages/Register';
 import IndicateFamily from './pages/IndicateFamily';
 import ForgotPassword from './pages/ForgotPassword';
 import AdminDashboard from './pages/AdminDashboard';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 import './App.css';
 
@@ -52,7 +53,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   useNativeBackButton();
 
   // We hide the bottom tab bar on certain screens
-  const hideTabBarRoutes = ['/auth', '/register', '/forgot-password', '/donate', '/success', '/unauthorized', '/admin'];
+  const hideTabBarRoutes = ['/auth', '/register', '/forgot-password', '/donate', '/success', '/unauthorized', '/admin', '/privacy'];
   const isHiddenRoute = hideTabBarRoutes.some(route => location.pathname.startsWith(route));
 
   // Hide if beneficiary or admin (they have their own navigation or are simple)
@@ -86,6 +87,7 @@ function App() {
             <Route path="/family/:id" element={<PrivateRoute allowedRoles={['donor', 'entity', 'admin']}><FamilyDetails /></PrivateRoute>} />
             <Route path="/support" element={<Support />} />
             <Route path="/help" element={<Help />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
 
             {/* Donor Routes */}
             <Route path="/" element={<PrivateRoute allowedRoles={['donor']}><Home /></PrivateRoute>} />

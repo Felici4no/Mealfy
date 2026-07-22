@@ -97,3 +97,19 @@ Ou seja:
 ## 6. Fora do nosso escopo (cliente)
 - LGPD/base legal/DPO/termos · CNPJ e conta PJ · contrato com gateway Pix · fornecedor de gift cards.
 - Atenção: sem **CNPJ** não saem as credenciais do **Gov.br** nem conta PJ do gateway Pix — dependem do cliente.
+
+## 7. Progresso executado (22/07/2026)
+
+**Concluído e verificado:**
+- Banco de produção no Supabase (`mealfy`, us-west-2): 16 tabelas, RLS habilitado, migrations sincronizadas (`add_oauth_accounts` já aplicada).
+- Front conectado à API real: doações/Pix, beneficiário (vales decifrados), admin (aprovações, estoque e import de gift cards), ranking. Fallback mock só em dev/sem rede.
+- Segurança HTTP: helmet + rate limit (global, login/register, webhook) + trust proxy — verificado em runtime.
+- Keystore de release gerada (`android/mealfy-release.jks`, fora do git) com SHA-1/SHA-256 registrados para Google/Meta.
+- **Exclusão de conta**: `DELETE /me` no backend (com audit log) + zona de perigo no Perfil com confirmação em 2 etapas — testado ponta a ponta no banco de produção (usuário de teste removido por esse fluxo).
+- **Política de privacidade**: rota pública `/privacy` (sem login), linkada na tela de login e nas configurações do perfil. Texto é modelo técnico baseado no que o app coleta de fato — aguarda revisão do jurídico do cliente.
+
+**Bloqueado aguardando o usuário/cliente:**
+- Deploy da API (Railway/Render — conta dele) → depois `VITE_API_URL` de produção + rebuild do AAB.
+- E-mail do admin de produção (banco está sem nenhum usuário — smoke removido).
+- Credenciais Google/Meta/Apple/Gov.br (Gov.br exige CNPJ).
+- Texto final da política de privacidade (jurídico).
