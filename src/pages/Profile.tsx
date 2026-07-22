@@ -6,6 +6,7 @@ import BottomSheet from '../components/ui/BottomSheet';
 import { CreditCard, HelpCircle, Heart, Trophy, MessageCircle, LogOut, Clock, Settings, QrCode, Share2, Award, User as UserIcon, AtSign, Lock, Camera, Trash2 } from 'lucide-react';
 import { isImageSrc, fileToAvatarDataUrl } from '../utils/image';
 import { useAppContext } from '../context/AppContext';
+import { usersApi } from '../api/usersApi';
 import { donationService } from '../backend/services/donationService';
 import { rankingService } from '../backend/services/rankingService';
 import { getDonorById } from '../backend/mockData/users';
@@ -34,6 +35,26 @@ const Profile: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRegionSelectorOpen, setIsRegionSelectorOpen] = useState(false);
   const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
+
+  // Exclusão de conta (Play Store/LGPD): confirmação em duas etapas
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await usersApi.deleteMe();
+      showToast('Conta excluída. Sentiremos sua falta!', 'info');
+      setIsDeleteConfirmOpen(false);
+      setIsSettingsOpen(false);
+      logout();
+      navigate('/auth');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Não foi possível excluir a conta agora.', 'error');
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
 
   const [loading, setLoading] = useState(true);
 
@@ -674,6 +695,49 @@ const Profile: React.FC = () => {
            <Button variant="outline" className="border-error text-error mt-4" fullWidth icon={<LogOut size={18} />} onClick={logout}>
               Sair da conta
            </Button>
+
+           {/* ── Zona de perigo: exclusão definitiva da conta (Play Store/LGPD) ── */}
+           <div className="mt-2 pt-4 border-t border-error/15">
+              {!isDeleteConfirmOpen ? (
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  className="text-error/80 text-xs"
+                  icon={<Trash2 size={16} />}
+                  onClick={() => setIsDeleteConfirmOpen(true)}
+                >
+                  Excluir minha conta
+                </Button>
+              ) : (
+                <div className="bg-error/5 border border-error/20 rounded-lg p-4 flex flex-col gap-3">
+                  <span className="font-semibold text-sm text-error">Excluir conta definitivamente?</span>
+                  <p className="text-xs text-outline">
+                    Seus dados de perfil, histórico de apoios e preferências serão removidos. Essa ação não pode ser desfeita.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="small"
+                      fullWidth
+                      onClick={() => setIsDeleteConfirmOpen(false)}
+                      disabled={isDeletingAccount}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="small"
+                      fullWidth
+                      className="bg-error border-error"
+                      onClick={handleDeleteAccount}
+                      disabled={isDeletingAccount}
+                    >
+                      {isDeletingAccount ? 'Excluindo...' : 'Sim, excluir'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+           </div>
           </div>
       </BottomSheet>
 

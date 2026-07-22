@@ -36,3 +36,10 @@ export async function updatePrivacy(req: Request, res: Response): Promise<Respon
   const user = await usersService.updatePrivacy(req.auth.userId, data);
   return res.json({ user: toPublicUser(user) });
 }
+
+/** DELETE /me — exclusão de conta pelo próprio usuário (Play Store/LGPD). */
+export async function deleteMe(req: Request, res: Response): Promise<Response> {
+  if (!req.auth) throw new AppError('Não autenticado', 401, 'unauthenticated');
+  await usersService.deleteUser(req.auth.userId);
+  return res.json({ message: 'Conta excluída com sucesso.' });
+}
