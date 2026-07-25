@@ -235,7 +235,10 @@ export const donationService = {
       const history = await donationsApi.getMyDonations();
       if (history && Array.isArray(history.donations)) {
         return history.donations.map((dto: any) => ({
-          donation: dto,
+          // O backend trabalha em CENTAVOS e a UI exibe em reais. Normalizar aqui
+          // (e não em cada tela) evita que uma doação de R$ 25,00 apareça como
+          // "R$ 2500" — era o que acontecia em Profile e BeneficiaryDashboard.
+          donation: { ...dto, amount: (dto.amount ?? 0) / 100 },
           giftCard: dto.giftCard ?? null
         }));
       }

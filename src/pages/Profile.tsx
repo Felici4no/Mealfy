@@ -22,6 +22,29 @@ interface Badge {
   unlocked: boolean;
 }
 
+const DONATION_STATUS_LABEL: Record<string, string> = {
+  pending_payment: 'Aguardando pagamento',
+  gift_card_purchase_pending: 'Emitindo vale',
+  completed: 'Vale liberado',
+  manual_review: 'Em revisão',
+  failed: 'Não concluído',
+  canceled: 'Cancelado',
+};
+
+/**
+ * Texto de progresso de um apoio no histórico.
+ *
+ * O vale pode não existir: o DTO do doador nunca traz o código (por design) e,
+ * enquanto o pagamento não confirma, não há vale nenhum. Nesses casos o estado
+ * da DOAÇÃO é o que informa o doador.
+ */
+function describeDonationProgress(item: { donation: any; giftCard: { status?: string } | null }): string {
+  if (item.giftCard?.status) {
+    return item.giftCard.status === 'redeemed' ? 'Resgatado' : 'Disponibilizado';
+  }
+  return DONATION_STATUS_LABEL[item.donation?.status] ?? 'Em andamento';
+}
+
 const Profile: React.FC = () => {
   const { user, logout, updateUserPrivacy, updateUserProfile, selectedRegion } = useAppContext();
   const navigate = useNavigate();
@@ -456,9 +479,13 @@ const Profile: React.FC = () => {
                       <Heart size={16} className="text-primary" />
                     </div>
                     <div className="history-info">
-                      <span className="history-impact">{item.giftCard.label || 'Apoio Alimentar Coletivo'}</span>
+                      <span className="history-impact">
+                        {item.giftCard?.label
+                          || (item.donation as any).providerLabel
+                          || 'Apoio Alimentar Coletivo'}
+                      </span>
                       <span className="history-date text-outline">
-                        {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {item.giftCard.status === 'redeemed' ? 'Resgatado' : 'Disponibilizado'}
+                        {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {describeDonationProgress(item)}
                       </span>
                     </div>
                     <div className="history-amount">
