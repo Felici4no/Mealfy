@@ -13,7 +13,12 @@ import { toPaymentDto } from './payments.dto';
  */
 export async function webhook(req: Request, res: Response): Promise<Response> {
   const raw = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body ?? {});
-  const signature = req.header('x-webhook-signature') ?? req.header('x-signature');
+  // Cada gateway usa seu próprio cabeçalho: o Stripe assina em `Stripe-Signature`;
+  // o mock (e a maioria dos gateways Pix) usa `x-webhook-signature`.
+  const signature =
+    req.header('stripe-signature') ??
+    req.header('x-webhook-signature') ??
+    req.header('x-signature');
   const evt = paymentProvider.verifyAndParseWebhook(raw, signature);
   const result = await paymentsService.processWebhookEvent(evt);
   return res.json({ received: true, ...result });

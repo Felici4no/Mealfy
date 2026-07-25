@@ -31,6 +31,39 @@ export async function createPixChargeForDonation(donationId: string, amount: num
   return payment;
 }
 
+/**
+ * Cria a cobrança por CARTÃO de uma doação — é o caminho do Google Pay/Apple Pay
+ * (a carteira entrega um cartão tokenizado ao gateway).
+ *
+ * Devolve o `clientSecret` junto, mas ele **não é persistido**: é um segredo
+ * efêmero que o app usa para confirmar a cobrança no dispositivo. Assim como no
+ * Pix, o vale só é liberado quando o webhook confirmar o pagamento.
+ */
+export async function createCardChargeForDonation(donationId: string, amount: number) {
+  if (!paymentProvider.createCardPayment) {
+    throw new AppError(
+      `O provedor de pagamento ativo (${paymentProvider.name}) não suporta cartão. ` +
+        'Configure PAYMENT_PROVIDER=stripe.',
+      501,
+      'card_not_supported',
+    );
+  }
+
+  const charge = await paymentProvider.createCardPayment({ donationId, amount });
+  const payment = await prisma.payment.create({
+    data: {
+      donationId,
+      provider: paymentProvider.name,
+      method: 'card',
+      status: 'pending',
+      amount,
+      externalPaymentId: charge.externalPaymentId,
+    },
+  });
+  await prisma.donation.update({ where: { id: donationId }, data: { paymentId: payment.id } });
+  return { payment, clientSecret: charge.clientSecret };
+}
+
 export async function getPaymentForActor(actor: { userId: string; role: UserRole }, paymentId: string) {
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
   if (!payment) throw new AppError('Pagamento não encontrado', 404, 'payment_not_found');

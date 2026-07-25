@@ -17,23 +17,42 @@ import { apiRequest } from './apiClient';
 // não tem essas rotas; manter até decidirmos se viram feature real — ver roadmap).
 // ──────────────────────────────────────────────────────────────────────────────
 
+/** Meio de pagamento. `card` cobre Google Pay/Apple Pay (carteira → cartão tokenizado). */
+export type PaymentMethod = 'pix' | 'card';
+
 export interface CreateDonationResponse {
   donation: any;
   payment: {
     id: string;
     status: string;
     amount: number;
+    method?: PaymentMethod;
     pixQrCode?: string | null;
     pixCopyPaste?: string | null;
     expiresAt?: string | null;
   };
+  /**
+   * Só vem quando `paymentMethod: 'card'`. Segredo efêmero que o SDK do Stripe
+   * usa no dispositivo para abrir o Google Pay e confirmar a cobrança.
+   * Nunca persistir nem logar.
+   */
+  clientSecret?: string;
   message: string;
 }
 
 export const donationsApi = {
-  /** Cria intenção de doação + cobrança Pix (doador autenticado). */
-  createDonation: (data: { familyId: string; amount: number; provider?: string }) =>
-    apiRequest('/donations', 'POST', data) as Promise<CreateDonationResponse>,
+  /**
+   * Cria intenção de doação + cobrança (doador autenticado).
+   * Sem `paymentMethod`, o backend assume `pix` (contrato anterior preservado).
+   * Com `card`, a resposta traz `clientSecret` para confirmar via Google Pay.
+   * Em ambos os casos o vale só é liberado quando o webhook confirmar o pagamento.
+   */
+  createDonation: (data: {
+    familyId: string;
+    amount: number;
+    provider?: string;
+    paymentMethod?: PaymentMethod;
+  }) => apiRequest('/donations', 'POST', data) as Promise<CreateDonationResponse>,
 
   /** Detalhe de uma doação (role-aware: doador a sua; admin/entidade conforme posse). */
   getDonation: (id: string) => apiRequest(`/donations/${id}`, 'GET'),

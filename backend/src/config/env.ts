@@ -17,10 +17,15 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   // Gift cards (Fase 3) — 32 bytes em hex (64 chars); o crypto service valida o formato.
   ENCRYPTION_KEY: z.string().optional(),
-  // Pagamentos Pix (Fase 5)
-  PAYMENT_PROVIDER: z.enum(['mock']).default('mock'),
+  // Pagamentos (Fase 5) — `mock` só faz Pix fictício; `stripe` faz Pix e cartão
+  // (cartão é o caminho do Google Pay / Apple Pay).
+  PAYMENT_PROVIDER: z.enum(['mock', 'stripe']).default('mock'),
   PAYMENT_WEBHOOK_SECRET: z.string().optional(),
   PIX_EXPIRATION_MINUTES: z.coerce.number().int().positive().default(30),
+
+  // Stripe — obrigatórios quando PAYMENT_PROVIDER=stripe (validado abaixo).
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
   // Gift card provider (Fase 7) — só `manual_inventory` implementado; os demais
   // valores existem só como documentação de intenção (pendência comercial).
   GIFT_CARD_PROVIDER: z
@@ -48,7 +53,26 @@ const envSchema = z.object({
   GOVBR_CLIENT_SECRET: z.string().optional(),
   GOVBR_REDIRECT_URI: z.string().optional(),
   GOVBR_ENV: z.enum(['staging', 'production']).default('staging'),
-});
+})
+  // Dinheiro real não pode falhar na primeira doação por config faltando:
+  // se o gateway ativo é o Stripe, exige as chaves já no boot.
+  .superRefine((cfg, ctx) => {
+    if (cfg.PAYMENT_PROVIDER !== 'stripe') return;
+    if (!cfg.STRIPE_SECRET_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['STRIPE_SECRET_KEY'],
+        message: 'Obrigatório quando PAYMENT_PROVIDER=stripe',
+      });
+    }
+    if (!cfg.STRIPE_WEBHOOK_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['STRIPE_WEBHOOK_SECRET'],
+        message: 'Obrigatório quando PAYMENT_PROVIDER=stripe (sem ele o webhook não é verificável)',
+      });
+    }
+  });
 
 const parsed = envSchema.safeParse(process.env);
 

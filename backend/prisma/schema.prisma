@@ -110,6 +110,9 @@ enum PaymentStatus {
 
 enum PaymentMethod {
   pix
+  /// Cartão — inclui Google Pay/Apple Pay, que são carteiras que entregam um
+  /// cartão tokenizado ao gateway (não são meios de pagamento próprios).
+  card
 }
 
 enum GiftCardStatus {

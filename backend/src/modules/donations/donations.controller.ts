@@ -16,6 +16,22 @@ export async function createDonation(req: Request, res: Response): Promise<Respo
   const actor = actorOf(req);
   const data = createDonationSchema.parse(req.body);
   const { donation, family } = await donationsService.createDonationIntent(actor.userId, data);
+
+  if (data.paymentMethod === 'card') {
+    // Google Pay/Apple Pay: o app confirma no dispositivo com o clientSecret.
+    // O vale só é liberado quando o webhook confirmar (igual ao Pix).
+    const { payment, clientSecret } = await paymentsService.createCardChargeForDonation(
+      donation.id,
+      donation.amount,
+    );
+    return res.status(201).json({
+      donation: toDonorDonation(donation, family, actor.userId),
+      payment: toPaymentDto(payment),
+      clientSecret,
+      message: 'Doação criada. Confirme o pagamento para liberar o apoio à família.',
+    });
+  }
+
   const payment = await paymentsService.createPixChargeForDonation(donation.id, donation.amount);
   return res.status(201).json({
     donation: toDonorDonation(donation, family, actor.userId),
