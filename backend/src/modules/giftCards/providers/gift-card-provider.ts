@@ -30,7 +30,8 @@ export interface PurchaseGiftCardInput {
   metadata?: Record<string, unknown>;
 }
 
-export interface PurchaseGiftCardOutput {
+/** Gift card com o código EM MÃOS — pronto para ser entregue à família. */
+export interface IssuedGiftCard {
   externalOrderId: string | null;
   provider: CardBrand;
   brand: string; // rótulo legível (ex.: "iFood", "99 Mercado", "Carrefour")
@@ -47,10 +48,41 @@ export interface PurchaseGiftCardOutput {
 }
 
 /**
+ * Pedido ACEITO pelo fornecedor, mas sem código ainda — fornecedores reais
+ * costumam emitir de forma assíncrona (o código chega por webhook ou aparece
+ * numa consulta posterior a `getOrderStatus`).
+ *
+ * Neste estado a família **não** é marcada como alimentada e nenhum GiftCard é
+ * criado: não existe código para entregar. A conclusão acontece depois, via
+ * `completePendingOrder`.
+ */
+export interface PendingGiftCardOrder {
+  /** Obrigatório: é a única chave para reconciliar o pedido depois. */
+  externalOrderId: string;
+  provider: CardBrand;
+  amount: number;
+  currency: string;
+  raw?: unknown;
+}
+
+/**
+ * Resultado de uma compra. União discriminada porque os dois casos levam a
+ * caminhos totalmente diferentes no orquestrador — o compilador força o
+ * tratamento de ambos.
+ */
+export type PurchaseGiftCardOutput =
+  | ({ status: 'issued' } & IssuedGiftCard)
+  | ({ status: 'pending' } & PendingGiftCardOrder);
+
+/**
  * Contrato para obter um gift card — de estoque importado manualmente hoje,
- * de um fornecedor externo real no futuro (Todo/InComm, Incentive.me etc. —
+ * de um fornecedor externo real no futuro (iFood, Todo/InComm, Incentive.me —
  * pendência comercial, nenhum implementado ainda). Trocar de fornecedor
  * nunca deve exigir mudar `DonationFulfillmentService`.
+ *
+ * O provider é resolvido **por marca** (ver `resolveGiftCardProvider`), então é
+ * possível operar iFood por API e Carrefour por estoque manual ao mesmo tempo —
+ * o estado normal durante a transição para um fornecedor real.
  */
 export interface GiftCardProvider {
   readonly name: GiftCardProviderName;
@@ -59,7 +91,17 @@ export interface GiftCardProvider {
   checkAvailability(input: CheckAvailabilityInput): Promise<CheckAvailabilityOutput>;
   /** Nunca deve ser chamado antes do pagamento estar confirmado. */
   purchaseGiftCard(input: PurchaseGiftCardInput): Promise<PurchaseGiftCardOutput>;
+  /**
+   * Consulta o pedido no fornecedor. Usada pela reconciliação de pedidos
+   * `processing` — inclusive para buscar o código de um pedido assíncrono.
+   */
   getOrderStatus(externalOrderId: string): Promise<string | null>;
+  /**
+   * Opcional: providers assíncronos podem buscar o código de um pedido já
+   * aceito. A reconciliação usa isto para concluir um `PendingGiftCardOrder`.
+   * Retorna `null` se o fornecedor ainda não emitiu.
+   */
+  fetchIssuedOrder?(externalOrderId: string): Promise<IssuedGiftCard | null>;
   /** Opcional — só se o fornecedor permitir cancelar um pedido já feito. */
   cancelOrder?(externalOrderId: string): Promise<void>;
 }

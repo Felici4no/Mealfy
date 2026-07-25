@@ -72,7 +72,9 @@ export class ManualInventoryGiftCardProvider implements GiftCardProvider {
       data: { giftCardId: row.id, eventType: 'released', donationId: input.donationId },
     });
 
+    // Estoque local é sempre síncrono: o código já existe, nunca fica pendente.
     return {
+      status: 'issued',
       externalOrderId: null,
       provider: input.provider,
       brand: BRAND_LABEL[input.provider],

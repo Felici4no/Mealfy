@@ -54,7 +54,9 @@ pontos abaixo são onde essa promessa ainda não se sustenta.
 
 ## 2. Os 4 gaps reais para plugar o iFood amanhã
 
-### 2.1 🔴 Provider é global, mas a marca é por doação
+> **Status:** 2.1 e 2.2 **resolvidos** (ver seção 2.5). 2.3 e 2.4 seguem abertos.
+
+### 2.1 ✅ ~~Provider é global, mas a marca é por doação~~ — RESOLVIDO
 `GIFT_CARD_PROVIDER` é **uma** variável e `giftCardProvider` é um singleton de módulo.
 Só que a marca do cartão (`ifood` / `ninetynine` / `carrefour`) é escolhida **por doação**.
 
@@ -67,7 +69,7 @@ resolveProvider(brand) → provider   // ifood → IfoodApiProvider
                                     // carrefour → ManualInventory (fallback)
 ```
 
-### 2.2 🔴 A compra é assumida como síncrona
+### 2.2 ✅ ~~A compra é assumida como síncrona~~ — RESOLVIDO
 `PurchaseGiftCardOutput.code` é **obrigatório** (`code: string`) — o contrato só admite
 "comprei e já tenho o código". Uma API de fornecedor real costuma ser **assíncrona**:
 aceita o pedido e entrega o código depois (webhook ou polling).
@@ -100,6 +102,40 @@ implementação específica.
 
 **Revisar:** não é bug; decidir se vale isolar (ex.: o provider devolver sempre um
 código e o "reclamar do estoque" ficar interno ao manual provider).
+
+### 2.5 ✅ O que foi implementado (2.1 + 2.2)
+
+**Registry por marca** (`giftCards/providers/index.ts`)
+- `resolveGiftCardProvider(brand)` — precedência: override por marca > padrão
+- Nova env `GIFT_CARD_PROVIDER_BY_BRAND` (`ifood:ifood_card,carrefour:manual_inventory`),
+  **validada no boot** (marca/fornecedor inexistente é rejeitado)
+- Instanciação **preguiçosa** com cache: um fornecedor não implementado configurado
+  para uma marca que ninguém usa **não derruba mais o boot** (antes o singleton
+  eager lançava durante o import)
+- `switch` exaustivo: fornecedor novo no enum do Prisma quebra a compilação
+
+**Contrato assíncrono** (`gift-card-provider.ts`)
+- `PurchaseGiftCardOutput` virou união discriminada: `{status:'issued'} & IssuedGiftCard`
+  ou `{status:'pending'} & PendingGiftCardOrder` — o compilador **força** tratar os dois
+- Novo `fetchIssuedOrder?(externalOrderId)` para buscar o código depois
+- Orquestrador: no caso `pending`, a doação **fica** em `gift_card_purchase_pending`,
+  a família **não** é marcada alimentada e **nenhum** gift card é criado
+- T2 (claim atômico) extraído em `claimAndIssue`, reusado pelo novo
+  `completePendingOrder(orderId, issued)` — as garantias não são duplicadas
+
+**Bônus — vazamento mais grave encontrado e corrigido**
+`donations.service` contava estoque direto na tabela (`prisma.giftCard.count({status:'available'})`),
+furando a abstração. Com um fornecedor por API isso retornaria **sempre 0 e rejeitaria
+toda doação**. Agora usa `checkAvailability()` do provider da marca — que era exatamente
+o método que existia no contrato e nunca era chamado.
+
+**Provider `stub`** (`stubAsyncProvider.ts`) — fornecedor fictício **assíncrono**,
+bloqueado em produção, para exercitar esse caminho antes de existir contrato real.
+
+**Verificado ponta a ponta** (roteando `ifood` → `stub`): `purchase_pending` mantém a
+família não-alimentada e sem gift card · order fica `processing` com `externalOrderId` ·
+conclusão gera gift card **pelo caminho de provider por API** (não o do estoque) ·
+código cifrado em repouso · segunda conclusão rejeitada (`order_already_issued`).
 
 ---
 
@@ -164,8 +200,8 @@ código e o "reclamar do estoque" ficar interno ao manual provider).
 | # | Item | Por quê agora |
 |---|---|---|
 | 1 | Definir enquadramento (seção 0) | Decide comissão de 15–30% e tributação; afeta tudo |
-| 2 | Reconciliação + alertas (2.3) | É o gap que **perde dinheiro silenciosamente** |
+| 2 | Reconciliação + alertas (2.3) | É o gap que **perde dinheiro silenciosamente** — e agora é mais urgente: com o contrato assíncrono, pedidos podem legitimamente ficar `processing` |
 | 3 | Testes das 6 regras críticas | Sem eles, qualquer refactor pode liberar vale sem pagamento |
 | 4 | Backup da `ENCRYPTION_KEY` | Incidente aqui é irreversível |
-| 5 | Registry por marca (2.1) | Necessário **antes** da transição para API real |
-| 6 | Contrato assíncrono (2.2) | Necessário quando o fornecedor real entrar |
+| ~~5~~ | ~~Registry por marca (2.1)~~ | ✅ feito |
+| ~~6~~ | ~~Contrato assíncrono (2.2)~~ | ✅ feito |

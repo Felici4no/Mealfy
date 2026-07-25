@@ -2,6 +2,29 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 /**
+ * Espelham os enums `GiftCardProvider` (marca) e `GiftCardProviderName`
+ * (fornecedor) do `schema.prisma`. Declarados aqui como literais para o config
+ * não depender do client gerado do Prisma no boot — se um enum mudar no schema,
+ * atualizar aqui também (o `switch` de `instantiate` no registry de providers
+ * falha na compilação se um fornecedor novo não for tratado).
+ */
+const CARD_BRANDS = ['ifood', 'ninetynine', 'carrefour'] as const;
+const GIFT_CARD_PROVIDER_NAMES = [
+  'manual_inventory',
+  'todo_incomm',
+  'incentive_me',
+  'ding_connect',
+  'ifood_card',
+  'stub',
+] as const;
+
+const cardBrandSchema = z.enum(CARD_BRANDS);
+const giftCardProviderNameSchema = z.enum(GIFT_CARD_PROVIDER_NAMES);
+
+type CardBrandName = (typeof CARD_BRANDS)[number];
+type GiftCardProviderNameValue = (typeof GIFT_CARD_PROVIDER_NAMES)[number];
+
+/**
  * Validação central das variáveis de ambiente.
  * Na fundação (Fase 1A) validamos apenas o núcleo da API.
  * DATABASE_URL e segredos passam a ser exigidos nas fases seguintes.
@@ -28,9 +51,52 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   // Gift card provider (Fase 7) — só `manual_inventory` implementado; os demais
   // valores existem só como documentação de intenção (pendência comercial).
-  GIFT_CARD_PROVIDER: z
-    .enum(['manual_inventory', 'todo_incomm', 'incentive_me', 'ding_connect', 'ifood_card', 'stub'])
-    .default('manual_inventory'),
+  // Este é o provider PADRÃO, usado por qualquer marca sem override abaixo.
+  GIFT_CARD_PROVIDER: giftCardProviderNameSchema.default('manual_inventory'),
+
+  /**
+   * Override de provider POR MARCA — permite operar em modo misto durante a
+   * transição para um fornecedor real (ex.: iFood por API, Carrefour por
+   * estoque manual). Formato: `marca:provider,marca:provider`.
+   *   GIFT_CARD_PROVIDER_BY_BRAND="ifood:ifood_card,carrefour:manual_inventory"
+   * Marcas não listadas caem no GIFT_CARD_PROVIDER padrão.
+   */
+  GIFT_CARD_PROVIDER_BY_BRAND: z
+    .string()
+    .optional()
+    .transform((raw, ctx) => {
+      const map: Partial<Record<CardBrandName, GiftCardProviderNameValue>> = {};
+      if (!raw?.trim()) return map;
+
+      for (const pair of raw.split(',')) {
+        const [rawBrand, rawProvider] = pair.split(':').map((s) => s?.trim());
+        if (!rawBrand || !rawProvider) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Par inválido "${pair}". Use marca:provider (ex.: ifood:ifood_card).`,
+          });
+          continue;
+        }
+        const brand = cardBrandSchema.safeParse(rawBrand);
+        if (!brand.success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Marca desconhecida "${rawBrand}". Use: ${CARD_BRANDS.join(', ')}.`,
+          });
+          continue;
+        }
+        const provider = giftCardProviderNameSchema.safeParse(rawProvider);
+        if (!provider.success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Provider desconhecido "${rawProvider}" para a marca ${rawBrand}.`,
+          });
+          continue;
+        }
+        map[brand.data] = provider.data;
+      }
+      return map;
+    }),
 
   // ─── Login social (Fase 8) ───────────────────────────────────────────────
   // Todos opcionais: cada provedor só é habilitado quando suas credenciais existem.

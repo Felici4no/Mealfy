@@ -30,6 +30,22 @@ export async function createProcessingOrder(input: CreateOrderInput) {
   });
 }
 
+/**
+ * Pedido ACEITO pelo fornecedor, sem código ainda (emissão assíncrona).
+ * Mantém `processing` de propósito: é a reconciliação que vai concluir ou
+ * escalar. Guarda o `externalOrderId`, que é a única chave para consultar depois.
+ */
+export async function markOrderAwaitingSupplier(
+  orderId: string,
+  externalOrderId: string,
+  rawResponseMetadata?: Prisma.InputJsonValue,
+) {
+  return prisma.giftCardOrder.update({
+    where: { id: orderId },
+    data: { status: 'processing', externalOrderId, rawResponseMetadata },
+  });
+}
+
 export async function markOrderIssued(
   orderId: string,
   data: { externalOrderId?: string | null; rawResponseMetadata?: Prisma.InputJsonValue },

@@ -3,6 +3,7 @@ import { AppError } from '../../shared/errors/AppError';
 import { createAuditLog } from '../auditLogs/auditLog.service';
 import { wasFedThisCycle } from '../../shared/utils/feedCycle';
 import { fulfillPaidDonation } from './donationFulfillment.service';
+import { resolveGiftCardProvider } from '../giftCards/providers';
 import type { GiftCardProvider, UserRole, Family } from '@prisma/client';
 import type { CreateDonationInput } from './donations.validator';
 
@@ -54,8 +55,14 @@ export async function createDonationIntent(donorUserId: string, input: CreateDon
 
   const provider = resolveDonationProvider(family, input.provider);
 
-  const stock = await prisma.giftCard.count({ where: { provider, status: 'available' } });
-  if (stock <= 0) {
+  // Disponibilidade PERGUNTADA AO FORNECEDOR da marca, não contada na tabela
+  // local: um fornecedor por API não tem estoque em `gift_cards` e responderia
+  // sempre 0, rejeitando toda doação. Quem sabe medir estoque é cada provider.
+  const availability = await resolveGiftCardProvider(provider).checkAvailability({
+    provider,
+    amount: input.amount,
+  });
+  if (!availability.available) {
     throw new AppError(`Sem códigos disponíveis para ${provider}.`, 409, 'no_stock');
   }
 
