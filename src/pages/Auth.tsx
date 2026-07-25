@@ -4,6 +4,7 @@ import { Mail, Lock, Eye, EyeOff, ShieldCheck, Apple } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { AuthError } from '../backend/services/authProvider';
+import { authApi, type AuthProvidersInfo, type OAuthProvider } from '../api/authApi';
 import GovBrMockModal, { type GovBrMockData } from '../components/ui/GovBrMockModal';
 import './Auth.css';
 
@@ -54,13 +55,13 @@ const Auth: React.FC = () => {
   const emailError   = touched.email   && !isValidEmail(email)   ? 'Informe um e-mail válido.'              : '';
   const passwordError= touched.password&& password.length < 6    ? 'A senha deve ter pelo menos 6 caracteres.' : '';
 
-  // ─── Meta mock login ──────────────────────────────────────────────────────
-  const [isMetaLoading, setIsMetaLoading] = useState(false);
+  // ─── Login social ─────────────────────────────────────────────────────────
+  // O servidor diz quais provedores tem credencial (GET /auth/providers). Sem
+  // isso o app ofereceria botões que estouram 501 e o usuário só descobriria
+  // tentando. `null` = ainda carregando.
+  const [providers, setProviders] = useState<AuthProvidersInfo | null>(null);
+  const [socialLoading, setSocialLoading] = useState<OAuthProvider | 'govbr' | null>(null);
 
-  // ─── Apple mock login ──────────────────────────────────────────────────────
-  const [isAppleLoading, setIsAppleLoading] = useState(false);
-
-  // ─── Gov.br mock login/verificação ────────────────────────────────────────
   const [isGovLoading, setIsGovLoading]   = useState(false);
   const [showGovModal, setShowGovModal]   = useState(false);
   const mockGovData: GovBrMockData = {
@@ -68,6 +69,15 @@ const Auth: React.FC = () => {
     birthDate: '14/03/1990',
     cpf: '123.***.***-09',
   };
+
+  useEffect(() => {
+    let active = true;
+    authApi
+      .getProviders()
+      .then((r) => { if (active) setProviders(r.providers); })
+      .catch(() => { if (active) setProviders(null); }); // API fora: botões seguem desabilitados
+    return () => { active = false; };
+  }, []);
 
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -100,43 +110,68 @@ const Auth: React.FC = () => {
     }
   };
 
-  // ─── Meta (mock, visual apenas — sem chamada real) ───────────────────────
-  // TODO(social-login): trocar o mock por authService.signInWithOAuth('facebook', token)
-  // quando o plugin nativo (@capacitor-community/facebook-login) e o FACEBOOK_APP_ID
-  // estiverem configurados. O backend (/auth/oauth/facebook) já está pronto.
-  const handleMetaClick = async () => {
-    if (isMetaLoading) return;
-    setIsMetaLoading(true);
-    await new Promise<void>((r) => setTimeout(r, 1200));
-    setIsMetaLoading(false);
-    showToast('Login via Meta realizado com sucesso', 'success');
+  /**
+   * Login social. O backend já verifica o token e emite a sessão
+   * (`POST /auth/oauth/:provider`); o que falta é o SDK que obtém o token no
+   * dispositivo — plugin nativo no Capacitor, SDK do provedor na web.
+   *
+   * Enquanto isso não existe, o botão NÃO finge sucesso: ou informa que o
+   * provedor não está configurado no servidor, ou diz que falta o SDK.
+   */
+  const handleSocialClick = async (provider: OAuthProvider, label: string) => {
+    if (socialLoading) return;
+
+    const info = providers?.[provider];
+    if (!info?.enabled) {
+      showToast(`Login com ${label} ainda não está disponível.`, 'info');
+      return;
+    }
+
+    setSocialLoading(provider);
+    try {
+      // TODO(social-login): obter o token do provedor aqui e repassar:
+      //   const token = await getProviderToken(provider, info);
+      //   await signInWithOAuth(provider, token);
+      // Google/Apple devolvem ID token (JWT); Facebook, access token.
+      throw new Error(
+        `Credenciais de ${label} configuradas, mas o SDK que obtém o token ainda não foi integrado.`,
+      );
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : mapAuthError(err));
+    } finally {
+      setSocialLoading(null);
+    }
   };
 
-  // ─── Apple (mock, visual apenas — sem chamada real) ──────────────────────
-  // TODO(social-login): trocar o mock por authService.signInWithOAuth('apple', idToken, name)
-  // quando o "Sign in with Apple" nativo e o APPLE_CLIENT_ID estiverem configurados.
-  // Obrigatório no iOS sempre que Google/Facebook forem oferecidos (App Store 4.8).
-  // O backend (/auth/oauth/apple) já está pronto.
-  const handleAppleClick = async () => {
-    if (isAppleLoading) return;
-    setIsAppleLoading(true);
-    await new Promise<void>((r) => setTimeout(r, 1200));
-    setIsAppleLoading(false);
-    showToast('Login via Apple realizado com sucesso', 'success');
-  };
-
-  // ─── Gov.br (mock, visual apenas — sem chamada real) ─────────────────────
+  /**
+   * Gov.br usa Authorization Code: o backend redireciona para o SSO e trata o
+   * retorno. Quando não há credencial (exige CNPJ), mantém a demonstração visual
+   * apenas em DEV — em produção informa indisponibilidade em vez de simular.
+   */
   const handleGovClick = async () => {
     if (isGovLoading) return;
+
+    if (providers?.govbr.enabled) {
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      window.location.href = `${base}/auth/govbr/start`;
+      return;
+    }
+
+    if (!import.meta.env.DEV) {
+      showToast('Login com Gov.br ainda não está disponível.', 'info');
+      return;
+    }
+
     setIsGovLoading(true);
-    await new Promise<void>((r) => setTimeout(r, 1200));
+    await new Promise<void>((r) => setTimeout(r, 600));
     setIsGovLoading(false);
-    setShowGovModal(true);
+    setShowGovModal(true); // demonstração de fluxo, só em DEV
   };
 
   const handleGovConfirm = () => {
     setShowGovModal(false);
-    showToast('Identidade verificada via Gov.br', 'success');
+    // Demonstração de DEV — deixa explícito que nada foi verificado de verdade.
+    showToast('Demonstração: nenhuma identidade foi verificada.', 'info');
   };
 
   // ─── DEV: preenchimento rápido ────────────────────────────────────────────
@@ -279,27 +314,32 @@ const Auth: React.FC = () => {
           <div className="auth-separator-line" />
         </div>
 
-        {/* Botão Google — desativado: não há OAuth real no backend ainda, e um
-            login mock aqui geraria uma sessão sem token válido para a API. */}
-        <button type="button" className="auth-btn-google auth-btn-google--disabled" disabled>
+        {/* Google — habilitado só quando o servidor confirma ter credencial. */}
+        <button
+          type="button"
+          className={`auth-btn-google ${providers?.google.enabled ? '' : 'auth-btn-google--disabled'}`}
+          onClick={() => handleSocialClick('google', 'Google')}
+          disabled={!providers?.google.enabled || socialLoading !== null}
+          aria-busy={socialLoading === 'google'}
+        >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.78h5.4a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.74 3-4.3 3-7.3z" fill="#ccc"/>
             <path d="M10 20c2.7 0 4.97-.89 6.63-2.42l-3.23-2.5c-.9.6-2.05.96-3.4.96-2.6 0-4.82-1.76-5.6-4.12H1.07v2.58A10 10 0 0 0 10 20z" fill="#ccc"/>
             <path d="M4.4 11.92A5.99 5.99 0 0 1 4.08 10c0-.67.12-1.32.32-1.92V5.5H1.07A10 10 0 0 0 0 10c0 1.61.38 3.14 1.07 4.5l3.33-2.58z" fill="#ccc"/>
             <path d="M10 3.96c1.47 0 2.79.51 3.83 1.5l2.86-2.86C14.97.9 12.7 0 10 0A10 10 0 0 0 1.07 5.5l3.33 2.58C5.18 5.72 7.4 3.96 10 3.96z" fill="#ccc"/>
           </svg>
-          Google — Em breve
+          {providers?.google.enabled ? 'Continuar com Google' : 'Google — Em breve'}
         </button>
 
-        {/* Botão Meta (mock visual) */}
+        {/* Meta/Facebook */}
         <button
           type="button"
           className="auth-btn-meta"
-          onClick={handleMetaClick}
-          disabled={isMetaLoading}
-          aria-busy={isMetaLoading}
+          onClick={() => handleSocialClick('facebook', 'Meta')}
+          disabled={!providers?.facebook.enabled || socialLoading !== null}
+          aria-busy={socialLoading === 'facebook'}
         >
-          {isMetaLoading ? (
+          {socialLoading === 'facebook' ? (
             <span className="auth-spinner" aria-hidden="true" />
           ) : (
             <>
@@ -307,25 +347,25 @@ const Auth: React.FC = () => {
                 <path d="M20 10.06C20 4.74 15.52.5 10 .5S0 4.74 0 10.06c0 4.8 3.66 8.79 8.44 9.44v-6.7H6.13v-2.74h2.31V8.02c0-2.28 1.4-3.54 3.49-3.54.98 0 1.83.07 2.08.1v2.4h-1.42c-1.12 0-1.34.53-1.34 1.3v1.78h2.68l-.35 2.74h-2.33v6.7C16.34 18.85 20 14.86 20 10.06z" fill="#1877F2"/>
                 <path d="M13.58 12.8l.35-2.74h-2.68V8.28c0-.77.22-1.3 1.34-1.3h1.42v-2.4c-.25-.03-1.1-.1-2.08-.1-2.09 0-3.49 1.26-3.49 3.54v1.74H6.13v2.74h2.31v6.7c.49.06.99.1 1.5.1.43 0 .85-.03 1.26-.08v-6.72h2.38z" fill="#fff"/>
               </svg>
-              Continuar com Meta
+              {providers?.facebook.enabled ? 'Continuar com Meta' : 'Meta — Em breve'}
             </>
           )}
         </button>
 
-        {/* Botão Apple (mock visual) */}
+        {/* Apple — obrigatório no iOS se Google/Facebook forem oferecidos (App Store 4.8) */}
         <button
           type="button"
           className="auth-btn-apple"
-          onClick={handleAppleClick}
-          disabled={isAppleLoading}
-          aria-busy={isAppleLoading}
+          onClick={() => handleSocialClick('apple', 'Apple')}
+          disabled={!providers?.apple.enabled || socialLoading !== null}
+          aria-busy={socialLoading === 'apple'}
         >
-          {isAppleLoading ? (
+          {socialLoading === 'apple' ? (
             <span className="auth-spinner" aria-hidden="true" />
           ) : (
             <>
               <Apple size={20} fill="currentColor" aria-hidden="true" />
-              Continuar com Apple
+              {providers?.apple.enabled ? 'Continuar com Apple' : 'Apple — Em breve'}
             </>
           )}
         </button>

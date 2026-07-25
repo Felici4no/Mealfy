@@ -17,7 +17,17 @@
 
 **Frontend**
 - `authApi.oauth(provider, token, name?)` e `authService.signInWithOAuth(...)` prontos.
-- Botões Google, Meta, **Apple** e Gov.br na tela de login (hoje ainda em mock visual).
+- `GET /auth/providers` diz quais provedores o servidor tem credencial para atender;
+  a tela de login consome isso e **habilita o botão só quando há credencial**.
+  Sem isso o app ofereceria um botão que estoura 501 e o usuário só descobriria tentando.
+- Os botões **não fingem mais sucesso**: antes, clicar em Meta/Apple exibia
+  "Login realizado com sucesso" sem chamar nada. Agora mostram "Em breve"
+  (desabilitados) até existir credencial.
+
+**O que ainda falta no app:** o SDK que obtém o token no dispositivo.
+O backend já verifica o token e emite a sessão; falta a ponta que produz esse token
+(plugin nativo no Capacitor; SDK do provedor na web). Enquanto isso, um provedor
+configurado mas sem SDK devolve erro explícito em vez de silêncio.
 
 **Android**
 - `signingConfig` de release lê `android/keystore.properties` se existir (build de debug do CI segue funcionando sem ele).

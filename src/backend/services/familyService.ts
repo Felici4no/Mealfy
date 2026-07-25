@@ -152,18 +152,34 @@ export const familyService = {
     return families[idx];
   },
 
+  /**
+   * Lista de fam\u00edlias. Backend \u00e9 a fonte de verdade (`GET /families`,
+   * role-aware). Os filtros s\u00e3o aplicados aqui porque a rota ainda n\u00e3o os
+   * aceita como query params.
+   */
   getFamilies: async (filters?: { region?: string; communityId?: string }): Promise<Family[]> => {
     try {
-      const apiFamilies = await familiesApi.getPublicFamilies(filters);
-      if (apiFamilies) return apiFamilies;
+      const data = await familiesApi.listFamilies();
+      let families = (data.families as BackendDonorFamily[]).map(mapDonorFamily);
+
+      if (filters?.region) {
+        const normalize = (v: string) =>
+          v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const query = normalize(filters.region);
+        families = families.filter((f) => normalize(f.neighborhood || (f as any).region || '') === query);
+      }
+      if (filters?.communityId) {
+        families = families.filter((f) => f.communityId === filters.communityId);
+      }
+      return families;
     } catch (e) {
       handleApiError(e, 'Get Families');
     }
-    
+
     await randomDelay();
     familyService.initDB();
     let families = storage.get<Family[]>(FAMILIES_KEY, mockFamilies);
-    
+
     if (filters?.region) {
       const normalizedQuery = filters.region.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       families = families.filter(f => {
@@ -171,22 +187,20 @@ export const familyService = {
         return fReg === normalizedQuery;
       });
     }
-    
+
     if (filters?.communityId) {
       families = families.filter(f => f.communityId === filters.communityId);
     }
-    
+
     return families;
   },
 
   getFamiliesByCommunity: async (communityId: string): Promise<Family[]> => {
     try {
-      // O backend /families/public ja retorna familias.
-      // Em uma API real teriamos /families/public?communityId=...
-      const apiFamilies = await familiesApi.getPublicFamilies();
-      if (apiFamilies) {
-        return (apiFamilies as Family[]).filter((f: Family) => f.communityId === communityId);
-      }
+      const data = await familiesApi.listFamilies();
+      return (data.families as BackendDonorFamily[])
+        .map(mapDonorFamily)
+        .filter((f) => f.communityId === communityId);
     } catch (e) {
       handleApiError(e, 'Get Families by Community');
     }

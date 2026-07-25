@@ -20,6 +20,17 @@ export interface AuthResponse {
 
 export type OAuthProvider = 'google' | 'facebook' | 'apple';
 
+/**
+ * Quais logins sociais o servidor tem credencial para atender. Sem isso o app
+ * ofereceria botões que falham com 501 — o usuário só descobriria tentando.
+ */
+export interface AuthProvidersInfo {
+  google: { enabled: boolean; clientId: string | null };
+  facebook: { enabled: boolean; appId: string | null };
+  apple: { enabled: boolean; clientId: string | null };
+  govbr: { enabled: boolean; env: string };
+}
+
 export interface OAuthResponse extends AuthResponse {
   isNew: boolean;
 }
@@ -40,4 +51,7 @@ export const authApi = {
    */
   oauth: (provider: OAuthProvider, token: string, name?: string) =>
     apiRequest<OAuthResponse>(`/auth/oauth/${provider}`, 'POST', { token, name }),
+
+  /** Provedores sociais realmente configurados no servidor (público). */
+  getProviders: () => apiRequest<{ providers: AuthProvidersInfo }>('/auth/providers', 'GET'),
 };

@@ -1,9 +1,29 @@
 import type { Request, Response } from 'express';
+import { env } from '../../../config/env';
 import { oauthTokenSchema, oauthProviderParam, govbrCallbackSchema } from './oauth.validator';
 import { verifyProviderToken } from './oauth.providers';
-import { buildAuthorizationUrl, exchangeCode } from './oauth.govbr';
+import { buildAuthorizationUrl, exchangeCode, isGovBrConfigured } from './oauth.govbr';
 import { signInWithOAuth } from './oauth.service';
 import { toPublicUser } from '../../users/users.dto';
+
+/**
+ * GET /auth/providers — quais logins sociais estão REALMENTE configurados.
+ *
+ * Existe para o app não oferecer um botão que vai falhar: sem isto, a única
+ * forma de descobrir que falta credencial é o usuário tentar e tomar 501.
+ * Só devolve identificadores públicos (client id já vai no app de qualquer
+ * forma) — nunca secrets.
+ */
+export async function listProviders(_req: Request, res: Response): Promise<Response> {
+  return res.json({
+    providers: {
+      google: { enabled: Boolean(env.GOOGLE_CLIENT_ID), clientId: env.GOOGLE_CLIENT_ID ?? null },
+      facebook: { enabled: Boolean(env.FACEBOOK_APP_ID), appId: env.FACEBOOK_APP_ID ?? null },
+      apple: { enabled: Boolean(env.APPLE_CLIENT_ID), clientId: env.APPLE_CLIENT_ID ?? null },
+      govbr: { enabled: isGovBrConfigured(), env: env.GOVBR_ENV },
+    },
+  });
+}
 
 /**
  * POST /auth/oauth/:provider   (provider ∈ google | facebook | apple)

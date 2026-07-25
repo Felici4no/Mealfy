@@ -28,6 +28,9 @@ export const rankingService = {
     }
 
     // ── Fallback mock (somente dev, sem backend no ar) ──
+    // Atenção: a posição abaixo é DERIVADA DA BASE FICTÍCIA — não é um número
+    // real. Só existe para a tela não ficar vazia trabalhando offline; com a
+    // API no ar este trecho nunca roda.
     await randomDelay(300, 600);
     const sessionUser = storage.get<User>('current_user', {} as User);
     if (sessionUser && sessionUser.id === userId) {
@@ -40,8 +43,6 @@ export const rankingService = {
         };
       }
 
-      // Posição calculada com base na ordenação real por totalDonated (decrescente)
-      // entre o usuário logado e a base pública de doadores.
       const donorTotals = mockDonors.map((d) => d.totalDonated);
       const betterCount = donorTotals.filter((t) => t > sessionUser.totalDonated).length;
       const scale = TOTAL_DONOR_POOL / (donorTotals.length + 1);
@@ -67,9 +68,12 @@ export const rankingService = {
       const res = await rankingApi.getRanking();
       // Backend retorna { donors: [...] }
       const donors = res?.donors ?? res;
-      if (Array.isArray(donors) && donors.length > 0) return donors as PublicDonorProfile[];
+      // Lista VAZIA é resposta válida (ninguém optou por aparecer ainda) — não é
+      // falha. Tratá-la como erro fazia o app exibir doadores fictícios como se
+      // fossem reais, que é pior do que mostrar um carrossel vazio.
+      if (Array.isArray(donors)) return donors as PublicDonorProfile[];
     } catch (e) {
-      handleApiError(e, 'Get Ranking');
+      handleApiError(e, 'Get Ranking'); // lança em modo API-only
     }
 
     // DEV fallback — só alcançável se o backend não estiver disponível

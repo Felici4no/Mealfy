@@ -7,7 +7,6 @@ import { communityService } from '../backend/services/communityService';
 import { rankingService } from '../backend/services/rankingService';
 import { usersApi } from '../api/usersApi';
 import SplashScreen from '../components/ui/SplashScreen';
-import { mockDonors } from '../backend/mockData/users';
 
 /** Tempo mínimo de exibição do splash, para a barra de progresso ser visível. */
 const SPLASH_MIN_MS = 2600;
@@ -52,9 +51,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [selectedRegion, setSelectedRegionState] = useState<string | null>(null);
 
-  // Stories (top 20) — fonte editável persistida em localStorage
+  // Stories (top 20) — vêm do ranking real (GET /ranking) e ficam em cache
+  // local só para o carrossel não piscar entre sessões. O default é VAZIO:
+  // semear com doadores fictícios os exibia como se fossem apoiadores reais.
   const [stories, setStoriesState] = useState<PublicDonorProfile[]>(
-    () => storage.get<PublicDonorProfile[]>(STORIES_KEY, mockDonors)
+    () => storage.get<PublicDonorProfile[]>(STORIES_KEY, [])
   );
 
   const updateStories = (next: PublicDonorProfile[]) => {
@@ -78,9 +79,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCommunities(comms);
         setSelectedCommunity(comms[0] || null);
 
-        // Atualiza stories a partir do backend (não-bloqueante — falha silenciosa)
+        // Atualiza stories a partir do backend (não-bloqueante — falha silenciosa).
+        // Aplica o resultado mesmo VAZIO: se ninguém optou por aparecer no
+        // ranking, o carrossel deve esvaziar em vez de manter nomes antigos.
         rankingService.getTopDonors().then((donors) => {
-          if (donors.length > 0) updateStories(donors);
+          updateStories(donors);
         }).catch(() => {});
       } catch (err) {
         console.error('Erro inicializando app', err);

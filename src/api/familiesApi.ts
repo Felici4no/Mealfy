@@ -16,15 +16,14 @@ export const familiesApi = {
   blockFamily: (id: string) => apiRequest(`/families/${id}/block`, 'POST'),
 
   /**
-   * @deprecated Path não existe no backend (fora do escopo da Fase 6B —
-   * usado só por familyService.getFamilies/getFamiliesByCommunity, que ainda
-   * não foram conectados). Mantido para não quebrar esses fluxos; sempre
-   * cai no fallback mock local.
+   * Lista de famílias visíveis ao usuário autenticado. É a MESMA rota
+   * `GET /families` (role-aware): para doador o backend já devolve só as
+   * aprovadas, sem CPF/NIS/endereço completo.
+   *
+   * Substitui o antigo `getPublicFamilies`, que apontava para `/families/public`
+   * — rota inexistente que caía em `/:id` e respondia 404, forçando o app a
+   * usar mock. Os filtros são aplicados no cliente porque a rota ainda não
+   * aceita query params.
    */
-  getPublicFamilies: (filters?: { region?: string; communityId?: string }) => {
-    let query = '';
-    if (filters?.region) query += `region=${encodeURIComponent(filters.region)}&`;
-    if (filters?.communityId) query += `communityId=${encodeURIComponent(filters.communityId)}&`;
-    return apiRequest(`/families/public${query ? '?' + query : ''}`, 'GET');
-  },
+  listFamilies: () => apiRequest<{ families: any[] }>('/families', 'GET'),
 };
