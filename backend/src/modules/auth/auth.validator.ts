@@ -11,6 +11,12 @@ export const registerSchema = z.object({
   email: z.string().email('E-mail inválido'),
   password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
   role: z.enum(['donor', 'entity']),
+  /**
+   * O formulário de cadastro já coleta telefone. Sem estar declarado aqui o zod
+   * o REMOVIA silenciosamente (comportamento padrão de strip), e o usuário era
+   * criado com phone NULL sem nenhum erro aparente.
+   */
+  phone: z.string().max(30).optional(),
 });
 
 export const loginSchema = z.object({

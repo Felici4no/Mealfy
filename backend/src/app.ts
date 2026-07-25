@@ -65,8 +65,14 @@ export function createApp(): Application {
   const corsOrigin =
     env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map((o) => o.trim());
   app.use(cors({ origin: corsOrigin }));
-  // captura o body cru p/ verificação de assinatura de webhook
-  app.use(express.json({ verify: (req, _res, buf) => { (req as express.Request).rawBody = buf; } }));
+  // captura o body cru p/ verificação de assinatura de webhook.
+  // limit acima do padrão (100kb) porque a foto de perfil trafega como data URL
+  // base64 em PATCH /me e estouraria com 413. O ideal a médio prazo é subir a
+  // imagem para um storage e guardar só a URL.
+  app.use(express.json({
+    limit: '2mb',
+    verify: (req, _res, buf) => { (req as express.Request).rawBody = buf; },
+  }));
 
   // Módulos
   app.use('/health', healthRoutes);

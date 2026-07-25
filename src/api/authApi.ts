@@ -36,8 +36,14 @@ export interface OAuthResponse extends AuthResponse {
 }
 
 export const authApi = {
-  register: (data: { name: string; email: string; password: string; role: 'donor' | 'entity' }) =>
-    apiRequest<AuthResponse>('/auth/register', 'POST', data),
+  register: (data: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'donor' | 'entity';
+    /** Coletado no formulário de cadastro; o backend persiste em users.phone. */
+    phone?: string;
+  }) => apiRequest<AuthResponse>('/auth/register', 'POST', data),
 
   login: (email: string, password: string) =>
     apiRequest<AuthResponse>('/auth/login', 'POST', { email, password }),

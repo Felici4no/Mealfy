@@ -5,7 +5,7 @@ import type { User, Community, PrivacySettings, PublicDonorProfile } from '../ba
 import { authService } from '../backend/services/authService';
 import { communityService } from '../backend/services/communityService';
 import { rankingService } from '../backend/services/rankingService';
-import { usersApi } from '../api/usersApi';
+import { usersApi, type UpdateMeInput } from '../api/usersApi';
 import SplashScreen from '../components/ui/SplashScreen';
 
 /** Tempo mínimo de exibição do splash, para a barra de progresso ser visível. */
@@ -182,6 +182,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  /**
+   * Atualiza o perfil: aplica local na hora (otimista) e persiste no backend.
+   *
+   * Só os campos que o backend modela vão para `PATCH /me` — `avatar` do front
+   * corresponde a `avatarUrl` na API. Preferências que a API ainda não guarda
+   * (missão pessoal, famílias salvas, preferências de impacto) seguem só locais,
+   * e `privacySettings` tem endpoint próprio.
+   */
   const updateUserProfile = async (updates: Partial<User>): Promise<void> => {
     if (!user) return;
     const newUser = { ...user, ...updates };
@@ -193,6 +201,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       storage.set('users_db', users);
     }
     storage.set('current_user', newUser);
+
+    // ── Persistência no backend ──
+    const remote: UpdateMeInput = {};
+    if ('name' in updates) remote.name = updates.name;
+    // `undefined` no front significa "remover" — a API espera null explícito.
+    if ('avatar' in updates) remote.avatarUrl = updates.avatar ?? null;
+    if ('instagram' in updates) remote.instagram = updates.instagram ?? null;
+    if ('phone' in updates) remote.phone = updates.phone ?? null;
+
+    if (Object.keys(remote).length > 0) {
+      try {
+        await usersApi.updateMe(remote);
+      } catch (e) {
+        console.warn('[AppContext] Falha ao salvar perfil no backend:', e);
+      }
+    }
+
+    if (updates.privacySettings) {
+      try {
+        await usersApi.updatePrivacy(updates.privacySettings);
+      } catch (e) {
+        console.warn('[AppContext] Falha ao salvar privacidade no backend:', e);
+      }
+    }
   };
 
   const toggleSavedFamily = async (familyId: string): Promise<void> => {

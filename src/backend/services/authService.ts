@@ -152,6 +152,7 @@ export const authService = {
         email: data.email,
         password: data.password,
         role: data.role,
+        phone: data.phone,
       });
       await setToken(token);
       const mapped = mapBackendUser(user);

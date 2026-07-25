@@ -10,12 +10,15 @@ export async function register(input: RegisterInput) {
   if (existing) throw new AppError('E-mail já cadastrado', 409, 'email_taken');
 
   const passwordHash = await hashPassword(input.password);
+  const phone = input.phone?.trim();
   const user = await prisma.user.create({
     data: {
       name: input.name.trim(),
       email,
       role: input.role,
       passwordHash,
+      // String vazia vira NULL — coluna opcional não deve guardar "".
+      phone: phone ? phone : null,
       // entidade nasce pendente de aprovação; doador já fica ativo
       status: input.role === 'entity' ? 'pending' : 'active',
     },
