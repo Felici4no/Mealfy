@@ -5,9 +5,11 @@ import {
   listGiftCardsQuerySchema,
   invalidateGiftCardSchema,
   listGiftCardOrdersQuerySchema,
+  reconcileOrdersSchema,
 } from './giftCards.validator';
 import * as giftCardsService from './giftCards.service';
 import * as giftCardOrdersService from './giftCardOrders.service';
+import { reconcileStaleOrders } from './giftCardOrders.reconcile.service';
 import { toAdminGiftCard } from './giftCards.dto';
 import { retryFulfillment } from '../donations/donationFulfillment.service';
 
@@ -52,4 +54,14 @@ export async function listGiftCardOrders(req: Request, res: Response): Promise<R
 export async function retryGiftCardOrder(req: Request, res: Response): Promise<Response> {
   const result = await retryFulfillment(req.params.id, adminId(req));
   return res.json({ outcome: result.outcome, donation: result.donation });
+}
+
+/**
+ * Reconcilia pedidos presos: conclui os que já têm código e escala (com alerta)
+ * os que estouraram a janela. Em produção deve rodar por cron, não à mão.
+ */
+export async function reconcileGiftCardOrders(req: Request, res: Response): Promise<Response> {
+  const { staleMinutes, limit } = reconcileOrdersSchema.parse(req.body ?? {});
+  const summary = await reconcileStaleOrders({ staleMinutes, limit });
+  return res.json(summary);
 }

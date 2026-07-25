@@ -61,6 +61,13 @@ const envSchema = z.object({
    *   GIFT_CARD_PROVIDER_BY_BRAND="ifood:ifood_card,carrefour:manual_inventory"
    * Marcas não listadas caem no GIFT_CARD_PROVIDER padrão.
    */
+  /**
+   * Quanto tempo um pedido pode ficar sem código antes de virar pendência
+   * humana. Curto demais escala pedido que ia concluir sozinho; longo demais
+   * deixa o doador esperando sem ninguém saber.
+   */
+  GIFT_CARD_ORDER_STALE_MINUTES: z.coerce.number().int().positive().default(15),
+
   GIFT_CARD_PROVIDER_BY_BRAND: z
     .string()
     .optional()

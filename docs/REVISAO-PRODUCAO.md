@@ -54,7 +54,7 @@ pontos abaixo são onde essa promessa ainda não se sustenta.
 
 ## 2. Os 4 gaps reais para plugar o iFood amanhã
 
-> **Status:** 2.1 e 2.2 **resolvidos** (ver seção 2.5). 2.3 e 2.4 seguem abertos.
+> **Status:** 2.1, 2.2 e 2.3 **resolvidos** (ver seções 2.5 e 2.6). Só 2.4 segue aberto.
 
 ### 2.1 ✅ ~~Provider é global, mas a marca é por doação~~ — RESOLVIDO
 `GIFT_CARD_PROVIDER` é **uma** variável e `giftCardProvider` é um singleton de módulo.
@@ -83,7 +83,7 @@ contrato não expressa "aceito, código vem depois".
 | { status: 'pending'; externalOrderId: string }   // código chega depois
 ```
 
-### 2.3 🔴 Não existe reconciliação — risco de pedido órfão
+### 2.3 ✅ ~~Não existe reconciliação — risco de pedido órfão~~ — RESOLVIDO
 `getOrderStatus` está no contrato mas **nunca é chamado**. Não há job que verifique
 orders presas em `processing`.
 
@@ -131,6 +131,38 @@ o método que existia no contrato e nunca era chamado.
 
 **Provider `stub`** (`stubAsyncProvider.ts`) — fornecedor fictício **assíncrono**,
 bloqueado em produção, para exercitar esse caminho antes de existir contrato real.
+
+### 2.6 ✅ O que foi implementado (2.3 — reconciliação e alertas)
+
+`giftCardOrders.reconcile.service.ts` varre pedidos em `processing`/`pending` e
+tenta recuperar, do mais barato ao mais caro:
+
+1. **Deriva** — a doação concluiu mas o pedido ficou atrás (crash entre o commit
+   da transação e a marcação): só corrige o pedido, nada é comprado.
+2. **Código já reclamado localmente** — o processo morreu depois de tirar o código
+   do estoque e antes de concluir. **Reaproveita o código existente** em vez de
+   comprar de novo (compra dupla = prejuízo + estoque furado).
+3. **Fornecedor assíncrono** — consulta `fetchIssuedOrder` e conclui se já emitiu.
+
+Se nada resolve e o pedido passou de `GIFT_CARD_ORDER_STALE_MINUTES` (default 15),
+escala para `manual_review` **com alerta** e marca a doação também. A conclusão
+sempre passa pelo mesmo `completePendingOrder` → mesmo claim atômico, sem
+duplicar garantias.
+
+**Alertas** — `shared/alerts/alert.service.ts` é o ponto único de emissão. Hoje
+gera log estruturado JSON de uma linha (`kind:"alert"`, `event`, `severity`,
+`context`), pronto para coletor. Eventos são uma **lista fechada** de tipos, então
+alerta novo é decisão consciente. Nunca inclui código de gift card.
+⚠️ **Ainda falta** encaminhar para Sentry/Slack — quando entrarem, só esse arquivo muda.
+
+**Endpoint** `POST /admin/gift-card-orders/reconcile` (admin), aceitando
+`{ staleMinutes?, limit? }`. ⚠️ **Em produção precisa de cron** — hoje é disparo manual,
+mesma situação de `/payments/expire-overdue`.
+
+**Verificado ponta a ponta** nos 5 cenários: conclusão por fornecedor assíncrono ·
+recuperação de código órfão **sem criar cartão duplicado** · correção de deriva ·
+escalada por janela estourada mantendo a família **não-alimentada** e emitindo o
+alerta `gift_card_order_stale` · execução seguinte não reprocessa nada.
 
 **Verificado ponta a ponta** (roteando `ifood` → `stub`): `purchase_pending` mantém a
 família não-alimentada e sem gift card · order fica `processing` com `externalOrderId` ·
@@ -200,8 +232,9 @@ código cifrado em repouso · segunda conclusão rejeitada (`order_already_issue
 | # | Item | Por quê agora |
 |---|---|---|
 | 1 | Definir enquadramento (seção 0) | Decide comissão de 15–30% e tributação; afeta tudo |
-| 2 | Reconciliação + alertas (2.3) | É o gap que **perde dinheiro silenciosamente** — e agora é mais urgente: com o contrato assíncrono, pedidos podem legitimamente ficar `processing` |
+| 2 | **Cron da reconciliação + destino dos alertas** | A lógica existe e está testada, mas sem cron ninguém a dispara, e sem Sentry/Slack o alerta morre no log |
 | 3 | Testes das 6 regras críticas | Sem eles, qualquer refactor pode liberar vale sem pagamento |
 | 4 | Backup da `ENCRYPTION_KEY` | Incidente aqui é irreversível |
 | ~~5~~ | ~~Registry por marca (2.1)~~ | ✅ feito |
 | ~~6~~ | ~~Contrato assíncrono (2.2)~~ | ✅ feito |
+| ~~7~~ | ~~Reconciliação + alertas (2.3)~~ | ✅ lógica feita — resta operacionalizar (item 2) |

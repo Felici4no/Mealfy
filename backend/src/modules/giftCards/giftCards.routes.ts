@@ -9,6 +9,7 @@ import {
   invalidateGiftCard,
   listGiftCardOrders,
   retryGiftCardOrder,
+  reconcileGiftCardOrders,
 } from './giftCards.controller';
 
 // Montado em /admin — somente admin.
@@ -24,4 +25,6 @@ giftCardsRoutes.post('/gift-cards/:id/invalidate', invalidateGiftCard);
 
 // Fase 7 — pendências de emissão (manual_review/failed) e retry manual.
 giftCardsRoutes.get('/gift-card-orders', listGiftCardOrders);
+// Antes de /:id/retry: /reconcile não é um id de pedido.
+giftCardsRoutes.post('/gift-card-orders/reconcile', reconcileGiftCardOrders);
 giftCardsRoutes.post('/gift-card-orders/:id/retry', retryGiftCardOrder);

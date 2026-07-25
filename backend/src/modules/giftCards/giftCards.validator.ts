@@ -36,6 +36,12 @@ export const listGiftCardOrdersQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(200).default(50),
 });
 
+/** Parâmetros opcionais da reconciliação; sem eles vale o default do env. */
+export const reconcileOrdersSchema = z.object({
+  staleMinutes: z.coerce.number().int().positive().max(1440).optional(),
+  limit: z.coerce.number().int().positive().max(500).optional(),
+});
+
 export type ImportGiftCardsInput = z.infer<typeof importGiftCardsSchema>;
 export type ListGiftCardsQuery = z.infer<typeof listGiftCardsQuerySchema>;
 export type ListGiftCardOrdersQuery = z.infer<typeof listGiftCardOrdersQuerySchema>;
