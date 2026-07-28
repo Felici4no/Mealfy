@@ -7,10 +7,9 @@ import InstagramSection from '../components/ui/InstagramSection';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
-import { donationService } from '../backend/services/donationService';
 import { beneficiaryApi } from '../api/giftcardsApi';
 import { Gift, Calendar, Heart, Clock, AlertTriangle, QrCode, Copy, Phone, ShieldCheck, ShieldAlert, ChevronRight } from 'lucide-react';
-import type { Family, GiftCard, Donation } from '../backend/types';
+import type { Family } from '../backend/types';
 import GiftCardSelectorModal, { GIFT_CARD_PARTNERS } from '../components/ui/GiftCardSelectorModal';
 import './BeneficiaryDashboard.css';
 
@@ -41,7 +40,14 @@ const BeneficiaryDashboard: React.FC = () => {
   const { showToast } = useToast();
   
   const [family, setFamily] = useState<Family | null>(null);
-  const [history, setHistory] = useState<{donation: Donation, giftCard: GiftCard | null}[]>([]);
+  /**
+   * Histórico de apoios RECEBIDOS — derivado dos vales liberados para a família.
+   * Não usa `/me/donations`: aquela rota é exclusiva do doador (roleGuard) e
+   * respondia 403 para o beneficiário.
+   */
+  const [history, setHistory] = useState<
+    { donation: { createdAt: string; amount: number }; giftCard: ApiGiftCard | null }[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   // Vales reais da API. null = API indisponível ou usuário sem vínculo de beneficiário
@@ -64,31 +70,60 @@ const BeneficiaryDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?.beneficiaryId) {
-         setLoading(false);
-         return;
+      if (!user) {
+        setLoading(false);
+        return;
       }
-      
-      const [fam, hist] = await Promise.all([
-         familyService.getFamilyById(user.beneficiaryId),
-         donationService.getDonationHistoryByUser(user.id)
-      ]);
 
-      if (fam) {
-        setFamily(fam);
-        // Default simulatedStatus to family actual status
-        setSimulatedStatus((fam.status as any) || 'approved');
-      }
-      setHistory(hist || []);
-
-      // ── API real: vales do beneficiário (código decifrado só aqui) ──
+      // ── Família: vem do vínculo REAL no backend (families.beneficiaryUserId).
+      // Antes dependia de `user.beneficiaryId`, um id que só existia no cache
+      // local herdado do mock — um beneficiário de verdade via a tela vazia.
+      let resolvedFamilyId: string | null = null;
       try {
-        const resp = await beneficiaryApi.getMyGiftCards();
-        if (resp && Array.isArray(resp.giftCards)) {
-          setApiCards(resp.giftCards);
+        const resp = await beneficiaryApi.getMyFamily();
+        if (resp?.family) {
+          setFamily(resp.family as any);
+          setSimulatedStatus((resp.family.approvalStatus as any) || 'approved');
+          resolvedFamilyId = resp.family.id;
         }
       } catch {
-        // 401/403 (sem vínculo de beneficiário) ou API fora do ar → fluxo local/mock.
+        // 403 sem vínculo / API fora: cai no id local, se existir (dev/offline).
+        if (user.beneficiaryId) {
+          const fam = await familyService.getFamilyById(user.beneficiaryId).catch(() => null);
+          if (fam) {
+            setFamily(fam);
+            setSimulatedStatus((fam.status as any) || 'approved');
+            resolvedFamilyId = fam.id;
+          }
+        }
+      }
+
+      // ── Vales do beneficiário (único lugar que devolve o código decifrado) ──
+      let cards: ApiGiftCard[] | null = null;
+      if (resolvedFamilyId) {
+        try {
+          const resp = await beneficiaryApi.getMyGiftCards();
+          if (resp && Array.isArray(resp.giftCards)) {
+            cards = resp.giftCards;
+            setApiCards(cards);
+          }
+        } catch {
+          // 401/403 (sem vínculo) ou API fora do ar → mantém o fluxo local.
+        }
+      }
+
+      // ── Histórico: para o beneficiário é o que ele RECEBEU.
+      // `/me/donations` é exclusivo de doador (roleGuard) e respondia 403 aqui —
+      // o histórico correto sai dos próprios vales liberados.
+      if (cards) {
+        setHistory(
+          cards.map((c) => ({
+            donation: { createdAt: c.releasedAt ?? new Date().toISOString(), amount: c.amount / 100 },
+            giftCard: c,
+          })),
+        );
+      } else {
+        setHistory([]);
       }
 
       setLoading(false);

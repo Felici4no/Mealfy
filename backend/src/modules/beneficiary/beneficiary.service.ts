@@ -1,9 +1,16 @@
 import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 
-/** Família vinculada ao beneficiário logado. 403 se não houver vínculo. */
+/**
+ * Família vinculada ao beneficiário logado. 403 se não houver vínculo.
+ * Inclui dependentes: o beneficiário é o dono do próprio cadastro e a tela
+ * precisa deles para mostrar quantas crianças estão cobertas.
+ */
 export async function getMyFamily(userId: string) {
-  const family = await prisma.family.findFirst({ where: { beneficiaryUserId: userId } });
+  const family = await prisma.family.findFirst({
+    where: { beneficiaryUserId: userId },
+    include: { dependents: true },
+  });
   if (!family) throw new AppError('Nenhuma família vinculada a este beneficiário.', 403, 'no_family');
   return family;
 }

@@ -26,15 +26,6 @@ function mapAuthError(err: unknown): string {
   return 'Não foi possível entrar agora. Tente novamente.';
 }
 
-// ─── Contas de teste (só renderizadas em DEV) ──────────────────────────────
-const DEV_ACCOUNTS = [
-  { label: 'Apoiador',     email: 'doador@mealfy.com'       },
-  { label: 'Entidade',     email: 'entidade@mealfy.com'     },
-  { label: 'Beneficiário', email: 'beneficiario@mealfy.com' },
-  { label: 'Admin',        email: 'admin@mealfy.com'        },
-];
-const DEV_PASSWORD = '123456';
-
 // ──────────────────────────────────────────────────────────────────────────────
 
 const Auth: React.FC = () => {
@@ -172,14 +163,6 @@ const Auth: React.FC = () => {
     setShowGovModal(false);
     // Demonstração de DEV — deixa explícito que nada foi verificado de verdade.
     showToast('Demonstração: nenhuma identidade foi verificada.', 'info');
-  };
-
-  // ─── DEV: preenchimento rápido ────────────────────────────────────────────
-  const fillDevAccount = (acc: typeof DEV_ACCOUNTS[0]) => {
-    setEmail(acc.email);
-    setPassword(DEV_PASSWORD);
-    setTouched({ email: false, password: false });
-    setFormError('');
   };
 
   const isSubmitDisabled = isLoading || (touched.email && !!emailError) || (touched.password && !!passwordError);
@@ -414,26 +397,6 @@ const Auth: React.FC = () => {
           </button>
         </p>
 
-        {/* ── Painel DEV (nunca aparece em produção) ── */}
-        {import.meta.env.DEV && (
-          <div className="auth-dev-panel" aria-label="Contas de teste (ambiente de desenvolvimento)">
-            <p className="auth-dev-title">Contas para teste</p>
-            <div className="auth-dev-chips">
-              {DEV_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.label}
-                  type="button"
-                  className="auth-dev-chip"
-                  onClick={() => fillDevAccount(acc)}
-                  title={`Preencher com ${acc.email} / ${DEV_PASSWORD}`}
-                >
-                  {acc.label}
-                </button>
-              ))}
-            </div>
-            <p className="auth-dev-hint">Clique para preencher. Senha: <code>{DEV_PASSWORD}</code></p>
-          </div>
-        )}
       </main>
 
       {/* ── Gov.br mock modal ── */}
