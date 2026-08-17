@@ -96,7 +96,15 @@ async function upsertFamily(
 ) {
   await prisma.family.upsert({
     where: { id },
-    update: {},
+    // Reconecta a entidade em famílias que já existem.
+    //
+    // `update: {}` deixava o seed sem efeito sobre linhas antigas: se a entidade
+    // for recriada (o usuário dela é apagado e o cascade leva a entidade junto),
+    // `Family.entityId` vira NULL e nunca mais era religado — a conta de entidade
+    // passava a enxergar zero famílias. Só o vínculo é atualizado de propósito:
+    // status de aprovação, `lastFedAt` e afins são estado operacional e não devem
+    // ser sobrescritos por reexecução do seed.
+    update: { entity: data.entity },
     create: { id, ...data },
   });
 
