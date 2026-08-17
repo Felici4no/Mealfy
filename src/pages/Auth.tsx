@@ -297,81 +297,67 @@ const Auth: React.FC = () => {
           <div className="auth-separator-line" />
         </div>
 
-        {/* Google — habilitado só quando o servidor confirma ter credencial. */}
-        <button
-          type="button"
-          className={`auth-btn-google ${providers?.google.enabled ? '' : 'auth-btn-google--disabled'}`}
-          onClick={() => handleSocialClick('google', 'Google')}
-          disabled={!providers?.google.enabled || socialLoading !== null}
-          aria-busy={socialLoading === 'google'}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.78h5.4a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.74 3-4.3 3-7.3z" fill="#ccc"/>
-            <path d="M10 20c2.7 0 4.97-.89 6.63-2.42l-3.23-2.5c-.9.6-2.05.96-3.4.96-2.6 0-4.82-1.76-5.6-4.12H1.07v2.58A10 10 0 0 0 10 20z" fill="#ccc"/>
-            <path d="M4.4 11.92A5.99 5.99 0 0 1 4.08 10c0-.67.12-1.32.32-1.92V5.5H1.07A10 10 0 0 0 0 10c0 1.61.38 3.14 1.07 4.5l3.33-2.58z" fill="#ccc"/>
-            <path d="M10 3.96c1.47 0 2.79.51 3.83 1.5l2.86-2.86C14.97.9 12.7 0 10 0A10 10 0 0 0 1.07 5.5l3.33 2.58C5.18 5.72 7.4 3.96 10 3.96z" fill="#ccc"/>
-          </svg>
-          {providers?.google.enabled ? 'Continuar com Google' : 'Google — Em breve'}
-        </button>
+        {/* Provedores sociais — quadrados discretos, lado a lado.
+            Enquanto o servidor não confirma credencial (GET /auth/providers),
+            ficam com aparência travada: escuros e com o logo dessaturado.
+            O rótulo vive no aria-label/title, não em texto visível. */}
+        <div className="auth-social-row">
+          <button
+            type="button"
+            className={`auth-social-square ${providers?.google.enabled ? '' : 'auth-social-square--locked'}`}
+            onClick={() => handleSocialClick('google', 'Google')}
+            disabled={!providers?.google.enabled || socialLoading !== null}
+            aria-busy={socialLoading === 'google'}
+            aria-label={providers?.google.enabled ? 'Entrar com Google' : 'Entrar com Google (indisponível)'}
+            title={providers?.google.enabled ? 'Entrar com Google' : 'Google indisponível'}
+          >
+            <svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.78h5.4a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.74 3-4.3 3-7.3z" fill="#4285F4"/>
+              <path d="M10 20c2.7 0 4.97-.89 6.63-2.42l-3.23-2.5c-.9.6-2.05.96-3.4.96-2.6 0-4.82-1.76-5.6-4.12H1.07v2.58A10 10 0 0 0 10 20z" fill="#34A853"/>
+              <path d="M4.4 11.92A5.99 5.99 0 0 1 4.08 10c0-.67.12-1.32.32-1.92V5.5H1.07A10 10 0 0 0 0 10c0 1.61.38 3.14 1.07 4.5l3.33-2.58z" fill="#FBBC05"/>
+              <path d="M10 3.96c1.47 0 2.79.51 3.83 1.5l2.86-2.86C14.97.9 12.7 0 10 0A10 10 0 0 0 1.07 5.5l3.33 2.58C5.18 5.72 7.4 3.96 10 3.96z" fill="#EA4335"/>
+            </svg>
+          </button>
 
-        {/* Meta/Facebook */}
-        <button
-          type="button"
-          className="auth-btn-meta"
-          onClick={() => handleSocialClick('facebook', 'Meta')}
-          disabled={!providers?.facebook.enabled || socialLoading !== null}
-          aria-busy={socialLoading === 'facebook'}
-        >
-          {socialLoading === 'facebook' ? (
-            <span className="auth-spinner" aria-hidden="true" />
-          ) : (
-            <>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M20 10.06C20 4.74 15.52.5 10 .5S0 4.74 0 10.06c0 4.8 3.66 8.79 8.44 9.44v-6.7H6.13v-2.74h2.31V8.02c0-2.28 1.4-3.54 3.49-3.54.98 0 1.83.07 2.08.1v2.4h-1.42c-1.12 0-1.34.53-1.34 1.3v1.78h2.68l-.35 2.74h-2.33v6.7C16.34 18.85 20 14.86 20 10.06z" fill="#1877F2"/>
-                <path d="M13.58 12.8l.35-2.74h-2.68V8.28c0-.77.22-1.3 1.34-1.3h1.42v-2.4c-.25-.03-1.1-.1-2.08-.1-2.09 0-3.49 1.26-3.49 3.54v1.74H6.13v2.74h2.31v6.7c.49.06.99.1 1.5.1.43 0 .85-.03 1.26-.08v-6.72h2.38z" fill="#fff"/>
-              </svg>
-              {providers?.facebook.enabled ? 'Continuar com Meta' : 'Meta — Em breve'}
-            </>
-          )}
-        </button>
+          <button
+            type="button"
+            className={`auth-social-square ${providers?.facebook.enabled ? '' : 'auth-social-square--locked'}`}
+            onClick={() => handleSocialClick('facebook', 'Meta')}
+            disabled={!providers?.facebook.enabled || socialLoading !== null}
+            aria-busy={socialLoading === 'facebook'}
+            aria-label={providers?.facebook.enabled ? 'Entrar com Meta' : 'Entrar com Meta (indisponível)'}
+            title={providers?.facebook.enabled ? 'Entrar com Meta' : 'Meta indisponível'}
+          >
+            <svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M20 10.06C20 4.74 15.52.5 10 .5S0 4.74 0 10.06c0 4.8 3.66 8.79 8.44 9.44v-6.7H6.13v-2.74h2.31V8.02c0-2.28 1.4-3.54 3.49-3.54.98 0 1.83.07 2.08.1v2.4h-1.42c-1.12 0-1.34.53-1.34 1.3v1.78h2.68l-.35 2.74h-2.33v6.7C16.34 18.85 20 14.86 20 10.06z" fill="#1877F2"/>
+              <path d="M13.58 12.8l.35-2.74h-2.68V8.28c0-.77.22-1.3 1.34-1.3h1.42v-2.4c-.25-.03-1.1-.1-2.08-.1-2.09 0-3.49 1.26-3.49 3.54v1.74H6.13v2.74h2.31v6.7c.49.06.99.1 1.5.1.43 0 .85-.03 1.26-.08v-6.72h2.38z" fill="#fff"/>
+            </svg>
+          </button>
 
-        {/* Apple — obrigatório no iOS se Google/Facebook forem oferecidos (App Store 4.8) */}
-        <button
-          type="button"
-          className="auth-btn-apple"
-          onClick={() => handleSocialClick('apple', 'Apple')}
-          disabled={!providers?.apple.enabled || socialLoading !== null}
-          aria-busy={socialLoading === 'apple'}
-        >
-          {socialLoading === 'apple' ? (
-            <span className="auth-spinner" aria-hidden="true" />
-          ) : (
-            <>
-              <Apple size={20} fill="currentColor" aria-hidden="true" />
-              {providers?.apple.enabled ? 'Continuar com Apple' : 'Apple — Em breve'}
-            </>
-          )}
-        </button>
+          <button
+            type="button"
+            className={`auth-social-square ${providers?.apple.enabled ? '' : 'auth-social-square--locked'}`}
+            onClick={() => handleSocialClick('apple', 'Apple')}
+            disabled={!providers?.apple.enabled || socialLoading !== null}
+            aria-busy={socialLoading === 'apple'}
+            aria-label={providers?.apple.enabled ? 'Entrar com Apple' : 'Entrar com Apple (indisponível)'}
+            title={providers?.apple.enabled ? 'Entrar com Apple' : 'Apple indisponível'}
+          >
+            <Apple size={22} fill="currentColor" aria-hidden="true" />
+          </button>
 
-        {/* Botão Gov.br (mock visual) */}
-        <button
-          type="button"
-          className="auth-btn-govbr"
-          onClick={handleGovClick}
-          disabled={isGovLoading}
-          aria-busy={isGovLoading}
-        >
-          {isGovLoading ? (
-            <span className="auth-spinner" aria-hidden="true" />
-          ) : (
-            <>
-              <span className="govbr-icon" aria-hidden="true">
-                <ShieldCheck size={18} color="#FFCD07" strokeWidth={2.5} />
-              </span>
-              Entrar com Gov.br
-            </>
-          )}
-        </button>
+          <button
+            type="button"
+            className={`auth-social-square ${providers?.govbr.enabled ? '' : 'auth-social-square--locked'}`}
+            onClick={handleGovClick}
+            disabled={isGovLoading}
+            aria-busy={isGovLoading}
+            aria-label={providers?.govbr.enabled ? 'Entrar com Gov.br' : 'Entrar com Gov.br (indisponível)'}
+            title={providers?.govbr.enabled ? 'Entrar com Gov.br' : 'Gov.br indisponível'}
+          >
+            <ShieldCheck size={22} color="#FFCD07" strokeWidth={2.5} aria-hidden="true" />
+          </button>
+        </div>
 
         {/* Link criar conta */}
         <p className="auth-register-prompt">

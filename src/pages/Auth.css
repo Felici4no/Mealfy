@@ -94,17 +94,15 @@
   padding: 28px 24px calc(32px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
 
-  /* Glassmorphism suave */
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: 0 -8px 40px rgba(2, 15, 31, 0.12);
-
-  /* Fallback para navegadores sem backdrop-filter */
-  @supports not (backdrop-filter: blur(1px)) {
-    background: #fff;
-  }
+  /* Painel OPACO de propósito.
+     Antes era `rgba(255,255,255,0.92)` com backdrop-filter: como ele sobrepõe o
+     hero escuro (margin-top negativo), os 8% de transparência deixavam o
+     gradiente vazar e criavam uma tarja acinzentada no topo. A borda branca
+     semitransparente nos quatro lados ainda desenhava um vinco nas laterais,
+     contra o fundo branco da página. */
+  background: #fff;
+  border: none;
+  box-shadow: 0 -6px 24px rgba(2, 15, 31, 0.10);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -393,6 +391,63 @@
 .govbr-icon {
   display: inline-flex;
   align-items: center;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PROVEDORES SOCIAIS — quadrados discretos, lado a lado
+   ══════════════════════════════════════════════════════════════════ */
+.auth-social-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.auth-social-square {
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1.5px solid #e0e0e0;
+  color: #1a1c1c;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.1s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.auth-social-square:hover:not(:disabled) {
+  border-color: #bbb;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.auth-social-square:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Estado travado: escuro e com o logo dessaturado — comunica indisponível
+   sem precisar de texto tipo "em breve". */
+.auth-social-square--locked,
+.auth-social-square:disabled {
+  background: #262b36;
+  border-color: #2f3542;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.auth-social-square--locked svg,
+.auth-social-square:disabled svg {
+  filter: grayscale(1);
+  opacity: 0.42;
+}
+
+/* Apple usa currentColor: no estado travado precisa clarear para aparecer
+   sobre o fundo escuro. */
+.auth-social-square--locked {
+  color: #f2f4f7;
 }
 
 /* ── Apple (mock) ── */
