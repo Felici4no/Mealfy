@@ -5,7 +5,6 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "comment": "SPA: o app tem ~25 rotas client-side (react-router). Sem este rewrite, abrir ou recarregar /privacy, /profile etc. direto na URL devolve 404 — inclusive a política de privacidade que o Play Console precisa acessar.",
       "source": "/((?!assets/|images/|favicon|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }
