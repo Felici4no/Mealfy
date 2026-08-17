@@ -27,8 +27,12 @@ jobs:
 
       - name: Build web app
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Sem isto o build cai no default `http://localhost:3000` — que, num
+          # celular, é o próprio aparelho. Toda chamada de API falharia.
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://mealfy-backend.onrender.com' }}
+          # Desliga o fallback local: sem isto o APK mascara falha de API com
+          # dados fictícios e parece funcionar exibindo famílias que não existem.
+          VITE_DISABLE_LOCAL_FALLBACK: 'true'
         run: npm run build
 
       - name: Sync Capacitor Android
