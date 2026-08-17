@@ -1,0 +1,14 @@
+# A Vercel publica APENAS o app (frontend). A API vive no Render — subir uma
+# segunda cópia serverless aqui traria rate limit em memória (inútil entre
+# instâncias), sem agendador para a reconciliação e risco de timeout.
+backend/
+
+# Projeto nativo e artefatos de build do Android não vão para a web.
+android/
+ios/
+dist/
+
+# Documentação e scripts não fazem parte do bundle publicado.
+docs/
+scripts/
+supabase/
