@@ -5,7 +5,6 @@ import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { AuthError } from '../backend/services/authProvider';
 import { authApi, type AuthProvidersInfo, type OAuthProvider } from '../api/authApi';
-import GovBrMockModal, { type GovBrMockData } from '../components/ui/GovBrMockModal';
 import './Auth.css';
 
 // ─── Helpers de validação ──────────────────────────────────────────────────
@@ -53,13 +52,6 @@ const Auth: React.FC = () => {
   const [providers, setProviders] = useState<AuthProvidersInfo | null>(null);
   const [socialLoading, setSocialLoading] = useState<OAuthProvider | 'govbr' | null>(null);
 
-  const [isGovLoading, setIsGovLoading]   = useState(false);
-  const [showGovModal, setShowGovModal]   = useState(false);
-  const mockGovData: GovBrMockData = {
-    name: 'Maria da Silva Santos',
-    birthDate: '14/03/1990',
-    cpf: '123.***.***-09',
-  };
 
   useEffect(() => {
     let active = true;
@@ -139,30 +131,14 @@ const Auth: React.FC = () => {
    * retorno. Quando não há credencial (exige CNPJ), mantém a demonstração visual
    * apenas em DEV — em produção informa indisponibilidade em vez de simular.
    */
-  const handleGovClick = async () => {
-    if (isGovLoading) return;
-
-    if (providers?.govbr.enabled) {
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      window.location.href = `${base}/auth/govbr/start`;
-      return;
-    }
-
-    if (!import.meta.env.DEV) {
-      showToast('Login com Gov.br ainda não está disponível.', 'info');
-      return;
-    }
-
-    setIsGovLoading(true);
-    await new Promise<void>((r) => setTimeout(r, 600));
-    setIsGovLoading(false);
-    setShowGovModal(true); // demonstração de fluxo, só em DEV
-  };
-
-  const handleGovConfirm = () => {
-    setShowGovModal(false);
-    // Demonstração de DEV — deixa explícito que nada foi verificado de verdade.
-    showToast('Demonstração: nenhuma identidade foi verificada.', 'info');
+  const handleGovClick = () => {
+    // Só chega aqui quando o servidor confirma credencial — o botão fica
+    // desabilitado caso contrário. A demonstração visual que existia em DEV foi
+    // removida: um botão travado que ainda abria uma tela de "entrar com Gov.br"
+    // dava a impressão de integração que não existe.
+    if (!providers?.govbr.enabled) return;
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    window.location.href = `${base}/auth/govbr/start`;
   };
 
   const isSubmitDisabled = isLoading || (touched.email && !!emailError) || (touched.password && !!passwordError);
@@ -350,8 +326,7 @@ const Auth: React.FC = () => {
             type="button"
             className={`auth-social-square ${providers?.govbr.enabled ? '' : 'auth-social-square--locked'}`}
             onClick={handleGovClick}
-            disabled={isGovLoading}
-            aria-busy={isGovLoading}
+            disabled={!providers?.govbr.enabled || socialLoading !== null}
             aria-label={providers?.govbr.enabled ? 'Entrar com Gov.br' : 'Entrar com Gov.br (indisponível)'}
             title={providers?.govbr.enabled ? 'Entrar com Gov.br' : 'Gov.br indisponível'}
           >
@@ -384,15 +359,6 @@ const Auth: React.FC = () => {
         </p>
 
       </main>
-
-      {/* ── Gov.br mock modal ── */}
-      {showGovModal && (
-        <GovBrMockModal
-          data={mockGovData}
-          onConfirm={handleGovConfirm}
-          onClose={() => setShowGovModal(false)}
-        />
-      )}
     </div>
   );
 };
