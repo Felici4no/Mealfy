@@ -538,7 +538,7 @@ const BeneficiaryDashboard: React.FC = () => {
         )}
       </main>
 
-      <InstagramSection />
+      <InstagramSection showPartners={false} />
 
       {/* ── Gift card selector modal ── */}
       {showGiftCardSelector && (

@@ -15,16 +15,17 @@ const FEATURED: IgAccount = {
   bio: 'Combatendo a fome infantil, uma refeição de cada vez.',
 };
 
-const PARTNERS: IgAccount[] = [
-  { handle: '@owl4tech',         url: 'https://www.instagram.com/owl4tech',         label: 'Tecnologia' },
-  { handle: '@talonintelligence', url: 'https://www.instagram.com/talonintelligence', label: 'Inteligência' },
-];
-
 const IDEALIZER: IgAccount = {
   handle: '@christianomealfy',
   url: 'https://www.instagram.com/christianomealfy',
   label: 'Idealizador do Mealfy',
 };
+
+// A ordem aqui é a ordem na tela, e é intencional: Talon antes de Owl.
+const PARTNERS: IgAccount[] = [
+  { handle: '@talonintelligence', url: 'https://www.instagram.com/talonintelligence', label: 'Inteligência' },
+  { handle: '@owl4tech',          url: 'https://www.instagram.com/owl4tech',          label: 'Tecnologia' },
+];
 
 function open(url: string) {
   window.open(url, '_blank', 'noopener,noreferrer');
@@ -48,7 +49,16 @@ const IgIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
   </svg>
 );
 
-const InstagramSection: React.FC = () => (
+interface InstagramSectionProps {
+  /**
+   * Mostra os perfis parceiros. Desligado na tela do beneficiário, que vê
+   * apenas o Mealfy e o idealizador — quem está ali esperando uma refeição não
+   * é público de divulgação de parceiro.
+   */
+  showPartners?: boolean;
+}
+
+const InstagramSection: React.FC<InstagramSectionProps> = ({ showPartners = true }) => (
   <section className="ig-section mx-4 mb-4">
     <div className="ig-section-header">
       <IgIcon size={16} />
@@ -72,11 +82,13 @@ const InstagramSection: React.FC = () => (
       </div>
     </button>
 
-    {/* ── Parceiros & Idealizador — lista uniforme de linhas horizontais ── */}
-    <p className="ig-subsection-label">Parceiros &amp; Idealizador</p>
+    {/* ── Idealizador & parceiros — lista uniforme de linhas horizontais ── */}
+    <p className="ig-subsection-label">
+      {showPartners ? 'Idealizador & Parceiros' : 'Idealizador'}
+    </p>
 
     <div className="ig-accounts-list">
-      {[...PARTNERS, IDEALIZER].map((acc) => (
+      {(showPartners ? [IDEALIZER, ...PARTNERS] : [IDEALIZER]).map((acc) => (
         <button key={acc.handle} className="ig-account-row" onClick={() => open(acc.url)} aria-label={`Abrir ${acc.handle} no Instagram`}>
           <span className="ig-account-icon"><IgIcon size={22} /></span>
           <span className="ig-account-meta">
