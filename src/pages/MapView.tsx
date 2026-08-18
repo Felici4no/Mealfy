@@ -28,6 +28,14 @@ const CITY_CENTERS: Record<string, [number, number]> = {
   RJ: [-22.9100, -43.2900],
 };
 
+/**
+ * Onde o mapa abre quando não há localização do usuário nem região escolhida.
+ *
+ * Constante única em vez das coordenadas repetidas em três lugares: elas já
+ * estavam soltas no código e mudá-las significava caçar cada ocorrência.
+ */
+const DEFAULT_CENTER: [number, number] = CITY_CENTERS.RJ;
+
 // Recenter Map Helper
 const MapRecenter = ({ center }: { center: [number, number] }) => {
   const map = useMap();
@@ -53,7 +61,7 @@ const MapView: React.FC = () => {
   const [isLegendOpen, setIsLegendOpen] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5900, -46.6200]); // SP Center roughly
+  const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [selectedFamilyPreview, setSelectedFamilyPreview] = useState<Family | null>(null);
 
   // Famílias vêm do backend (GET /families/map) via familyService.
@@ -139,7 +147,7 @@ const MapView: React.FC = () => {
       setMapCenter(userLocation);
       return;
     }
-    setMapCenter([-23.5900, -46.6200]);
+    setMapCenter(DEFAULT_CENTER);
   }, [bairroFilter, cityFilter, families, communities, userLocation]);
 
   // Filter Logic
