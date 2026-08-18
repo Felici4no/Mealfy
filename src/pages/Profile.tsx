@@ -451,7 +451,7 @@ const Profile: React.FC = () => {
             <p className="quote-text">
               “Não se iluda: quando você alimenta uma pessoa de verdade, ou estende a mão para cobrir um prato vago, você descobre que esse vazio nunca esteve neles, estava em você.”
             </p>
-            <p className="quote-author">— Christiano Montalvão</p>
+            <p className="quote-author">— Christiano Mealfy</p>
           </section>
         )}
 
