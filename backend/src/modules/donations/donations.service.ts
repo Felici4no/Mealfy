@@ -168,6 +168,9 @@ export async function listMyDonations(donorUserId: string) {
   const donations = await prisma.donation.findMany({
     where: { donorId: donorUserId },
     orderBy: { createdAt: 'desc' },
+    // Traz as mensagens junto: o doador vê a que enviou e a resposta da família
+    // no próprio histórico, sem uma chamada por doação.
+    include: { messages: true },
   });
   const familyIds = [...new Set(donations.map((d) => d.familyId))];
   const families = await prisma.family.findMany({

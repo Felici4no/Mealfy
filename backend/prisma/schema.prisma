@@ -290,10 +290,41 @@ model Donation {
   completedAt   DateTime?
   canceledAt    DateTime?
 
+  messages DonationMessage[]
+
   @@index([donorId])
   @@index([familyId])
   @@index([status])
   @@map("donations")
+}
+
+enum DonationMessageAuthor {
+  donor
+  beneficiary
+}
+
+/// Mensagem trocada em torno de uma doação. Nesta versão o conteúdo é sempre
+/// escolhido de uma lista fixa (ver `messages.templates.ts`): não existe texto
+/// livre, o que evita expor famílias vulneráveis a conteúdo de estranhos sem
+/// nenhuma moderação.
+///
+/// Guarda a CHAVE do template e também o TEXTO renderizado no momento do envio:
+/// a chave garante que só mensagens previstas entrem (validação no servidor), e
+/// o texto congela o que a pessoa de fato enviou — se o template for reescrito
+/// depois, o histórico não muda de sentido retroativamente.
+model DonationMessage {
+  id          String                @id @default(uuid())
+  donationId  String
+  donation    Donation              @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  author      DonationMessageAuthor
+  templateKey String
+  body        String
+  createdAt   DateTime              @default(now())
+
+  // Um envio por lado, por doação — evita repetição e mantém a leitura simples.
+  @@unique([donationId, author])
+  @@index([donationId])
+  @@map("donation_messages")
 }
 
 model Payment {

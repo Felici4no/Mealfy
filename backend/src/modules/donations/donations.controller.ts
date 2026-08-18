@@ -6,6 +6,9 @@ import * as donationsService from './donations.service';
 import { toDonorDonation, toAdminDonation } from './donations.dto';
 import * as paymentsService from '../payments/payments.service';
 import { toPaymentDto } from '../payments/payments.dto';
+import * as messagesService from './messages.service';
+import { allTemplates } from './messages.templates';
+import { z } from 'zod';
 
 function actorOf(req: Request) {
   if (!req.auth) throw new AppError('Não autenticado', 401, 'unauthenticated');
@@ -89,4 +92,38 @@ export async function cancelDonation(req: Request, res: Response): Promise<Respo
   const actor = actorOf(req);
   const donation = await donationsService.cancelDonation(actor, req.params.id);
   return res.json({ donation: toAdminDonation(donation), message: 'Doação cancelada.' });
+}
+
+// ─── Mensagens da doação ────────────────────────────────────────────────────
+
+const sendMessageSchema = z.object({ templateKey: z.string().min(1) });
+
+/**
+ * Catálogo de mensagens. Público (não expõe nada sensível) e é a fonte única:
+ * o app consome daqui em vez de manter uma cópia que sairia do ar na primeira
+ * correção de redação.
+ */
+export async function getMessageTemplates(_req: Request, res: Response): Promise<Response> {
+  return res.json({ templates: allTemplates() });
+}
+
+export async function sendDonationMessage(req: Request, res: Response): Promise<Response> {
+  const actor = actorOf(req);
+  const { templateKey } = sendMessageSchema.parse(req.body);
+  // O papel (doador ou beneficiário) é resolvido no servidor pelo vínculo real
+  // com a doação — o cliente não escolhe em nome de quem fala.
+  const message = await messagesService.sendMessage(actor, req.params.id, templateKey);
+  return res.status(201).json({ message });
+}
+
+export async function listDonationMessages(req: Request, res: Response): Promise<Response> {
+  const actor = actorOf(req);
+  const messages = await messagesService.listMessages(actor, req.params.id);
+  return res.json({ messages });
+}
+
+export async function deleteDonationMessage(req: Request, res: Response): Promise<Response> {
+  const actor = actorOf(req);
+  await messagesService.deleteMessage(actor, req.params.id);
+  return res.json({ message: 'Mensagem removida.' });
 }

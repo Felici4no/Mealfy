@@ -15,13 +15,39 @@ export async function getMyFamily(userId: string) {
   return family;
 }
 
-/** Gift cards liberados para a família do beneficiário (mais recentes primeiro). */
+/**
+ * Gift cards liberados para a família do beneficiário (mais recentes primeiro),
+ * com as mensagens da doação de origem: é junto do vale que o beneficiário lê o
+ * recado de quem apoiou e pode responder.
+ *
+ * As mensagens vêm em consulta separada porque `GiftCard.donationId` é campo
+ * solto, sem relação declarada no schema — buscar em lote evita tanto alterar a
+ * modelagem quanto uma consulta por vale (N+1).
+ */
 export async function listMyGiftCards(userId: string) {
   const family = await getMyFamily(userId);
-  return prisma.giftCard.findMany({
+  const cards = await prisma.giftCard.findMany({
     where: { familyId: family.id, status: 'used' },
     orderBy: { usedAt: 'desc' },
   });
+
+  const donationIds = cards.map((c) => c.donationId).filter((id): id is string => Boolean(id));
+  if (donationIds.length === 0) return cards.map((card) => ({ card, messages: [] }));
+
+  const messages = await prisma.donationMessage.findMany({
+    where: { donationId: { in: donationIds } },
+  });
+  const byDonation = new Map<string, typeof messages>();
+  for (const m of messages) {
+    const list = byDonation.get(m.donationId) ?? [];
+    list.push(m);
+    byDonation.set(m.donationId, list);
+  }
+
+  return cards.map((card) => ({
+    card,
+    messages: card.donationId ? byDonation.get(card.donationId) ?? [] : [],
+  }));
 }
 
 export async function getMyGiftCard(userId: string, giftCardId: string) {

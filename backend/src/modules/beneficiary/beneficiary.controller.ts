@@ -13,13 +13,22 @@ function userId(req: Request): string {
 const providerName = (p: GiftCard['provider']) =>
   p === 'ninetynine' ? '99 Mercado' : p === 'ifood' ? 'iFood' : 'Carrefour';
 
+type CardMessage = { author: string; templateKey: string; body: string; createdAt: Date };
+
 /** Único lugar que decifra o código (DTO do beneficiário) + instrução de uso. */
-function present(gc: GiftCard) {
+function present(gc: GiftCard, messages: CardMessage[] = []) {
+  const fromDonor = messages.find((m) => m.author === 'donor') ?? null;
+  const myReply = messages.find((m) => m.author === 'beneficiary') ?? null;
+
   return {
     ...toBeneficiaryGiftCard(gc),
     codeMasked: gc.codeMasked,
     familyId: gc.familyId,
     instructions: `Abra o app ${providerName(gc.provider)} e use o código acima para resgatar seu benefício.`,
+    // Necessário para responder — a resposta é enviada na doação, não no vale.
+    donationId: gc.donationId ?? null,
+    donorMessage: fromDonor ? { body: fromDonor.body, createdAt: fromDonor.createdAt } : null,
+    myReply: myReply ? { templateKey: myReply.templateKey, body: myReply.body } : null,
   };
 }
 
@@ -47,7 +56,7 @@ export async function getMyFamily(req: Request, res: Response): Promise<Response
 
 export async function listMyGiftCards(req: Request, res: Response): Promise<Response> {
   const cards = await beneficiaryService.listMyGiftCards(userId(req));
-  return res.json({ giftCards: cards.map(present) });
+  return res.json({ giftCards: cards.map(({ card, messages }) => present(card, messages)) });
 }
 
 export async function getMyGiftCard(req: Request, res: Response): Promise<Response> {

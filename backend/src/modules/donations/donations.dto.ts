@@ -1,6 +1,22 @@
-import type { Donation, Family } from '@prisma/client';
+import type { Donation, DonationMessage, Family } from '@prisma/client';
 
 type FamilyLite = Pick<Family, 'id' | 'displayName' | 'city' | 'state'> | null | undefined;
+
+/**
+ * Mensagens escolhidas por doador e beneficiário. Ficam em chaves próprias
+ * (`sentMessage` / `receivedMessage`) porque o campo `message` do DTO já existe
+ * e significa outra coisa: o texto de STATUS da doação.
+ */
+const splitMessages = (messages: DonationMessage[] | undefined, mine: DonationMessage['author']) => {
+  const sent = messages?.find((m) => m.author === mine) ?? null;
+  const received = messages?.find((m) => m.author !== mine) ?? null;
+  return {
+    sentMessage: sent ? { templateKey: sent.templateKey, body: sent.body, createdAt: sent.createdAt } : null,
+    receivedMessage: received
+      ? { templateKey: received.templateKey, body: received.body, createdAt: received.createdAt }
+      : null,
+  };
+};
 
 const donorMessage = (status: Donation['status']): string | null => {
   switch (status) {
@@ -25,7 +41,11 @@ const donorMessage = (status: Donation['status']): string | null => {
  * Visão do DOADOR — NUNCA inclui o código do gift card (nem mascarado).
  * Mostra impacto: status, provider e "alimentada por você".
  */
-export function toDonorDonation(d: Donation, family?: FamilyLite, currentUserId?: string) {
+export function toDonorDonation(
+  d: Donation & { messages?: DonationMessage[] },
+  family?: FamilyLite,
+  currentUserId?: string,
+) {
   return {
     id: d.id,
     status: d.status,
@@ -41,6 +61,8 @@ export function toDonorDonation(d: Donation, family?: FamilyLite, currentUserId?
     providerLabel:
       d.status === 'completed' ? `Vale ${providerLabel(d.provider)} enviado para a família.` : null,
     fedByYou: d.status === 'completed' && d.donorId === currentUserId,
+    // Do ponto de vista do doador: enviada = a dele, recebida = a da família.
+    ...splitMessages(d.messages, 'donor'),
   };
 }
 
