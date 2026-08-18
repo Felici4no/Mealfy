@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/AppError';
+import { getCurrentCycleStart } from '../../shared/utils/feedCycle';
 
 /**
  * Regiões (municípios) a partir do IBGE.
@@ -129,6 +130,56 @@ export async function searchRegions(query: string, state?: string, limit = 20) {
     take: limit,
     select: { id: true, ibgeCode: true, name: true, state: true },
   });
+}
+
+/**
+ * Regiões com famílias, para o doador escolher onde concentrar o apoio.
+ *
+ * Traz duas contagens diferentes de propósito:
+ *  - `familiesTotal`: aprovadas na região (o alcance da rede ali)
+ *  - `familiesInNeed`: as que PEDIRAM apoio no ciclo atual (quem precisa agora)
+ *
+ * Não exige coordenada: a lista é textual, e cobrar centroide aqui excluiria
+ * regiões válidas só porque a malha ainda não foi baixada.
+ */
+export async function listRegionsWithCounts() {
+  const [aprovadas, pedindo] = await Promise.all([
+    prisma.family.groupBy({
+      by: ['regionId'],
+      where: { approvalStatus: 'approved', regionId: { not: null } },
+      _count: { _all: true },
+    }),
+    prisma.family.groupBy({
+      by: ['regionId'],
+      where: {
+        approvalStatus: 'approved',
+        regionId: { not: null },
+        supportRequestedAt: { gte: getCurrentCycleStart() },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  if (aprovadas.length === 0) return [];
+
+  const ids = aprovadas.map((g) => g.regionId!).filter(Boolean);
+  const regions = await prisma.region.findMany({ where: { id: { in: ids } } });
+  const totalById = new Map(aprovadas.map((g) => [g.regionId!, g._count._all]));
+  const needById = new Map(pedindo.map((g) => [g.regionId!, g._count._all]));
+
+  return regions
+    .map((r) => ({
+      id: r.id,
+      ibgeCode: r.ibgeCode,
+      name: r.name,
+      state: r.state,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      familiesTotal: totalById.get(r.id) ?? 0,
+      familiesInNeed: needById.get(r.id) ?? 0,
+    }))
+    // Quem tem mais gente pedindo agora aparece primeiro.
+    .sort((a, b) => b.familiesInNeed - a.familiesInNeed || a.name.localeCompare(b.name));
 }
 
 /**

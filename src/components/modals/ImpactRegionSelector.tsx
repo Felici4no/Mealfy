@@ -20,7 +20,7 @@ const ImpactRegionSelector: React.FC<ImpactRegionSelectorProps> = ({ isOpen, onC
     if (isOpen) {
       setLoading(true);
       regionsApi.getRegions()
-        .then(res => setRegions(res || []))
+        .then(res => setRegions(res?.regions ?? []))
         .catch(console.error)
         .finally(() => setLoading(false));
     }
@@ -68,17 +68,19 @@ const ImpactRegionSelector: React.FC<ImpactRegionSelectorProps> = ({ isOpen, onC
               
               <div className="option-details flex gap-4 mt-2">
                 <span className="flex items-center gap-1 text-sm text-outline">
-                  <MapPin size={14} /> {region.city}/{region.state}
+                  <MapPin size={14} /> {region.state}
                 </span>
                 <span className="flex items-center gap-1 text-sm text-outline">
-                  <Users size={14} /> {region.familiesCount} fam.
+                  <Users size={14} /> {region.familiesTotal} fam.
                 </span>
               </div>
-              
-              {region.urgentCount > 0 && (
+
+              {/* "Pedindo hoje" em vez de "urgências": a solicitação vale por um
+                  ciclo, então este número é o que realmente precisa de apoio agora. */}
+              {region.familiesInNeed > 0 && (
                 <div className={`option-status mt-3 status-error`}>
                   <AlertCircle size={14} />
-                  <span>{region.urgentCount} urgências</span>
+                  <span>{region.familiesInNeed} pedindo apoio hoje</span>
                 </div>
               )}
             </div>

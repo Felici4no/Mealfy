@@ -14,6 +14,15 @@ const searchSchema = z.object({
 });
 
 /**
+ * Regiões onde a rede atua, com contagem de famílias — alimenta o seletor de
+ * região do doador. Antes essa lista vinha de 4 comunidades fixas no código do
+ * app, que não conversavam com os dados reais.
+ */
+regionsRoutes.get('/', authGuard, async (_req: Request, res: Response) => {
+  return res.json({ regions: await regionsService.listRegionsWithCounts() });
+});
+
+/**
  * Busca de município para o cadastro. Autenticada — quem cadastra família é
  * entidade/admin, e não há motivo para expor a base inteira publicamente.
  */
