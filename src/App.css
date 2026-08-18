@@ -184,3 +184,33 @@
 .z-\[1000\] { z-index: 1000; }
 .z-\[9999\] { z-index: 9999; }
 .z-\[10000\] { z-index: 10000; }
+
+/* ══════════════════════════════════════════════════════════════════
+   RECADO DE APOIO — mensagem trocada entre doador e beneficiário.
+   Global porque aparece no Success, no histórico do doador e no painel
+   do beneficiário, telas que não montam o MessagePicker.
+   ══════════════════════════════════════════════════════════════════ */
+.msg-note {
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: rgba(199, 167, 84, 0.08);
+  border-left: 3px solid var(--color-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.msg-note-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-secondary);
+  margin-bottom: 2px;
+}
+
+.msg-note-body {
+  font-size: 0.88rem;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--color-text-main);
+}

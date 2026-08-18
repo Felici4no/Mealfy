@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { Check, Share2, History, HeartHandshake, Copy, MessageCircle, AtSign, Mail } from 'lucide-react';
+import { Check, Share2, History, HeartHandshake, Copy, MessageCircle, AtSign, Mail, Send } from 'lucide-react';
 import BottomSheet from '../components/ui/BottomSheet';
 import { useToast } from '../context/ToastContext';
 import { PROVIDER_LABELS } from '../backend/mockData/giftCardInventory';
-import { paymentsApi } from '../api/donationsApi';
+import { paymentsApi, donationsApi, type MessageTemplate } from '../api/donationsApi';
 import './Success.css';
 
 const Success: React.FC = () => {
@@ -16,6 +16,22 @@ const Success: React.FC = () => {
   const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCheckingPix, setIsCheckingPix] = useState(false);
+
+  // Mensagens vêm do backend (fonte única). Antes eram um array fixo aqui e a
+  // escolha não era enviada a lugar nenhum — a tela sugeria um recado à família
+  // que nunca saía do dispositivo.
+  const [messageTemplates, setMessageTemplates] = useState<MessageTemplate[]>([]);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [sentMessage, setSentMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    donationsApi
+      .getMessageTemplates()
+      .then((r) => { if (active) setMessageTemplates(r.templates.donor ?? []); })
+      .catch(() => { if (active) setMessageTemplates([]); });
+    return () => { active = false; };
+  }, []);
 
   // Read data passed from DonationChoice or BigDonation
   const donationResult = location.state?.donationResult as any;
@@ -58,11 +74,26 @@ const Success: React.FC = () => {
     }
   };
 
-  const messages = [
-    "Você não está sozinho.",
-    "Com carinho, este apoio foi enviado para você e os pequenos.",
-    "Estou torcendo por você e sua família."
-  ];
+  // Id da doação real — só existe no fluxo de API. O caminho mock local não
+  // gera doação no servidor, e sem ela não há para onde enviar mensagem.
+  const donationId: string | undefined = pixResult?.donation?.id;
+
+  const handleSendMessage = async () => {
+    if (!donationId || selectedMessage === null || isSendingMessage) return;
+    const template = messageTemplates[selectedMessage];
+    if (!template) return;
+
+    setIsSendingMessage(true);
+    try {
+      await donationsApi.sendMessage(donationId, template.key);
+      setSentMessage(template.body);
+      showToast('Mensagem enviada para a família!', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Não foi possível enviar a mensagem.', 'error');
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
 
   const copyShareLink = () => {
     navigator.clipboard.writeText('https://mealfy.com');
@@ -175,24 +206,55 @@ const Success: React.FC = () => {
         )}
       </div>
 
-      <div className="message-section p-4">
-        <h3 className="section-title mb-3 text-primary">Envie uma mensagem de força</h3>
-        <p className="section-desc mb-4">Escolha uma mensagem para acompanhar seu apoio. Ela será exibida no painel da família.</p>
-        
-        <div className="message-options flex flex-col gap-3 mb-6">
-          {messages.map((msg, index) => (
-            <div 
-              key={index}
-              className={`message-card p-3 rounded border flex items-center gap-3 cursor-pointer transition-all ${
-                selectedMessage === index ? 'border-primary bg-primary/5' : 'border-outline/10 bg-white'
-              }`}
-              onClick={() => setSelectedMessage(index)}
-            >
-              <HeartHandshake size={20} className={selectedMessage === index ? 'text-primary' : 'text-outline'} />
-              <span className="message-text text-sm text-text-main">{msg}</span>
+      {donationId && (
+        <div className="message-section p-4">
+          <h3 className="section-title mb-3 text-primary">Envie uma mensagem de força</h3>
+
+          {sentMessage ? (
+            <div className="msg-note" role="status">
+              <span className="msg-note-label">Mensagem enviada</span>
+              <p className="msg-note-body">"{sentMessage}"</p>
             </div>
-          ))}
+          ) : (
+            <>
+              <p className="section-desc mb-4">
+                Escolha uma mensagem para acompanhar seu apoio. A família vê junto com o vale.
+              </p>
+
+              <div className="message-options flex flex-col gap-3 mb-4" role="radiogroup" aria-label="Mensagem para a família">
+                {messageTemplates.map((msg, index) => (
+                  <button
+                    key={msg.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedMessage === index}
+                    className={`message-card p-3 rounded border flex items-center gap-3 cursor-pointer transition-all text-left w-full ${
+                      selectedMessage === index ? 'border-primary bg-primary/5' : 'border-outline/10 bg-white'
+                    }`}
+                    onClick={() => setSelectedMessage(index)}
+                  >
+                    <HeartHandshake size={20} className={selectedMessage === index ? 'text-primary' : 'text-outline'} />
+                    <span className="message-text text-sm text-text-main">{msg.body}</span>
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                variant="primary"
+                fullWidth
+                icon={<Send size={16} />}
+                onClick={handleSendMessage}
+                disabled={selectedMessage === null || isSendingMessage}
+                className="mb-6"
+              >
+                {isSendingMessage ? 'Enviando...' : 'Enviar mensagem'}
+              </Button>
+            </>
+          )}
         </div>
+      )}
+
+      <div className="p-4">
 
         <div className="action-buttons flex flex-col gap-3">
           <Button 

@@ -40,7 +40,32 @@ export interface CreateDonationResponse {
   message: string;
 }
 
+/** Mensagem pré-definida disponível para envio. */
+export interface MessageTemplate {
+  key: string;
+  body: string;
+}
+
 export const donationsApi = {
+  /**
+   * Catálogo de mensagens. O backend é a fonte única — o app não mantém cópia,
+   * senão as duas versões divergiriam na primeira correção de redação.
+   */
+  getMessageTemplates: () =>
+    apiRequest<{ templates: { donor: MessageTemplate[]; beneficiary: MessageTemplate[] } }>(
+      '/donations/message-templates',
+      'GET',
+    ),
+
+  /**
+   * Envia a mensagem desta doação. O papel (doador ou beneficiário) é decidido
+   * no servidor pelo vínculo real — o app não informa em nome de quem fala.
+   */
+  sendMessage: (donationId: string, templateKey: string) =>
+    apiRequest(`/donations/${donationId}/messages`, 'POST', { templateKey }),
+
+  removeMessage: (donationId: string) => apiRequest(`/donations/${donationId}/messages`, 'DELETE'),
+
   /**
    * Cria intenção de doação + cobrança (doador autenticado).
    * Sem `paymentMethod`, o backend assume `pix` (contrato anterior preservado).

@@ -11,6 +11,7 @@ import { beneficiaryApi } from '../api/giftcardsApi';
 import { Gift, Calendar, Heart, Clock, AlertTriangle, QrCode, Copy, Phone, ShieldCheck, ShieldAlert, ChevronRight } from 'lucide-react';
 import type { Family } from '../backend/types';
 import GiftCardSelectorModal, { GIFT_CARD_PARTNERS } from '../components/ui/GiftCardSelectorModal';
+import MessagePicker from '../components/ui/MessagePicker';
 import './BeneficiaryDashboard.css';
 
 const GIFT_CARD_CODE_PREFIX: Record<string, string> = {
@@ -29,6 +30,10 @@ interface ApiGiftCard {
   expiresAt?: string | null;
   releasedAt?: string | null;
   instructions?: string;
+  /** Doação de origem — necessária para responder ao doador. */
+  donationId?: string | null;
+  donorMessage?: { body: string; createdAt: string } | null;
+  myReply?: { templateKey: string; body: string } | null;
 }
 
 const apiProviderLabel = (p: string): string =>
@@ -67,6 +72,9 @@ const BeneficiaryDashboard: React.FC = () => {
 
   // ── Status de verificação Gov.br (mock visual) ──────────────────────────────
   const isGovVerified = false;
+
+  // Doação para a qual o beneficiário está respondendo (null = folha fechada).
+  const [replyToDonationId, setReplyToDonationId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -358,6 +366,37 @@ const BeneficiaryDashboard: React.FC = () => {
                         {latestApiCard.instructions || 'Use o código acima no app do parceiro.'}
                         {latestApiCard.releasedAt && <> Liberado em: {new Date(latestApiCard.releasedAt).toLocaleDateString('pt-BR')}.</>}
                       </p>
+
+                      {/* Recado de quem apoiou + resposta. Fica junto do vale
+                          porque é o momento em que a família abre o app. */}
+                      {latestApiCard.donorMessage && (
+                        <div className="w-full text-left">
+                          <div className="msg-note">
+                            <span className="msg-note-label">Mensagem de quem apoiou</span>
+                            <p className="msg-note-body">"{latestApiCard.donorMessage.body}"</p>
+                          </div>
+
+                          {latestApiCard.myReply ? (
+                            <div className="msg-note">
+                              <span className="msg-note-label">Você respondeu</span>
+                              <p className="msg-note-body">"{latestApiCard.myReply.body}"</p>
+                            </div>
+                          ) : (
+                            latestApiCard.donationId && (
+                              <Button
+                                variant="outline"
+                                fullWidth
+                                size="small"
+                                className="mt-3"
+                                icon={<Heart size={16} />}
+                                onClick={() => setReplyToDonationId(latestApiCard.donationId!)}
+                              >
+                                Agradecer
+                              </Button>
+                            )
+                          )}
+                        </div>
+                      )}
                    </div>
                  ) : (
                    <div className="p-6 bg-white rounded-lg border border-outline/10 text-center">
@@ -448,6 +487,29 @@ const BeneficiaryDashboard: React.FC = () => {
           selected={giftCardProvider}
           onConfirm={handleGiftCardConfirm}
           onClose={() => setShowGiftCardSelector(false)}
+        />
+      )}
+
+      {/* Resposta ao doador — mesmas regras do envio: só mensagens prontas. */}
+      {replyToDonationId && (
+        <MessagePicker
+          isOpen
+          donationId={replyToDonationId}
+          audience="beneficiary"
+          title="Agradecer"
+          subtitle="Escolha uma mensagem para quem apoiou sua família. Ela verá no histórico de apoios."
+          onClose={() => setReplyToDonationId(null)}
+          onSent={(body) =>
+            setApiCards((prev) =>
+              prev
+                ? prev.map((c) =>
+                    c.donationId === replyToDonationId
+                      ? { ...c, myReply: { templateKey: '', body } }
+                      : c,
+                  )
+                : prev,
+            )
+          }
         />
       )}
     </div>

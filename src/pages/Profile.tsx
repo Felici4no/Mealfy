@@ -473,26 +473,37 @@ const Profile: React.FC = () => {
                </div>
             ) : (
               <div className="history-list flex flex-col gap-2">
-                {history.slice(0, 3).map((item, i) => (
-                  <div key={i} className="history-card">
-                    <div className="history-icon-wrapper">
-                      <Heart size={16} className="text-primary" />
+                {history.slice(0, 3).map((item, i) => {
+                  const d = item.donation as any;
+                  return (
+                    <div key={i}>
+                      <div className="history-card">
+                        <div className="history-icon-wrapper">
+                          <Heart size={16} className="text-primary" />
+                        </div>
+                        <div className="history-info">
+                          <span className="history-impact">
+                            {item.giftCard?.label || d.providerLabel || 'Apoio Alimentar Coletivo'}
+                          </span>
+                          <span className="history-date text-outline">
+                            {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {describeDonationProgress(item)}
+                          </span>
+                        </div>
+                        <div className="history-amount">
+                          R$ {item.donation.amount}
+                        </div>
+                      </div>
+
+                      {/* Resposta da família — só aparece quando ela de fato respondeu. */}
+                      {d.receivedMessage && (
+                        <div className="msg-note">
+                          <span className="msg-note-label">Resposta da família</span>
+                          <p className="msg-note-body">"{d.receivedMessage.body}"</p>
+                        </div>
+                      )}
                     </div>
-                    <div className="history-info">
-                      <span className="history-impact">
-                        {item.giftCard?.label
-                          || (item.donation as any).providerLabel
-                          || 'Apoio Alimentar Coletivo'}
-                      </span>
-                      <span className="history-date text-outline">
-                        {new Date(item.donation.createdAt).toLocaleDateString('pt-BR')} • {describeDonationProgress(item)}
-                      </span>
-                    </div>
-                    <div className="history-amount">
-                      R$ {item.donation.amount}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
