@@ -28,74 +28,17 @@
   border: none;
 }
 
-/* ── Áreas (comunidades) ─────────────────────────────────────────────
-   O nome da comunidade é a informação principal do mapa: é ele que diz ao
-   doador a quem ele está doando. Antes só havia pinos anônimos. */
+/* ── Área escolhida ──────────────────────────────────────────────────
+   Marca no mapa a região que o doador selecionou no filtro. Só ela: os
+   corações são o conteúdo do mapa, e destacar todas as áreas de uma vez os
+   encobria.
 
-.area-label-wrapper {
-  background: transparent;
-  border: none;
-  /* iconSize [0,0] no divIcon: o rótulo se dimensiona pelo texto, então nomes
-     longos ("Complexo do Alemão") não são cortados. Como o Leaflet ancora no
-     canto, a translação abaixo é que centraliza a etiqueta sobre o ponto. */
-  width: auto !important;
-  height: auto !important;
-}
-
-.area-label {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translate(-50%, -50%);
-  padding: 4px 10px;
-  border-radius: 999px;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1.5px solid var(--color-secondary);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.area-label:hover {
-  transform: translate(-50%, -50%) scale(1.06);
-}
-
-.area-label--urgent {
-  border-color: var(--color-error);
-  box-shadow: 0 0 12px rgba(220, 53, 69, 0.45);
-}
-
-.area-label__name {
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.1;
-  color: var(--color-primary);
-}
-
-.area-label__count {
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: var(--color-outline);
-}
-
-.area-label--urgent .area-label__count {
-  color: var(--color-error);
-}
-
-/* Mancha da área. Deliberadamente difusa: marca a região, não um limite
-   oficial — não temos o contorno real da comunidade. */
+   Deliberadamente difusa — marca a região, não um limite oficial: não temos o
+   contorno real da comunidade. */
 .area-circle {
-  stroke: var(--color-secondary);
-  stroke-width: 1.5;
-  stroke-opacity: 0.5;
-  fill: var(--color-secondary);
-  fill-opacity: 0.1;
-}
-
-.area-circle--urgent {
   stroke: var(--color-error);
+  stroke-width: 1.5;
+  stroke-opacity: 0.55;
   fill: var(--color-error);
   fill-opacity: 0.12;
 }

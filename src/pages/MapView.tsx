@@ -226,35 +226,20 @@ const MapView: React.FC = () => {
   };
 
   /**
-   * Etiqueta da área: nome + quantas famílias pediram apoio hoje.
+   * A área destacada é só a que o doador escolheu.
    *
-   * É o que responde "para quem eu estou doando?" — o pino sozinho nunca
-   * respondeu isso.
+   * Uma versão anterior desenhava uma etiqueta com o nome de TODAS as
+   * comunidades, o que tapava os corações — os marcadores de família são o
+   * conteúdo do mapa, e o nome da região é escolha de filtro, não sobreposição.
    */
-  const createAreaLabel = (c: MapCommunity) => {
-    const urgent = c.familiesInNeed > 0;
-    const detail = urgent
-      ? `${c.familiesInNeed} pedindo hoje`
-      : `${c.familiesTotal} ${c.familiesTotal === 1 ? 'família' : 'famílias'}`;
-
-    return L.divIcon({
-      html:
-        `<div class="area-label ${urgent ? 'area-label--urgent' : ''}">` +
-        `<span class="area-label__name">${c.name}</span>` +
-        `<span class="area-label__count">${detail}</span>` +
-        `</div>`,
-      className: 'area-label-wrapper',
-      iconSize: [0, 0], // o CSS dimensiona; tamanho fixo cortaria nomes longos
-      iconAnchor: [0, 0],
-    });
-  };
-
-  const visibleCommunities = communities.filter(c => {
-    if (c.latitude == null || c.longitude == null) return false;
-    if (cityFilter !== 'all' && c.state !== cityFilter) return false;
-    if (bairroFilter !== 'all' && c.name.toLowerCase() !== bairroFilter.toLowerCase()) return false;
-    return true;
-  });
+  const selectedCommunity = bairroFilter === 'all'
+    ? null
+    : communities.find(
+        c =>
+          c.name.toLowerCase() === bairroFilter.toLowerCase() &&
+          c.latitude != null &&
+          c.longitude != null,
+      ) ?? null;
 
   const isPreviewSaved = selectedFamilyPreview ? savedFamilyIds.includes(selectedFamilyPreview.id) : false;
 
@@ -308,19 +293,12 @@ const MapView: React.FC = () => {
       )}
 
       {/* ── Banner de localização ── */}
-      {geoStatus === 'loading' && (
-        <div className="map-geo-banner">Permita sua localização para encontrar famílias próximas…</div>
-      )}
-      {geoStatus === 'denied' && (
-        <div className="map-geo-banner map-geo-banner--warn">
-          <span>Não conseguimos acessar sua localização. Você ainda pode explorar famílias por região.</span>
-          <div className="map-geo-actions">
-            <button onClick={requestLocation}>Tentar novamente</button>
-            <button onClick={() => { setUserLocation(null); setCityFilter('all'); setBairroFilter('all'); setMapCenter([-23.5900, -46.6200]); setGeoStatus('idle'); }}>Usar região padrão</button>
-            <button onClick={() => setIsFiltersOpen(true)}>Selecionar região</button>
-          </div>
-        </div>
-      )}
+      {/* Sem tarja de localização.
+          Havia um aviso que ocupava a faixa superior inteira e escondia o mapa
+          justamente onde estão as famílias. Localização negada não é erro: o
+          mapa funciona por região do mesmo jeito. O botão de localizar (canto
+          inferior direito) continua permitindo tentar de novo, e o filtro de
+          região está a um toque em "Filtros". */}
 
       {/* ── Leaflet Map Container ── */}
       <div className="map-container-wrapper">
@@ -336,29 +314,18 @@ const MapView: React.FC = () => {
             attribution='&copy; OpenStreetMap contributors &copy; CARTO'
           />
 
-          {/* ── Áreas (comunidades) ── desenhadas abaixo dos pinos de família */}
-          {visibleCommunities.map((c) => (
-            <React.Fragment key={c.id}>
-              {/* O círculo só aparece quando sabemos ONDE fica a comunidade.
-                  Com `region_centroid` a posição é o centro do município, e
-                  desenhar uma área ali sugeriria uma precisão que não existe —
-                  fica só a etiqueta. */}
-              {c.source === 'osm' && (
-                <Circle
-                  center={[c.latitude!, c.longitude!]}
-                  radius={700}
-                  pathOptions={{
-                    className: c.familiesInNeed > 0 ? 'area-circle area-circle--urgent' : 'area-circle',
-                  }}
-                />
-              )}
-              <Marker
-                position={[c.latitude!, c.longitude!]}
-                icon={createAreaLabel(c)}
-                eventHandlers={{ click: () => handleBairroSelect(c.name) }}
-              />
-            </React.Fragment>
-          ))}
+          {/* ── Área escolhida ──
+              Só a região selecionada no filtro ganha destaque, e só quando
+              sabemos onde ela fica: com `region_centroid` a posição é o centro
+              do município, e desenhar um círculo ali sugeriria uma precisão que
+              não existe. */}
+          {selectedCommunity?.source === 'osm' && (
+            <Circle
+              center={[selectedCommunity.latitude!, selectedCommunity.longitude!]}
+              radius={700}
+              pathOptions={{ className: 'area-circle' }}
+            />
+          )}
 
           {filteredFamilies.map((fam) => (
             <Marker
@@ -390,12 +357,21 @@ const MapView: React.FC = () => {
 
       {/* ── Recenter Controls (Right Bottom) ── */}
       <div className="map-controls-overlay">
+        {/* Assume o papel que a tarja tinha: se a localização foi negada, este
+            botão é o "tentar novamente"; se foi concedida, recentra em você. */}
         <button
-          onClick={() => setMapCenter([-23.5900, -46.6200])}
+          onClick={() => {
+            if (userLocation) setMapCenter(userLocation);
+            else requestLocation();
+          }}
           className="map-control-btn glassmorphism"
-          aria-label="Recentrar Mapa"
+          aria-label={userLocation ? 'Centralizar na minha localização' : 'Permitir localização'}
+          title={userLocation ? 'Centralizar na minha localização' : 'Permitir localização'}
         >
-          <LocateFixed size={20} className="text-primary" />
+          <LocateFixed
+            size={20}
+            className={geoStatus === 'denied' ? 'text-outline' : 'text-primary'}
+          />
         </button>
       </div>
 
@@ -488,10 +464,10 @@ const MapView: React.FC = () => {
       <BottomSheet isOpen={isLegendOpen} onClose={() => setIsLegendOpen(false)} title="Legenda do Mapa">
         <div className="surface-card legend-card">
           <div className="legend-item">
-            <span className="legend-icon">📍</span>
+            <span className="legend-icon">⭕</span>
             <span className="legend-text">
-              Nome da comunidade e quantas famílias pedem apoio hoje. A área é
-              aproximada — marca a região, não o endereço de ninguém.
+              Região escolhida em "Filtros". A área é aproximada — marca a
+              região, não o endereço de ninguém.
             </span>
           </div>
           <div className="legend-item">
