@@ -281,7 +281,16 @@ model Family {
   longitude                 Float?
   locationPrecision         LocationPrecision        @default(approximate)
   preferredGiftCardProvider GiftCardProvider?
+  /// Marca escolhida na solicitação do dia. Só vale junto com
+  /// `supportRequestedAt`: sem pedido no ciclo atual, o fallback é o preferido.
   todayRequestedProvider    GiftCardProvider?
+  /// Quando a família pediu apoio pela última vez.
+  ///
+  /// O pedido vale por UM ciclo (reset 08h SP) e expira sozinho — é isso que
+  /// impede a solicitação de amanhecer já feita. Antes só existia
+  /// `todayRequestedProvider`, que nunca expirava: uma vez gravado, a família
+  /// constava como tendo pedido para sempre.
+  supportRequestedAt        DateTime?
   supportStatus             FamilySupportStatus      @default(needs_help)
   lastFedAt                 DateTime?
   lastDonationId            String?

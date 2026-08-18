@@ -2,6 +2,7 @@ import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { maskTail } from '../../shared/utils/mask';
 import { createAuditLog } from '../auditLogs/auditLog.service';
+import { getCurrentCycleStart } from '../../shared/utils/feedCycle';
 import type { UserRole, GiftCardProvider } from '@prisma/client';
 import type { CreateFamilyInput, UpdateFamilyInput, ListFamiliesQuery } from './families.validator';
 
@@ -191,15 +192,38 @@ export async function blockFamily(actor: Actor, id: string, reason?: string) {
 }
 
 /**
- * Provider do dia: a família (ou a entidade responsável) informa o vale mais útil hoje.
- * Apenas grava `todayRequestedProvider` — NÃO libera gift card nem cria doação.
- * Sem provider do dia, o fallback é `preferredGiftCardProvider` (usado na doação).
+ * Solicitação de apoio do dia. Grava a marca escolhida E o momento do pedido —
+ * NÃO libera gift card nem cria doação.
+ *
+ * O pedido vale por um ciclo (reset 08h SP) e expira sozinho: sem solicitar de
+ * novo, a família sai do mapa no dia seguinte. Antes só a marca era gravada, e
+ * como ela nunca expirava a solicitação amanhecia feita.
+ *
+ * Quem pode pedir: o próprio BENEFICIÁRIO da família (é ele quem sabe se precisa
+ * hoje), a entidade responsável, ou admin.
  */
 export async function requestDailySupport(actor: Actor, id: string, provider: GiftCardProvider) {
-  await loadOwnedFamily(actor, id); // entity dona ou admin; doador => 403
+  if (actor.role === 'beneficiary') {
+    // Vínculo real, nunca id vindo do cliente.
+    const own = await prisma.family.findFirst({
+      where: { id, beneficiaryUserId: actor.userId },
+      select: { id: true, approvalStatus: true },
+    });
+    if (!own) throw new AppError('Acesso negado', 403, 'forbidden');
+    if (own.approvalStatus !== 'approved') {
+      throw new AppError(
+        'Sua família ainda está em análise. Assim que for aprovada você poderá solicitar.',
+        409,
+        'family_not_approved',
+      );
+    }
+  } else {
+    await loadOwnedFamily(actor, id); // entity dona ou admin; doador => 403
+  }
+
   const family = await prisma.family.update({
     where: { id },
-    data: { todayRequestedProvider: provider },
+    data: { todayRequestedProvider: provider, supportRequestedAt: new Date() },
     include: familyInclude,
   });
   await createAuditLog({
@@ -212,16 +236,26 @@ export async function requestDailySupport(actor: Actor, id: string, provider: Gi
   return family;
 }
 
-/** Mapa público: só famílias aprovadas e com localização. Serializado p/ doador. */
+/**
+ * Mapa: famílias aprovadas que PEDIRAM apoio no ciclo atual.
+ *
+ * O pedido é diário e expira no reset das 08h SP — quem não solicitou hoje não
+ * aparece. Isso mantém o mapa como um retrato de quem precisa AGORA, em vez de
+ * uma lista acumulada de todo mundo já cadastrado.
+ *
+ * A localização vem da REGIÃO (município do IBGE), não mais de coordenada
+ * digitada no cadastro: é a precisão que interessa e expõe menos a família.
+ */
 export async function getMapFamilies(filters: { state?: string }) {
   return prisma.family.findMany({
     where: {
       approvalStatus: 'approved',
-      latitude: { not: null },
-      longitude: { not: null },
+      supportRequestedAt: { gte: getCurrentCycleStart() },
       state: filters.state?.toUpperCase(),
     },
-    include: familyInclude,
-    orderBy: { createdAt: 'desc' },
+    // Explícito em vez de espalhar `familyInclude`: o spread alarga
+    // `dependents: true` para `boolean` e o Prisma perde a inferência do tipo.
+    include: { dependents: true, region: true },
+    orderBy: { supportRequestedAt: 'desc' },
   });
 }

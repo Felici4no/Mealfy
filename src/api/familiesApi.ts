@@ -26,4 +26,12 @@ export const familiesApi = {
    * aceita query params.
    */
   listFamilies: () => apiRequest<{ families: any[] }>('/families', 'GET'),
+
+  /**
+   * Solicitação de apoio do dia. Vale por um ciclo (reset 08h SP) e expira
+   * sozinha — a família precisa pedir de novo no dia seguinte para voltar ao
+   * mapa. Quem chama é o próprio beneficiário (ou a entidade responsável).
+   */
+  requestDailySupport: (familyId: string, provider: string) =>
+    apiRequest(`/families/${familyId}/request-daily-support`, 'POST', { provider }),
 };

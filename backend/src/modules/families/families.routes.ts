@@ -17,8 +17,14 @@ familiesRoutes.get('/:id/donations', listFamilyDonations); // admin / entidade d
 familiesRoutes.post('/', roleGuard('entity', 'admin'), create);
 familiesRoutes.patch('/:id', roleGuard('entity', 'admin'), update);
 
-// Provider do dia (família/entidade) — não libera vale nem cria doação
-familiesRoutes.post('/:id/request-daily-support', roleGuard('entity', 'admin'), requestDailySupport);
+// Solicitação do dia — não libera vale nem cria doação.
+// Inclui `beneficiary`: é a própria família quem sabe se precisa hoje, e a
+// regra é que ela precisa pedir todo dia. O serviço confere o vínculo real.
+familiesRoutes.post(
+  '/:id/request-daily-support',
+  roleGuard('beneficiary', 'entity', 'admin'),
+  requestDailySupport,
+);
 
 // Aprovação/moderação — apenas admin
 familiesRoutes.post('/:id/approve', roleGuard('admin'), approve);

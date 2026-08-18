@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { createAuditLog } from '../auditLogs/auditLog.service';
-import { wasFedThisCycle } from '../../shared/utils/feedCycle';
+import { wasFedThisCycle, wasRequestedThisCycle } from '../../shared/utils/feedCycle';
 import { fulfillPaidDonation } from './donationFulfillment.service';
 import { resolveGiftCardProvider } from '../giftCards/providers';
 import type { GiftCardProvider, UserRole, Family } from '@prisma/client';
@@ -14,12 +14,21 @@ export interface Actor {
 
 type FamilyWithDeps = Family & { dependents: { isEligibleMinor: boolean }[] };
 
-/** Resolve o provider: today → preferred → enviado na doação. 422 se nenhum. */
+/**
+ * Resolve o provider: pedido do dia → preferido → enviado na doação. 422 se nenhum.
+ *
+ * `todayRequestedProvider` só conta se o pedido for do ciclo ATUAL. Sem essa
+ * checagem, a marca de um pedido antigo continuaria valendo indefinidamente —
+ * a família receberia hoje o vale que escolheu semanas atrás.
+ */
 export function resolveDonationProvider(
-  family: Pick<Family, 'todayRequestedProvider' | 'preferredGiftCardProvider'>,
+  family: Pick<Family, 'todayRequestedProvider' | 'preferredGiftCardProvider' | 'supportRequestedAt'>,
   inputProvider?: GiftCardProvider,
 ): GiftCardProvider {
-  const provider = family.todayRequestedProvider ?? family.preferredGiftCardProvider ?? inputProvider ?? null;
+  const requestedToday = wasRequestedThisCycle(family.supportRequestedAt)
+    ? family.todayRequestedProvider
+    : null;
+  const provider = requestedToday ?? family.preferredGiftCardProvider ?? inputProvider ?? null;
   if (!provider) {
     throw new AppError('Nenhum provider definido para esta família.', 422, 'no_provider');
   }

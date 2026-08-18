@@ -4,6 +4,7 @@ import { AppError } from '../../shared/errors/AppError';
 import * as beneficiaryService from './beneficiary.service';
 import { toBeneficiaryGiftCard } from '../giftCards/giftCards.dto';
 import { toDonorFamily, type FamilyWithDependents } from '../families/families.dto';
+import { wasRequestedThisCycle, nextCycleStart } from '../../shared/utils/feedCycle';
 
 function userId(req: Request): string {
   if (!req.auth) throw new AppError('Não autenticado', 401, 'unauthenticated');
@@ -45,11 +46,19 @@ function present(gc: GiftCard, messages: CardMessage[] = []) {
  */
 export async function getMyFamily(req: Request, res: Response): Promise<Response> {
   const family = await beneficiaryService.getMyFamily(userId(req));
+  const requestedToday = wasRequestedThisCycle(family.supportRequestedAt);
   return res.json({
     family: {
       ...toDonorFamily(family as FamilyWithDependents),
       approvalStatus: family.approvalStatus,
       verificationStatus: family.verificationStatus,
+      // Estado da solicitação do dia: é o que o painel usa para decidir entre
+      // "Solicitar apoio de hoje" e "Você já solicitou hoje".
+      requestedToday,
+      supportRequestedAt: family.supportRequestedAt,
+      requestedProvider: requestedToday ? family.todayRequestedProvider : null,
+      /** Reset do ciclo: às 08h o pedido expira e precisa ser refeito. */
+      nextCycleAt: nextCycleStart(),
     },
   });
 }

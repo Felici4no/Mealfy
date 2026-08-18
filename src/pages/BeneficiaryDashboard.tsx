@@ -7,8 +7,9 @@ import InstagramSection from '../components/ui/InstagramSection';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { familyService } from '../backend/services/familyService';
+import { familiesApi } from '../api/familiesApi';
 import { beneficiaryApi } from '../api/giftcardsApi';
-import { Gift, Calendar, Heart, Clock, AlertTriangle, QrCode, Copy, Phone, ShieldCheck, ShieldAlert, ChevronRight } from 'lucide-react';
+import { Gift, Calendar, Heart, Clock, AlertTriangle, QrCode, Copy, Phone, ShieldCheck, ShieldAlert, ChevronRight, Check } from 'lucide-react';
 import type { Family } from '../backend/types';
 import GiftCardSelectorModal, { GIFT_CARD_PARTNERS } from '../components/ui/GiftCardSelectorModal';
 import MessagePicker from '../components/ui/MessagePicker';
@@ -76,6 +77,24 @@ const BeneficiaryDashboard: React.FC = () => {
   // Doação para a qual o beneficiário está respondendo (null = folha fechada).
   const [replyToDonationId, setReplyToDonationId] = useState<string | null>(null);
 
+  // Solicitação do dia: vale por um ciclo (reset 08h) e precisa ser refeita.
+  const [requestedToday, setRequestedToday] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+
+  const handleRequestSupport = async () => {
+    if (!family?.id || isRequesting) return;
+    setIsRequesting(true);
+    try {
+      await familiesApi.requestDailySupport(family.id, giftCardProvider);
+      setRequestedToday(true);
+      showToast('Pedido enviado! Sua família já aparece para os apoiadores.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Não foi possível solicitar agora.', 'error');
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!user) {
@@ -92,6 +111,7 @@ const BeneficiaryDashboard: React.FC = () => {
         if (resp?.family) {
           setFamily(resp.family as any);
           setSimulatedStatus((resp.family.approvalStatus as any) || 'approved');
+          setRequestedToday(Boolean(resp.family.requestedToday));
           resolvedFamilyId = resp.family.id;
         }
       } catch {
@@ -321,6 +341,45 @@ const BeneficiaryDashboard: React.FC = () => {
                       : 'Seu cadastro está ativo. Quando um apoiador doar para sua família, o vale aparece aqui automaticamente.')
                    : 'Sua família recebeu o apoio doado pela rede hoje! O código do vale-refeição iFood Alimentação de R$ 40,00 está liberado abaixo.'}
                </p>
+            </section>
+
+            {/* ── Solicitação do dia ──
+                O pedido vale só para hoje e expira às 08h. Sem ele a família
+                não aparece no mapa — por isso o estado precisa ficar explícito,
+                e não escondido atrás de um sucesso silencioso. */}
+            <section className={`daily-request ${requestedToday ? 'daily-request--done' : ''}`}>
+              {requestedToday ? (
+                <>
+                  <div className="daily-request-head">
+                    <Check size={18} className="text-success" aria-hidden="true" />
+                    <span className="daily-request-title">Apoio solicitado hoje</span>
+                  </div>
+                  <p className="daily-request-text">
+                    Sua família está visível para os apoiadores. Amanhã será preciso solicitar de novo.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="daily-request-head">
+                    <Clock size={18} className="text-secondary" aria-hidden="true" />
+                    <span className="daily-request-title">Precisa de apoio hoje?</span>
+                  </div>
+                  <p className="daily-request-text">
+                    O pedido vale por um dia. Enquanto você não solicitar, sua família não aparece
+                    para quem quer ajudar.
+                  </p>
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    icon={<Heart size={18} />}
+                    onClick={handleRequestSupport}
+                    disabled={isRequesting}
+                    className="mt-3"
+                  >
+                    {isRequesting ? 'Enviando...' : 'Solicitar apoio de hoje'}
+                  </Button>
+                </>
+              )}
             </section>
 
             {/* Gift Card Display with QR and copy */}

@@ -150,3 +150,43 @@
 .tracking-wider {
   letter-spacing: 0.05em;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   SOLICITAÇÃO DO DIA
+   O pedido vale por um ciclo (reset 08h). Sem ele a família não
+   aparece no mapa, então o estado precisa ficar explícito na tela.
+   ══════════════════════════════════════════════════════════════════ */
+.daily-request {
+  margin: var(--spacing-4) 0;
+  padding: var(--spacing-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.daily-request--done {
+  border-left-color: var(--color-success);
+  background: rgba(31, 157, 87, 0.04);
+}
+
+.daily-request-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.daily-request-title {
+  font-family: var(--font-family-heading);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+}
+
+.daily-request-text {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
