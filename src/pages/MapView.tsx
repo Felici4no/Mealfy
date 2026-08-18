@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Family } from '../backend/types';
+import { regionsApi, type MapCommunity } from '../api/regionsApi';
 import Button from '../components/ui/Button';
 import { LocateFixed, Layers, ShieldAlert, Check, SlidersHorizontal, Info, Bookmark, BookmarkCheck } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
@@ -69,6 +70,19 @@ const MapView: React.FC = () => {
 
   useEffect(() => { loadFamilies(); }, [loadFamilies]);
 
+  // ── Comunidades: as áreas desenhadas no mapa ──
+  // Antes o mapa só tinha pinos de família e o filtro de "região" era montado a
+  // partir do texto livre de cada cadastro. O doador via alfinetes soltos sem
+  // saber a quem estava doando: "Cidade de Deus" e "Heliópolis" não existiam
+  // como lugar em parte nenhuma.
+  const [communities, setCommunities] = useState<MapCommunity[]>([]);
+
+  useEffect(() => {
+    regionsApi.getMapCommunities()
+      .then(res => setCommunities(res?.communities ?? []))
+      .catch(() => setCommunities([])); // sem áreas o mapa ainda mostra as famílias
+  }, []);
+
   // ── Localização do usuário (Android/web) com fallback ──
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
@@ -86,8 +100,14 @@ const MapView: React.FC = () => {
 
   useEffect(() => { requestLocation(); }, [requestLocation]);
 
-  // Regiões/bairros do filtro derivados das famílias carregadas (SP + RJ)
-  const REGIONS = Array.from(new Set(families.map(f => f.neighborhood))).sort();
+  /** Nome da área da família — a comunidade resolvida, ou o bairro digitado. */
+  const areaOf = (f: Family) => f.community || f.neighborhood || '';
+
+  // O filtro passa a listar comunidades de verdade. Enquanto elas não carregam,
+  // cai no texto das famílias para o filtro não ficar vazio.
+  const REGIONS = communities.length > 0
+    ? communities.map(c => c.name)
+    : Array.from(new Set(families.map(areaOf).filter(Boolean))).sort();
 
   const savedFamilyIds = user?.savedFamilyIds || [];
 
@@ -101,7 +121,14 @@ const MapView: React.FC = () => {
   // Recenter map when bairro/city filter changes
   useEffect(() => {
     if (bairroFilter !== 'all') {
-      const firstFam = families.find(f => f.neighborhood.toLowerCase() === bairroFilter.toLowerCase());
+      // A comunidade manda: ela tem posição própria mesmo que nenhuma família
+      // dali tenha pedido apoio hoje.
+      const area = communities.find(c => c.name.toLowerCase() === bairroFilter.toLowerCase());
+      if (area?.latitude != null && area.longitude != null) {
+        setMapCenter([area.latitude, area.longitude]);
+        return;
+      }
+      const firstFam = families.find(f => areaOf(f).toLowerCase() === bairroFilter.toLowerCase());
       if (firstFam) { setMapCenter([firstFam.latitude, firstFam.longitude]); return; }
     }
     if (cityFilter !== 'all') {
@@ -113,12 +140,12 @@ const MapView: React.FC = () => {
       return;
     }
     setMapCenter([-23.5900, -46.6200]);
-  }, [bairroFilter, cityFilter, families, userLocation]);
+  }, [bairroFilter, cityFilter, families, communities, userLocation]);
 
   // Filter Logic
   const filteredFamilies = families.filter(fam => {
     if (cityFilter !== 'all' && fam.state !== cityFilter) return false;
-    if (bairroFilter !== 'all' && fam.neighborhood.toLowerCase() !== bairroFilter.toLowerCase()) return false;
+    if (bairroFilter !== 'all' && areaOf(fam).toLowerCase() !== bairroFilter.toLowerCase()) return false;
     if (statusFilter === 'needs_help' && !isBeneficiaryEligible(fam)) return false;
     if (statusFilter === 'fed' && isBeneficiaryEligible(fam)) return false;
     if (urgencyFilter === 'high' && fam.priorityLevel < 4) return false;
@@ -197,6 +224,37 @@ const MapView: React.FC = () => {
       iconAnchor: [18, 18]
     });
   };
+
+  /**
+   * Etiqueta da área: nome + quantas famílias pediram apoio hoje.
+   *
+   * É o que responde "para quem eu estou doando?" — o pino sozinho nunca
+   * respondeu isso.
+   */
+  const createAreaLabel = (c: MapCommunity) => {
+    const urgent = c.familiesInNeed > 0;
+    const detail = urgent
+      ? `${c.familiesInNeed} pedindo hoje`
+      : `${c.familiesTotal} ${c.familiesTotal === 1 ? 'família' : 'famílias'}`;
+
+    return L.divIcon({
+      html:
+        `<div class="area-label ${urgent ? 'area-label--urgent' : ''}">` +
+        `<span class="area-label__name">${c.name}</span>` +
+        `<span class="area-label__count">${detail}</span>` +
+        `</div>`,
+      className: 'area-label-wrapper',
+      iconSize: [0, 0], // o CSS dimensiona; tamanho fixo cortaria nomes longos
+      iconAnchor: [0, 0],
+    });
+  };
+
+  const visibleCommunities = communities.filter(c => {
+    if (c.latitude == null || c.longitude == null) return false;
+    if (cityFilter !== 'all' && c.state !== cityFilter) return false;
+    if (bairroFilter !== 'all' && c.name.toLowerCase() !== bairroFilter.toLowerCase()) return false;
+    return true;
+  });
 
   const isPreviewSaved = selectedFamilyPreview ? savedFamilyIds.includes(selectedFamilyPreview.id) : false;
 
@@ -277,6 +335,30 @@ const MapView: React.FC = () => {
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; OpenStreetMap contributors &copy; CARTO'
           />
+
+          {/* ── Áreas (comunidades) ── desenhadas abaixo dos pinos de família */}
+          {visibleCommunities.map((c) => (
+            <React.Fragment key={c.id}>
+              {/* O círculo só aparece quando sabemos ONDE fica a comunidade.
+                  Com `region_centroid` a posição é o centro do município, e
+                  desenhar uma área ali sugeriria uma precisão que não existe —
+                  fica só a etiqueta. */}
+              {c.source === 'osm' && (
+                <Circle
+                  center={[c.latitude!, c.longitude!]}
+                  radius={700}
+                  pathOptions={{
+                    className: c.familiesInNeed > 0 ? 'area-circle area-circle--urgent' : 'area-circle',
+                  }}
+                />
+              )}
+              <Marker
+                position={[c.latitude!, c.longitude!]}
+                icon={createAreaLabel(c)}
+                eventHandlers={{ click: () => handleBairroSelect(c.name) }}
+              />
+            </React.Fragment>
+          ))}
 
           {filteredFamilies.map((fam) => (
             <Marker
@@ -405,6 +487,13 @@ const MapView: React.FC = () => {
       {/* ── Legenda BottomSheet ── */}
       <BottomSheet isOpen={isLegendOpen} onClose={() => setIsLegendOpen(false)} title="Legenda do Mapa">
         <div className="surface-card legend-card">
+          <div className="legend-item">
+            <span className="legend-icon">📍</span>
+            <span className="legend-text">
+              Nome da comunidade e quantas famílias pedem apoio hoje. A área é
+              aproximada — marca a região, não o endereço de ninguém.
+            </span>
+          </div>
           <div className="legend-item">
             <span className="bullet urgent"></span>
             <span className="legend-icon">💔</span>

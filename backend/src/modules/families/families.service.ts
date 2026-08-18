@@ -3,6 +3,8 @@ import { AppError } from '../../shared/errors/AppError';
 import { maskTail } from '../../shared/utils/mask';
 import { createAuditLog } from '../auditLogs/auditLog.service';
 import { getCurrentCycleStart } from '../../shared/utils/feedCycle';
+import { findRegionByCityState } from '../regions/regions.service';
+import { resolveCommunity } from '../regions/communities.service';
 import type { UserRole, GiftCardProvider } from '@prisma/client';
 import type { CreateFamilyInput, UpdateFamilyInput, ListFamiliesQuery } from './families.validator';
 
@@ -12,6 +14,33 @@ export interface Actor {
 }
 
 const familyInclude = { dependents: true } as const;
+
+/**
+ * Liga o texto do cadastro (cidade/UF + comunidade) aos registros oficiais.
+ *
+ * Sem isto a família ficava com `regionId` nulo e não aparecia no mapa: o
+ * cadastro só gravava `city`/`state` como texto, e nada resolvia esse texto
+ * para o município do IBGE.
+ *
+ * Falha em resolver não impede o cadastro — o município pode estar escrito de
+ * um jeito que a base não reconhece, e recusar a família por isso seria pior do
+ * que cadastrá-la sem posição no mapa.
+ */
+async function resolveLocation(
+  city: string | undefined,
+  state: string | undefined,
+  community: string | null | undefined,
+  neighborhood: string | null | undefined,
+): Promise<{ regionId?: string; communityId?: string }> {
+  if (!city || !state) return {};
+
+  const region = await findRegionByCityState(city, state);
+  if (!region) return {};
+
+  // Em muitos cadastros o nome da comunidade foi digitado no campo de bairro.
+  const communityId = await resolveCommunity(region.id, community || neighborhood);
+  return { regionId: region.id, ...(communityId ? { communityId } : {}) };
+}
 
 /** Resolve a entidade do usuário logado (papel entity). 403 se não houver. */
 async function resolveActorEntityId(actor: Actor): Promise<string> {
@@ -39,11 +68,19 @@ export async function createFamily(actor: Actor, input: CreateFamilyInput) {
   else if (actor.role === 'admin') entityId = input.entityId ?? null;
   else throw new AppError('Acesso negado', 403, 'forbidden');
 
+  const location = await resolveLocation(
+    input.city,
+    input.state,
+    input.community,
+    input.neighborhood,
+  );
+
   const family = await prisma.family.create({
     data: {
       responsibleName: input.responsibleName,
       displayName: input.displayName,
       entityId,
+      ...location,
       city: input.city,
       state: input.state.toUpperCase(),
       neighborhood: input.neighborhood,
@@ -125,10 +162,21 @@ export async function getFamilyForActor(actor: Actor, id: string) {
 }
 
 export async function updateFamily(actor: Actor, id: string, input: UpdateFamilyInput) {
-  await loadOwnedFamily(actor, id);
+  const current = await loadOwnedFamily(actor, id);
+
+  // Mudar cidade ou comunidade tem que mover a família no mapa. Os campos
+  // podem vir parciais, então a resolução usa o valor novo quando ele veio e o
+  // atual quando não veio.
+  const location = await resolveLocation(
+    input.city ?? current.city,
+    input.state ?? current.state,
+    input.community !== undefined ? input.community : current.community,
+    input.neighborhood !== undefined ? input.neighborhood : current.neighborhood,
+  );
+
   const family = await prisma.family.update({
     where: { id },
-    data: { ...input, state: input.state?.toUpperCase() },
+    data: { ...input, state: input.state?.toUpperCase(), ...location },
     include: familyInclude,
   });
   await createAuditLog({
@@ -255,7 +303,7 @@ export async function getMapFamilies(filters: { state?: string }) {
     },
     // Explícito em vez de espalhar `familyInclude`: o spread alarga
     // `dependents: true` para `boolean` e o Prisma perde a inferência do tipo.
-    include: { dependents: true, region: true },
+    include: { dependents: true, region: true, communityRef: true },
     orderBy: { supportRequestedAt: 'desc' },
   });
 }

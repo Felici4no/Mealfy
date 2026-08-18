@@ -248,11 +248,67 @@ model Region {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  families Family[]
+  families    Family[]
+  communities Community[]
 
   @@index([state])
   @@index([nameSearch])
   @@map("regions")
+}
+
+/// De onde veio a coordenada da comunidade.
+///
+/// Registrar a origem é o que impede o app de apresentar um palpite como se
+/// fosse localização confirmada: `region_centroid` é literalmente o centro do
+/// município, não o lugar.
+enum CommunitySource {
+  /// Encontrada no OpenStreetMap (base colaborativa, NÃO governamental).
+  osm
+  /// Só o texto que o cadastro informou; sem coordenada própria.
+  declared
+  /// Sem correspondência no OSM: herda o centro do município.
+  region_centroid
+}
+
+/// Comunidade/favela/bairro dentro de um município — "Cidade de Deus",
+/// "Heliópolis", "Rocinha".
+///
+/// Existe porque o município é grande demais para o doador saber a quem está
+/// doando: "Rio de Janeiro" não diz nada, "Cidade de Deus" diz tudo. O IBGE não
+/// publica esse nível como API (`/localidades/favelas` responde 404; a base de
+/// Favelas e Comunidades Urbanas do Censo 2022 só sai como arquivo), então a
+/// coordenada vem do OpenStreetMap e a origem fica gravada em `source`.
+///
+/// O nome continua sendo digitado por quem cadastra — ninguém escolhe de uma
+/// lista fechada, porque lista fechada nenhuma cobre as comunidades do país.
+/// `nameSearch` + unicidade por município é o que evita "Heliópolis",
+/// "heliopolis" e "Heliopolis " virarem três lugares no mapa.
+model Community {
+  id         String          @id @default(uuid())
+  regionId   String
+  region     Region          @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  /// Como foi digitado da primeira vez — é o que aparece na tela.
+  name       String
+  /// Minúsculo e sem acento; só para deduplicar e buscar.
+  nameSearch String
+  latitude   Float?
+  longitude  Float?
+  source     CommunitySource @default(declared)
+  /// Identificador OSM da área, quando houve correspondência. Guardado para
+  /// permitir reconferir a origem depois sem refazer a busca por nome.
+  osmId      String?
+  /// Quando tentamos geocodificar pela última vez. Nulo = nunca tentamos.
+  /// Sem isso, uma comunidade que o OSM não conhece seria reconsultada a cada
+  /// carregamento do mapa.
+  geocodedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  families Family[]
+
+  @@unique([regionId, nameSearch])
+  @@index([regionId])
+  @@map("communities")
 }
 
 model Family {
@@ -271,8 +327,14 @@ model Family {
   /// quem manda no mapa agora é `region`.
   city                      String
   state                     String
-  /// Bairro/comunidade — texto livre, informado por quem cadastra. O IBGE não
-  /// fornece esse nível.
+  /// Comunidade/favela onde a família mora — é isto que o doador vê no mapa,
+  /// porque o município sozinho não diz a quem ele está doando.
+  communityId               String?
+  communityRef              Community?               @relation(fields: [communityId], references: [id])
+  /// Bairro/comunidade como texto — continua sendo o que o cadastro digita, e é
+  /// a partir de `community` que a `Community` acima é resolvida. Mantidos
+  /// porque são a entrada crua: se a resolução mudar de regra, o texto original
+  /// ainda está aqui.
   neighborhood              String?
   community                 String?
   approximateAddress        String?

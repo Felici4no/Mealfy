@@ -133,6 +133,22 @@ export async function searchRegions(query: string, state?: string, limit = 20) {
 }
 
 /**
+ * Encontra o município pelo nome digitado + UF.
+ *
+ * Existe porque o cadastro grava `city`/`state` como texto e nada ligava esse
+ * texto ao município do IBGE: família criada pela API ficava com `regionId`
+ * nulo e, por isso, nunca aparecia no mapa nem contava nos totais da região.
+ *
+ * Compara por `nameSearch` (sem acento, minúsculo) e exige correspondência
+ * exata: "São Paulo" e "são paulo" são o mesmo lugar, mas "Paulo" não é.
+ */
+export async function findRegionByCityState(city: string, state: string) {
+  return prisma.region.findFirst({
+    where: { nameSearch: normalizeName(city), state: state.toUpperCase() },
+  });
+}
+
+/**
  * Regiões com famílias, para o doador escolher onde concentrar o apoio.
  *
  * Traz duas contagens diferentes de propósito:

@@ -20,9 +20,34 @@ export interface Region {
   familiesInNeed: number;
 }
 
+/**
+ * Comunidade/favela dentro de um município — "Cidade de Deus", "Heliópolis".
+ *
+ * É o nível que o doador reconhece: "Rio de Janeiro" não diz a quem ele está
+ * doando. O IBGE não publica esse nível por API, então a coordenada vem do
+ * OpenStreetMap — base colaborativa, não oficial — e `source` diz exatamente
+ * isso, para nenhuma tela apresentar palpite como localização confirmada.
+ */
+export interface MapCommunity {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  latitude: number | null;
+  longitude: number | null;
+  /** `osm` = área encontrada; `region_centroid` = só o centro do município. */
+  source: 'osm' | 'declared' | 'region_centroid';
+  familiesTotal: number;
+  familiesInNeed: number;
+}
+
 export const regionsApi = {
   /** Regiões com famílias, ordenadas por quem tem mais gente pedindo hoje. */
   getRegions: () => apiRequest<{ regions: Region[] }>('/regions', 'GET'),
+
+  /** Comunidades com famílias — as áreas desenhadas no mapa. */
+  getMapCommunities: () =>
+    apiRequest<{ communities: MapCommunity[] }>('/regions/communities/map', 'GET'),
 
   /** Busca de município (cadastro de família). Aceita nome com ou sem acento. */
   searchRegions: (q: string, state?: string) =>

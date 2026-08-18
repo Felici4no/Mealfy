@@ -1,6 +1,25 @@
-import type { Family, FamilyDependent } from '@prisma/client';
+import type { Family, FamilyDependent, Community } from '@prisma/client';
 
-export type FamilyWithDependents = Family & { dependents: FamilyDependent[] };
+export type FamilyWithDependents = Family & {
+  dependents: FamilyDependent[];
+  /// Presente nas consultas do mapa; ausente nas demais.
+  communityRef?: Community | null;
+};
+
+/**
+ * Posição a mostrar no mapa.
+ *
+ * A família só tem coordenada própria quando alguém a informou, o que é raro e
+ * seria expor demais. A posição publicada é a da COMUNIDADE — que é o nível que
+ * o doador reconhece e, ao mesmo tempo, o que não entrega o endereço de
+ * ninguém. Sem isso, marcador sem coordenada quebrava o mapa.
+ */
+function mapPosition(f: FamilyWithDependents) {
+  return {
+    latitude: f.communityRef?.latitude ?? f.latitude,
+    longitude: f.communityRef?.longitude ?? f.longitude,
+  };
+}
 
 const effectiveProvider = (f: Family) => f.todayRequestedProvider ?? f.preferredGiftCardProvider ?? null;
 const eligibleMinors = (deps: FamilyDependent[]) => deps.filter((d) => d.isEligibleMinor).length;
@@ -17,10 +36,14 @@ export function toDonorFamily(f: FamilyWithDependents) {
     city: f.city,
     state: f.state,
     neighborhood: f.neighborhood,
-    community: f.community,
+    // O nome resolvido da comunidade quando existe: é ele que dedupe
+    // "Heliópolis"/"heliopolis". O texto cru continua como reserva.
+    community: f.communityRef?.name ?? f.community,
+    /// Se a posição é a da comunidade ou o centro do município — o app não deve
+    /// prometer precisão que não tem.
+    locationSource: f.communityRef?.source ?? null,
     approximateAddress: f.approximateAddress,
-    latitude: f.latitude,
-    longitude: f.longitude,
+    ...mapPosition(f),
     supportStatus: f.supportStatus,
     requestedProvider: effectiveProvider(f),
     childrenCount: eligibleMinors(f.dependents),

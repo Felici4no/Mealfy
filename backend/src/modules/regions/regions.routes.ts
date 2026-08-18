@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import { authGuard } from '../../shared/middlewares/authGuard';
 import { roleGuard } from '../../shared/middlewares/roleGuard';
 import * as regionsService from './regions.service';
+import * as communitiesService from './communities.service';
 
 // Montado em /regions.
 export const regionsRoutes = Router();
@@ -38,6 +39,27 @@ regionsRoutes.get('/search', authGuard, async (req: Request, res: Response) => {
 regionsRoutes.get('/map', authGuard, async (_req: Request, res: Response) => {
   return res.json({ regions: await regionsService.listRegionsWithFamilies() });
 });
+
+/**
+ * Comunidades com famílias — "Cidade de Deus", "Heliópolis". É o que o mapa
+ * desenha para o doador saber a quem está doando: o município sozinho não diz.
+ */
+regionsRoutes.get('/communities/map', authGuard, async (_req: Request, res: Response) => {
+  return res.json({ communities: await communitiesService.listCommunitiesForMap() });
+});
+
+/**
+ * Vincula famílias antigas às comunidades. Admin: é migração de dados, roda uma
+ * vez depois do deploy que criou a tabela.
+ */
+regionsRoutes.post(
+  '/communities/backfill',
+  authGuard,
+  roleGuard('admin'),
+  async (_req: Request, res: Response) => {
+    return res.json(await communitiesService.backfillCommunities());
+  },
+);
 
 /**
  * Importa a lista do IBGE. Admin: é operação de manutenção, não de uso normal,
