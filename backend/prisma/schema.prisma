@@ -217,6 +217,44 @@ model Entity {
   @@map("entities")
 }
 
+/// Município brasileiro, importado do IBGE — a lista canônica de áreas.
+///
+/// Antes, "área" só existia se alguma família tivesse sido cadastrada ali, e o
+/// nome era texto livre digitado no cadastro: "Heliópolis", "heliopolis" e
+/// "Heliopolis " viravam três lugares diferentes. Aqui a chave é o código IBGE,
+/// então o município existe independentemente de haver família nele.
+///
+/// O bairro/comunidade continua sendo texto livre em `Family` — é informação
+/// que o IBGE não fornece e que só quem cadastra conhece.
+model Region {
+  id        String  @id @default(uuid())
+  /// Código IBGE do município (7 dígitos). Identidade estável e oficial.
+  ibgeCode  Int     @unique
+  name      String
+  /// Nome sem acento e em minúsculas, só para busca.
+  ///
+  /// `contains` com `mode: insensitive` resolve caixa, mas NÃO acento: quem
+  /// digitasse "sao paulo" não encontrava "São Paulo" — inaceitável, já que a
+  /// maioria dos municípios brasileiros tem acento. Coluna dedicada resolve sem
+  /// depender da extensão `unaccent` do Postgres.
+  nameSearch String @default("")
+  /// UF em duas letras (SP, RJ...).
+  state     String
+  /// Centroide da malha do IBGE. Nulo até ser buscado sob demanda: são 5.571
+  /// municípios e baixar a geometria de todos de uma vez seria lento e inútil,
+  /// já que só interessa onde existe família.
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  families Family[]
+
+  @@index([state])
+  @@index([nameSearch])
+  @@map("regions")
+}
+
 model Family {
   id                        String                   @id @default(uuid())
   responsibleName           String
@@ -225,8 +263,16 @@ model Family {
   entity                    Entity?                  @relation(fields: [entityId], references: [id])
   nisMasked                 String?
   cpfMasked                 String?
+  /// Município oficial. Passa a ser a fonte da posição no mapa — a família é
+  /// mostrada na região, não no endereço, o que também expõe menos.
+  regionId                  String?
+  region                    Region?                  @relation(fields: [regionId], references: [id])
+  /// Mantidos por compatibilidade e para exibição: continuam preenchidos, mas
+  /// quem manda no mapa agora é `region`.
   city                      String
   state                     String
+  /// Bairro/comunidade — texto livre, informado por quem cadastra. O IBGE não
+  /// fornece esse nível.
   neighborhood              String?
   community                 String?
   approximateAddress        String?

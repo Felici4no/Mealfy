@@ -17,6 +17,7 @@ import { donationsRoutes } from './modules/donations/donations.routes';
 import { beneficiaryRoutes } from './modules/beneficiary/beneficiary.routes';
 import { paymentsRoutes } from './modules/payments/payments.routes';
 import { rankingRoutes } from './modules/ranking/ranking.routes';
+import { regionsRoutes } from './modules/regions/regions.routes';
 import { notFoundHandler } from './shared/middlewares/notFound';
 import { errorHandler } from './shared/middlewares/errorHandler';
 
@@ -85,6 +86,7 @@ export function createApp(): Application {
   app.use('/payments', paymentsRoutes);
   app.use('/beneficiary', beneficiaryRoutes);
   app.use('/ranking', rankingRoutes);
+  app.use('/regions', regionsRoutes);
   app.use('/admin', adminRoutes);
   app.use('/admin', giftCardsRoutes);
 
